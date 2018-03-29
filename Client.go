@@ -8,6 +8,7 @@ import (
 type Client struct {
 	repo     string
 	language string
+	game     string
 }
 
 func (c Client) CloneRepo(dir string) *git.Repository {
