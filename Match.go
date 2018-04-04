@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"sync"
 
-	"github.com/fatih/color"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
@@ -43,35 +43,71 @@ func (m Match) StartMatch() {
 	log.Printf("Cloning %s's repo: %s to %s", player2.name, player2.client.repo, matchDir)
 	player2.client.CloneRepo(matchDir + "/" + player2.name)
 
+	var matchWG sync.WaitGroup
+	matchWG.Add(m.numGames)
+
 	// play numGames games between each player
 	for i := 0; i < m.numGames; i++ {
-		g := Game{
-			players,
-			1,
-			2,
-			m.id,
-		}
-		getCurrentSession()
-		currentSession = currentSession + 1
-		fmt.Println("playing game -- session: " + strconv.Itoa(currentSession))
-		g.PlayGame(strconv.Itoa(currentSession))
+		go func() {
+			g := Game{
+				players,
+				1,
+				2,
+				m.id,
+			}
+
+			currentSession := strconv.Itoa(getCurrentSessionID())
+
+			fmt.Println("playing game -- match: ", strconv.Itoa(m.id), " session: ", currentSession)
+			g.PlayGame(currentSession)
+
+			fmt.Println("gamelog: ", getGamelogFilename(g.players[0].client.game, currentSession))
+
+			matchWG.Done()
+			return
+		}()
 	}
+
+	defer matchWG.Wait()
+	return
 }
 
-func getCurrentSession() {
+func getCurrentSessionID() int {
+	// open DB
 	var dbType = conf.Get("dbType")
 	var dbName = conf.Get("sessionDBName")
 	db, _ := gorm.Open(dbType, dbName)
 
+	// Insert new Session into DB
 	var session = new(Session)
+	db.Create(&session)
 
-	s := db.Create(&session)
-
-	_s := db.Last(&s)
-
-	b := color.New(color.FgRed, color.Bold)
-
-	b.Println(_s)
+	// get last inserted Session object
+	var _session Session
+	db.Last(&_session)
 
 	defer db.Close()
+
+	// return the new Session
+	return _session.ID
+}
+
+func getCurrentMatchID() int {
+	// open DB
+	var dbType = conf.Get("dbType")
+	var dbName = conf.Get("matchDBName")
+	db, _ := gorm.Open(dbType, dbName)
+
+	// Insert new Session into DB
+	var matchID = new(MatchID)
+	db.Create(&matchID)
+
+	// get last inserted Session object
+	var _matchID MatchID
+	db.Last(&_matchID)
+
+	defer db.Close()
+
+	// return the new Session
+	return _matchID.ID
 }

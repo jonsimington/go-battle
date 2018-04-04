@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html"
 	"os"
+	"strings"
 	//"log"
 	"net/http"
 
@@ -24,6 +25,8 @@ func main() {
 
 	conf.Use("local", NewJsonConfig("./config.json"))
 
+	//runtime.GOMAXPROCS(runtime.NumCPU())
+
 	initDB()
 
 	//router := mux.NewRouter().StrictSlash(true)
@@ -35,8 +38,8 @@ func main() {
 	p1 := Player{
 		"jon",
 		Client{
-			"/Users/jonsimington/Desktop/dablord",
-			"js",
+			"https://github.com/brianwgoldman/megaminerai-19-stumped",
+			"py",
 			"Stumped",
 		},
 	}
@@ -51,8 +54,8 @@ func main() {
 	}
 
 	m := Match{
-		1,
-		2,
+		getCurrentMatchID(),
+		7,
 		[]Game{},
 		[]Player{
 			p1,
@@ -61,6 +64,7 @@ func main() {
 	}
 
 	m.StartMatch()
+	fmt.Println("EXITING")
 }
 
 func Index(w http.ResponseWriter, r *http.Request) {
@@ -69,21 +73,39 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func initDB() {
-	var sessionDBName = conf.Get("sessionDBName")
-	if _, err := os.Stat(sessionDBName); os.IsNotExist(err) {
-		var dbType = conf.Get("dbType")
-		var dbName = conf.Get("sessionDBName")
-		db, _ := gorm.Open(dbType, dbName)
-
-		db.CreateTable(&Session{})
-
-		var initialSession = Session{ID: 1}
-		db.Create(&initialSession)
-
-		defer db.Close()
+	dbNames := []string{
+		conf.Get("sessionDBName"),
+		conf.Get("matchDBName"),
 	}
+
+	for _, dbName := range dbNames {
+		go func(dbName string) {
+			if _, err := os.Stat(dbName); os.IsNotExist(err) {
+				var dbType = conf.Get("dbType")
+
+				db, _ := gorm.Open(dbType, dbName)
+				defer db.Close()
+
+				if strings.Contains(dbName, "session") {
+					db.CreateTable(&Session{})
+
+					var initialSession = Session{ID: 1}
+					db.Create(&initialSession)
+				}
+				if strings.Contains(dbName, "match") {
+					db.CreateTable(&MatchID{})
+					var initialMatchID = MatchID{ID: 1}
+					db.Create(&initialMatchID)
+				}
+			}
+		}(dbName)
+	}
+
 }
 
 type Session struct {
+	ID int `sql:"AUTO_INCREMENT" gorm:"primary_key"`
+}
+type MatchID struct {
 	ID int `sql:"AUTO_INCREMENT" gorm:"primary_key"`
 }

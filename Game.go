@@ -1,16 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -28,29 +25,32 @@ var _httpClient = &http.Client{
 }
 
 func (g Game) PlayGame(gameSession string) bool {
-	player1 := g.players[0]
-	player2 := g.players[1]
-
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	log.Printf("Beginning game between %s and %s", player1.name, player2.name)
+	log.Printf("Beginning game between %s and %s", g.players[0].name, g.players[1].name)
 
 	var matchID = strconv.Itoa(g.match)
 	pwd, _ := os.Getwd()
 
 	var matchDir = pwd + "/tmp/" + matchID
 
-	// join game for each player
+	// Create WG(2) to wait for player games to complete
+	var gameplayWG sync.WaitGroup
+	gameplayWG.Add(2)
+
+	// play game for each player
 	for _, player := range g.players {
-		playerDir := matchDir + "/" + player.name + "/"
 
-		go playGame(player, playerDir, &wg, gameSession)
+		go func(player Player) {
+			playerDir := matchDir + "/" + player.name + "/"
 
-		fmt.Println(getGamelogFilename(player.client.game, gameSession))
+			playGame(player, playerDir, &gameplayWG, gameSession)
+
+			gameplayWG.Done()
+			return
+		}(player)
 	}
 
-	wg.Wait()
+	// Wait for games to finish before returning
+	defer gameplayWG.Wait()
 
 	return true
 }
@@ -64,15 +64,7 @@ func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession s
 
 	runGame(playerLanguage, playerDir, gameType, gameSession)
 
-	wg.Done()
 	return
-}
-
-func copyOutput(r io.Reader) {
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		fmt.Println(scanner.Text())
-	}
 }
 
 func runGame(playerLanguage string, playerDir string, gameType string, gameSession string) {
@@ -88,38 +80,10 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 	// run game
 	runCmd := exec.Command(m[playerLanguage], playerDir+"main."+playerLanguage, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
 
-	// capture stdout
-	stdout, err := runCmd.StdoutPipe()
-	if err != nil {
-		panic(err)
-	}
-
-	// capture stderr
-	stderr, err := runCmd.StderrPipe()
-	if err != nil {
-		panic(err)
-	}
-
-	// start game & capture error if one gets returned
-	err = runCmd.Start()
-	if err != nil {
-		panic(err)
-	}
-
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		if strings.Contains(scanner.Text(), "I Won") == true {
-			fmt.Println("WON")
-		} else {
-			fmt.Println(scanner.Text())
-		}
-	}
-
-	go copyOutput(stdout)
-	go copyOutput(stderr)
-
 	// wait for game to finish
-	runCmd.Wait()
+	defer runCmd.Start()
+	defer runCmd.Wait()
+	defer fmt.Println("GAME FOR ", playerDir, " DONE")
 	return
 }
 
@@ -128,29 +92,9 @@ func makeClient(playerDir string) {
 	makeCmd := exec.Command("make")
 	makeCmd.Dir = playerDir
 
-	// capture stdout
-	stdout, err := makeCmd.StdoutPipe()
-	if err != nil {
-		panic(err)
-	}
-
-	// capture stderr
-	stderr, err := makeCmd.StderrPipe()
-	if err != nil {
-		panic(err)
-	}
-
-	// run make & capture error if one gets returned
-	err = makeCmd.Start()
-	if err != nil {
-		panic(err)
-	}
-
-	go copyOutput(stdout)
-	go copyOutput(stderr)
-
 	// wait for make to finish
-	makeCmd.Wait()
+	defer makeCmd.Start()
+	defer makeCmd.Wait()
 
 	return
 }
@@ -221,7 +165,7 @@ func getGamelogFilename(gameType string, gameSession string) string {
 	for status != "over" {
 		status = getGameStatus(gameType, gameSession)
 	}
-	fmt.Println(url)
+
 	gameStatus := new(GameStatus)
 
 	getJson(url, gameStatus)

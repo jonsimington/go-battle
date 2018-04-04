@@ -3,5 +3,6 @@
     "gameserverPlayPort": "3000",
     "gameserverStatusPort": "3080",
     "dbType": "sqlite3",
-    "sessionDBName": "sessions.db"
+    "sessionDBName": "sessions.db",
+    "matchDBName": "matches.db"
 }

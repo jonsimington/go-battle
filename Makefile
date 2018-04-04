@@ -9,3 +9,6 @@ dep-graph:
 
 update-deps:
 	dep ensure -update
+
+clean:
+	rm -rf tmp/
