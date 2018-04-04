@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -95,33 +94,17 @@ func makeClient(playerDir string) {
 	return
 }
 
-func getGamelog(gameserverURL string, gameType string, gameSession string) {
-	var glogURL = "http://localhost:3080/gamelog/2018.03.22.20.47.33.754-" + gameType + "-" + gameSession
+func getGamelog(gamelogFilename string) *Gamelog {
+	var cerveauURL = conf.Get("gameserver")
+	var port = conf.Get("gameserverStatusPort")
 
-	client := http.Client{
-		Timeout: time.Second * 2, // Maximum of 2 secs
-	}
+	glogURL := "http://" + cerveauURL + ":" + port + "/gamelog/" + gamelogFilename
+	fmt.Println(glogURL)
+	glog := new(Gamelog)
 
-	req, err := http.NewRequest(http.MethodGet, glogURL, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	getJson(glogURL, glog)
 
-	req.Header.Set("User-Agent", "spacecount-tutorial")
-
-	res, getErr := client.Do(req)
-	if getErr != nil {
-		log.Fatal(getErr)
-	}
-
-	body, readErr := ioutil.ReadAll(res.Body)
-	if readErr != nil {
-		log.Fatal(readErr)
-	}
-
-	var gamelog Gamelog
-	json.Unmarshal([]byte(body), &gamelog)
-	//fmt.Printf("Species: %s, Description: %s", gamelog.winners)
+	return glog
 }
 
 func getJson(url string, target interface{}) error {
@@ -214,5 +197,5 @@ type GameResult struct {
 // GamelogDelta represents the delta of an mmai Gamelog
 type GamelogDelta struct {
 	DeltaType string `json:"type"`
-	Game      string `json:"game"`
+	Game      string `json:"gamez"`
 }

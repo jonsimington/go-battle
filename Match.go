@@ -68,9 +68,14 @@ func (m Match) StartMatch() {
 	}
 	matchWG.Wait()
 
+	// query cerveau API to get gamelogs for each game in match
 	for _, matchSession := range matchSessions {
 		gamelogFilename := getGamelogFilename(players[0].client.game, matchSession)
-		fmt.Println("gamelog: ", gamelogFilename, " session: ", matchSession)
+
+		glog := getGamelog(gamelogFilename)
+		winner := glog.Winners[0]
+		loser := glog.Losers[0]
+		fmt.Println("session: ", matchSession, " winner: ", winner.Name, " loser: ", loser.Name)
 	}
 	return
 }
