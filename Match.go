@@ -18,8 +18,6 @@ type Match struct {
 	players  []Player
 }
 
-var currentSession = 1
-
 // StartMatch begins a match between two players for n games
 func (m Match) StartMatch() {
 
@@ -46,6 +44,8 @@ func (m Match) StartMatch() {
 	var matchWG sync.WaitGroup
 	matchWG.Add(m.numGames)
 
+	var matchSessions []string
+
 	// play numGames games between each player
 	for i := 0; i < m.numGames; i++ {
 		go func() {
@@ -57,18 +57,21 @@ func (m Match) StartMatch() {
 			}
 
 			currentSession := strconv.Itoa(getCurrentSessionID())
+			matchSessions = append(matchSessions, currentSession)
 
 			fmt.Println("playing game -- match: ", strconv.Itoa(m.id), " session: ", currentSession)
 			g.PlayGame(currentSession)
-
-			fmt.Println("gamelog: ", getGamelogFilename(g.players[0].client.game, currentSession))
 
 			matchWG.Done()
 			return
 		}()
 	}
+	matchWG.Wait()
 
-	defer matchWG.Wait()
+	for _, matchSession := range matchSessions {
+		gamelogFilename := getGamelogFilename(players[0].client.game, matchSession)
+		fmt.Println("gamelog: ", gamelogFilename, " session: ", matchSession)
+	}
 	return
 }
 
@@ -77,6 +80,7 @@ func getCurrentSessionID() int {
 	var dbType = conf.Get("dbType")
 	var dbName = conf.Get("sessionDBName")
 	db, _ := gorm.Open(dbType, dbName)
+	defer db.Close()
 
 	// Insert new Session into DB
 	var session = new(Session)
@@ -85,8 +89,6 @@ func getCurrentSessionID() int {
 	// get last inserted Session object
 	var _session Session
 	db.Last(&_session)
-
-	defer db.Close()
 
 	// return the new Session
 	return _session.ID
@@ -97,6 +99,7 @@ func getCurrentMatchID() int {
 	var dbType = conf.Get("dbType")
 	var dbName = conf.Get("matchDBName")
 	db, _ := gorm.Open(dbType, dbName)
+	defer db.Close()
 
 	// Insert new Session into DB
 	var matchID = new(MatchID)
@@ -105,8 +108,6 @@ func getCurrentMatchID() int {
 	// get last inserted Session object
 	var _matchID MatchID
 	db.Last(&_matchID)
-
-	defer db.Close()
 
 	// return the new Session
 	return _matchID.ID

@@ -25,8 +25,6 @@ var _httpClient = &http.Client{
 }
 
 func (g Game) PlayGame(gameSession string) bool {
-	log.Printf("Beginning game between %s and %s", g.players[0].name, g.players[1].name)
-
 	var matchID = strconv.Itoa(g.match)
 	pwd, _ := os.Getwd()
 
@@ -50,7 +48,7 @@ func (g Game) PlayGame(gameSession string) bool {
 	}
 
 	// Wait for games to finish before returning
-	defer gameplayWG.Wait()
+	gameplayWG.Wait()
 
 	return true
 }
@@ -75,15 +73,13 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 	var gameserverURL = conf.Get("gameserver")
 	var port = conf.Get("gameserverPlayPort")
 
-	fmt.Println("running game -- session: " + gameSession)
-
 	// run game
 	runCmd := exec.Command(m[playerLanguage], playerDir+"main."+playerLanguage, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
 
 	// wait for game to finish
-	defer runCmd.Start()
-	defer runCmd.Wait()
-	defer fmt.Println("GAME FOR ", playerDir, " DONE")
+	runCmd.Start()
+	runCmd.Wait()
+
 	return
 }
 
@@ -93,8 +89,8 @@ func makeClient(playerDir string) {
 	makeCmd.Dir = playerDir
 
 	// wait for make to finish
-	defer makeCmd.Start()
-	defer makeCmd.Wait()
+	makeCmd.Start()
+	makeCmd.Wait()
 
 	return
 }
