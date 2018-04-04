@@ -75,7 +75,9 @@ func (m Match) StartMatch() {
 		glog := getGamelog(gamelogFilename)
 		winner := glog.Winners[0]
 		loser := glog.Losers[0]
-		fmt.Println("session: ", matchSession, " winner: ", winner.Name, " loser: ", loser.Name)
+		fmt.Println("Session ", matchSession, " Summary")
+		fmt.Println("\twinner: ", winner.Name, " reason: ", winner.Reason)
+		fmt.Println("\tloser: ", loser.Name, " reason: ", loser.Reason)
 	}
 	return
 }
