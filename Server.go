@@ -2,22 +2,30 @@ package main
 
 import (
 	"fmt"
-	"html"
-	"os"
-	"strings"
-	//"log"
-	"net/http"
+	"os" //"log"
+	"strconv"
+	"sync"
 
 	. "github.com/Nomon/gonfig"
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/sirupsen/logrus"
-	//"github.com/gorilla/mux"
 )
 
 // Create a new instance of the logger. You can have any number of instances.
 var log = logrus.New()
 
 var conf = NewConfig(nil)
+
+var wg sync.WaitGroup
+
+var db *gorm.DB
+
+func checkErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
 
 func main() {
 	log.Out = os.Stdout
@@ -27,13 +35,30 @@ func main() {
 
 	//runtime.GOMAXPROCS(runtime.NumCPU())
 
-	initDB()
+	wg.Add(1)
 
-	//router := mux.NewRouter().StrictSlash(true)
+	DB_HOST := conf.Get("DB_HOST")
+	DB_PORT, _ := strconv.Atoi(conf.Get("DB_PORT"))
+	DB_USER := conf.Get("DB_USER")
+	DB_NAME := conf.Get("DB_NAME")
 
-	//router.HandleFunc("/", Index)
+	dbinfo := fmt.Sprintf("host=%s port=%d user=%s "+
+		"dbname=%s sslmode=disable",
+		DB_HOST, DB_PORT, DB_USER, DB_NAME)
 
-	//log.Fatal(http.ListenAndServe(":8080", router))
+	db, err := gorm.Open("postgres", dbinfo)
+
+	checkErr(err)
+
+	defer db.Close()
+
+	db.AutoMigrate(&SessionID{}, &MatchID{})
+
+	fmt.Println("Session: " + strconv.Itoa(getCurrentSessionID(db)))
+
+	wg.Done()
+
+	wg.Wait()
 
 	p1 := Player{
 		"jon",
@@ -54,7 +79,7 @@ func main() {
 	}
 
 	m := Match{
-		getCurrentMatchID(),
+		getCurrentMatchID(db),
 		7,
 		[]Game{},
 		[]Player{
@@ -63,49 +88,6 @@ func main() {
 		},
 	}
 
-	m.StartMatch()
+	m.StartMatch(db)
 	fmt.Println("EXITING")
-}
-
-func Index(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
-
-}
-
-func initDB() {
-	dbNames := []string{
-		conf.Get("sessionDBName"),
-		conf.Get("matchDBName"),
-	}
-
-	for _, dbName := range dbNames {
-		go func(dbName string) {
-			if _, err := os.Stat(dbName); os.IsNotExist(err) {
-				var dbType = conf.Get("dbType")
-
-				db, _ := gorm.Open(dbType, dbName)
-				defer db.Close()
-
-				if strings.Contains(dbName, "session") {
-					db.CreateTable(&Session{})
-
-					var initialSession = Session{ID: 1}
-					db.Create(&initialSession)
-				}
-				if strings.Contains(dbName, "match") {
-					db.CreateTable(&MatchID{})
-					var initialMatchID = MatchID{ID: 1}
-					db.Create(&initialMatchID)
-				}
-			}
-		}(dbName)
-	}
-
-}
-
-type Session struct {
-	ID int `sql:"AUTO_INCREMENT" gorm:"primary_key"`
-}
-type MatchID struct {
-	ID int `sql:"AUTO_INCREMENT" gorm:"primary_key"`
 }

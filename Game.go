@@ -100,6 +100,8 @@ func getGamelog(gamelogFilename string) *Gamelog {
 
 	glogURL := "http://" + cerveauURL + ":" + port + "/gamelog/" + gamelogFilename
 
+	fmt.Println(glogURL)
+
 	glog := new(Gamelog)
 
 	getJson(glogURL, glog)
@@ -149,13 +151,18 @@ func getGamelogFilename(gameType string, gameSession string) string {
 
 	getJson(url, gameStatus)
 
-	return gameStatus.GamelogFilename
+	if gameStatus.GamelogFilename != "" {
+		return gameStatus.GamelogFilename
+	}
+
+	return getGamelogFilename(gameType, gameSession)
+
 }
 
 type GameStatus struct {
 	GameName        string       `json:"gameName"`
 	GameSession     string       `json:"gameSession"`
-	NumberOfPlayers int          `json:"numberOfPlayers"`
+	NumberOfPlayers int          `json:"requiredNumberOfPlayers"`
 	Clients         []GameClient `json:"clients"`
 	Status          string       `json:"status"`
 	GamelogFilename string       `json:"gamelogFilename"`

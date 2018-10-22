@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 // Match represents a series of games in a Tournament
@@ -19,7 +19,7 @@ type Match struct {
 }
 
 // StartMatch begins a match between two players for n games
-func (m Match) StartMatch() {
+func (m Match) StartMatch(db *gorm.DB) {
 
 	player1 := m.players[0]
 	player2 := m.players[1]
@@ -56,7 +56,7 @@ func (m Match) StartMatch() {
 				m.id,
 			}
 
-			currentSession := strconv.Itoa(getCurrentSessionID())
+			currentSession := strconv.Itoa(getCurrentSessionID(db))
 			matchSessions = append(matchSessions, currentSession)
 
 			fmt.Println("playing game -- match: ", strconv.Itoa(m.id), " session: ", currentSession)
@@ -72,6 +72,8 @@ func (m Match) StartMatch() {
 	for _, matchSession := range matchSessions {
 		gamelogFilename := getGamelogFilename(players[0].client.game, matchSession)
 
+		fmt.Println("Glog: " + gamelogFilename)
+
 		glog := getGamelog(gamelogFilename)
 		winner := glog.Winners[0]
 		loser := glog.Losers[0]
@@ -82,40 +84,26 @@ func (m Match) StartMatch() {
 	return
 }
 
-func getCurrentSessionID() int {
-	// open DB
-	var dbType = conf.Get("dbType")
-	var dbName = conf.Get("sessionDBName")
-	db, _ := gorm.Open(dbType, dbName)
-	defer db.Close()
+func getCurrentSessionID(db *gorm.DB) int {
+	var session = new(SessionID)
 
-	// Insert new Session into DB
-	var session = new(Session)
 	db.Create(&session)
 
-	// get last inserted Session object
-	var _session Session
-	db.Last(&_session)
+	var lastSession SessionID
 
-	// return the new Session
-	return _session.ID
+	db.Last(&lastSession)
+
+	return lastSession.SessionID
 }
 
-func getCurrentMatchID() int {
-	// open DB
-	var dbType = conf.Get("dbType")
-	var dbName = conf.Get("matchDBName")
-	db, _ := gorm.Open(dbType, dbName)
-	defer db.Close()
+func getCurrentMatchID(db *gorm.DB) int {
+	var match = new(MatchID)
 
-	// Insert new Session into DB
-	var matchID = new(MatchID)
-	db.Create(&matchID)
+	db.Create(&match)
 
-	// get last inserted Session object
-	var _matchID MatchID
-	db.Last(&_matchID)
+	var lastMatch MatchID
 
-	// return the new Session
-	return _matchID.ID
+	db.Last(&lastMatch)
+
+	return lastMatch.MatchID
 }

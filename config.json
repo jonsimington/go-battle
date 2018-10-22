@@ -2,7 +2,9 @@
     "gameserver": "localhost",
     "gameserverPlayPort": "3000",
     "gameserverStatusPort": "3080",
-    "dbType": "sqlite3",
-    "sessionDBName": "sessions.db",
-    "matchDBName": "matches.db"
+    "dbType": "postgres",
+    "DB_USER": "cn117164",
+    "DB_NAME": "go-battle",
+    "DB_HOST": "localhost",
+    "DB_PORT": 5432
 }
