@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os" //"log"
+	"runtime"
 	"strconv"
 	"sync"
 
@@ -33,20 +34,22 @@ func main() {
 
 	conf.Use("local", NewJsonConfig("./config.json"))
 
-	//runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	wg.Add(1)
 
-	DB_HOST := conf.Get("DB_HOST")
-	DB_PORT, _ := strconv.Atoi(conf.Get("DB_PORT"))
-	DB_USER := conf.Get("DB_USER")
-	DB_NAME := conf.Get("DB_NAME")
+	// INIT DB
+	dbHost := conf.Get("DB_HOST")
+	dbPort, _ := strconv.Atoi(conf.Get("DB_PORT"))
+	dbUser := conf.Get("DB_USER")
+	dbName := conf.Get("DB_NAME")
+	dbType := conf.Get("DB_TYPE")
 
-	dbinfo := fmt.Sprintf("host=%s port=%d user=%s "+
+	dbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"dbname=%s sslmode=disable",
-		DB_HOST, DB_PORT, DB_USER, DB_NAME)
+		dbHost, dbPort, dbUser, dbName)
 
-	db, err := gorm.Open("postgres", dbinfo)
+	db, err := gorm.Open(dbType, dbInfo)
 
 	checkErr(err)
 
@@ -54,10 +57,9 @@ func main() {
 
 	db.AutoMigrate(&SessionID{}, &MatchID{})
 
-	fmt.Println("Session: " + strconv.Itoa(getCurrentSessionID(db)))
-
 	wg.Done()
 
+	// wait until DB is initialized before continuing
 	wg.Wait()
 
 	p1 := Player{
