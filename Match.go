@@ -72,14 +72,12 @@ func (m Match) StartMatch(db *gorm.DB) {
 	for _, matchSession := range matchSessions {
 		gamelogFilename := getGamelogFilename(players[0].client.game, matchSession)
 
-		fmt.Println("Glog: " + gamelogFilename)
-
 		glog := getGamelog(gamelogFilename)
 		winner := glog.Winners[0]
 		loser := glog.Losers[0]
 		fmt.Println("Session ", matchSession, " Summary")
-		fmt.Println("\twinner: ", winner.Name, " reason: ", winner.Reason)
-		fmt.Println("\tloser: ", loser.Name, " reason: ", loser.Reason)
+		fmt.Println("\twinner: ", winner.Name)
+		fmt.Println("\tloser: ", loser.Name)
 	}
 	return
 }

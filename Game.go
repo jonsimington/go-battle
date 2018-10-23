@@ -100,8 +100,6 @@ func getGamelog(gamelogFilename string) *Gamelog {
 
 	glogURL := "http://" + cerveauURL + ":" + port + "/gamelog/" + gamelogFilename
 
-	fmt.Println(glogURL)
-
 	glog := new(Gamelog)
 
 	getJson(glogURL, glog)
