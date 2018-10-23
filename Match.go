@@ -84,7 +84,13 @@ func (m Match) StartMatch(db *gorm.DB) {
 	return
 }
 
+var sessionLock = &sync.Mutex{}
+var matchLock = &sync.Mutex{}
+
 func getCurrentSessionID(db *gorm.DB) int {
+	sessionLock.Lock()
+	defer sessionLock.Unlock()
+
 	var session = new(SessionID)
 
 	db.Create(&session)
@@ -97,6 +103,9 @@ func getCurrentSessionID(db *gorm.DB) int {
 }
 
 func getCurrentMatchID(db *gorm.DB) int {
+	matchLock.Lock()
+	defer matchLock.Unlock()
+
 	var match = new(MatchID)
 
 	db.Create(&match)
