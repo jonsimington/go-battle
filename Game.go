@@ -14,14 +14,6 @@ import (
 	"time"
 )
 
-// Game represents a game between two Players in a Tournament
-type Game struct {
-	players []Player
-	winner  int
-	loser   int
-	match   int
-}
-
 var _httpClient = &http.Client{
 	Timeout: time.Second * 10,
 }
@@ -116,10 +108,9 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 		} else if checkIfCommandExistsOnHost("python") {
 			m["py"] = "python"
 
+			// panic if host's python isn't python v3.x.x
 			if checkPythonVersionOnHost(m["py"]) != 3 {
 				panic("Host does not support python3.  Cerveau python clients require python3.")
-			} else {
-				fmt.Println("Host supports python3 : ^ )")
 			}
 		}
 	}
@@ -177,7 +168,7 @@ func getJSON(url string, target interface{}) error {
 	return _json
 }
 
-func getGameStatus(gameType string, gameSession string) string {
+func getGameStatus(gameType string, gameSession string) *GameStatus {
 	var cerveauURL = conf.Get("gameserver")
 	var port = conf.Get("gameserverStatusPort")
 	url := "http://" + cerveauURL + ":" + port + "/status/" + gameType + "/" + gameSession
@@ -186,7 +177,7 @@ func getGameStatus(gameType string, gameSession string) string {
 
 	getJSON(url, gameStatus)
 
-	return gameStatus.Status
+	return gameStatus
 }
 
 func getGamelogFilename(gameType string, gameSession string) string {
@@ -197,7 +188,7 @@ func getGamelogFilename(gameType string, gameSession string) string {
 	status := "running"
 
 	for status != "over" {
-		status = getGameStatus(gameType, gameSession)
+		status = getGameStatus(gameType, gameSession).Status
 	}
 
 	gameStatus := new(GameStatus)
@@ -210,54 +201,4 @@ func getGamelogFilename(gameType string, gameSession string) string {
 
 	return getGamelogFilename(gameType, gameSession)
 
-}
-
-// GameStatus represents the status of a played game
-type GameStatus struct {
-	GameName        string       `json:"gameName"`
-	GameSession     string       `json:"gameSession"`
-	NumberOfPlayers int          `json:"requiredNumberOfPlayers"`
-	Clients         []GameClient `json:"clients"`
-	Status          string       `json:"status"`
-	GamelogFilename string       `json:"gamelogFilename"`
-}
-
-// GameClient represents a client in a game
-type GameClient struct {
-	Name         string `json:"name"`
-	Index        int    `json:"index"`
-	Spectating   bool   `json:"spectating"`
-	Won          bool   `json:"won"`
-	Lost         bool   `json:"lost"`
-	Reason       string `json:"reason"`
-	Disconnected bool   `json:"disconnected"`
-	TimedOut     bool   `json:"timedOut"`
-}
-
-// Gamelog represents a mmai Gamelog
-type Gamelog struct {
-	GameName    string            `json:"gameName"`
-	GameSession string            `json:"gameSession"`
-	Deltas      []GamelogDelta    `json:"deltas"`
-	Constants   map[string]string `json:"constants"`
-	Epoch       int               `json:"epoch"`
-	RandomSeed  string            `json:"randomSeed"`
-	Winners     []GameResult      `json:"winners"`
-	Losers      []GameResult      `json:"losers"`
-}
-
-// GameResult represents the result of an mmai game
-type GameResult struct {
-	Index        int    `json:"index"`
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Reason       string `json:"reason"`
-	Disconnected bool   `json:"disconnected"`
-	TimedOut     bool   `json:"timedOut"`
-}
-
-// GamelogDelta represents the delta of an mmai Gamelog
-type GamelogDelta struct {
-	DeltaType string `json:"type"`
-	Game      string `json:"gamez"`
 }

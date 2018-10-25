@@ -55,7 +55,7 @@ func main() {
 
 	defer db.Close()
 
-	db.AutoMigrate(&SessionID{}, &MatchID{})
+	db.AutoMigrate(&SessionID{}, &MatchID{}, &GameClient{}, &GameStatus{})
 
 	wg.Done()
 

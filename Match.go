@@ -10,14 +10,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-// Match represents a series of games in a Tournament
-type Match struct {
-	id       int
-	numGames int
-	games    []Game
-	players  []Player
-}
-
 // StartMatch begins a match between two players for n games
 func (m Match) StartMatch(db *gorm.DB) {
 
@@ -73,6 +65,11 @@ func (m Match) StartMatch(db *gorm.DB) {
 		gamelogFilename := getGamelogFilename(players[0].client.game, matchSession)
 
 		glog := getGamelog(gamelogFilename)
+
+		// once the game is finished, get the status and insert into DB
+		gameStatus := getGameStatus(players[0].client.game, matchSession)
+		insertGameStatus(db, gameStatus)
+
 		winner := glog.Winners[0]
 		loser := glog.Losers[0]
 		fmt.Println("Session ", matchSession, " Summary")
@@ -80,37 +77,4 @@ func (m Match) StartMatch(db *gorm.DB) {
 		fmt.Println("\tloser: ", loser.Name)
 	}
 	return
-}
-
-var sessionLock = &sync.Mutex{}
-var matchLock = &sync.Mutex{}
-
-func getCurrentSessionID(db *gorm.DB) int {
-	sessionLock.Lock()
-	defer sessionLock.Unlock()
-
-	var session = new(SessionID)
-
-	db.Create(&session)
-
-	var lastSession SessionID
-
-	db.Last(&lastSession)
-
-	return lastSession.SessionID
-}
-
-func getCurrentMatchID(db *gorm.DB) int {
-	matchLock.Lock()
-	defer matchLock.Unlock()
-
-	var match = new(MatchID)
-
-	db.Create(&match)
-
-	var lastMatch MatchID
-
-	db.Last(&lastMatch)
-
-	return lastMatch.MatchID
 }
