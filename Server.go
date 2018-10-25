@@ -42,12 +42,12 @@ func main() {
 	dbHost := conf.Get("DB_HOST")
 	dbPort, _ := strconv.Atoi(conf.Get("DB_PORT"))
 	dbUser := conf.Get("DB_USER")
+	dbPass := conf.Get("DB_PASS")
 	dbName := conf.Get("DB_NAME")
 	dbType := conf.Get("DB_TYPE")
 
-	dbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"dbname=%s sslmode=disable",
-		dbHost, dbPort, dbUser, dbName)
+	dbInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		dbHost, dbPort, dbUser, dbPass, dbName)
 
 	db, err := gorm.Open(dbType, dbInfo)
 

@@ -34,12 +34,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:790d9817490973c6feeda8621c613514332c3449b656f5b66b8890702707535a"
+  digest = "1:73a16732560084adbdc85b0be72a2be18726376830b2adea3ce13d2423a86cd9"
   name = "github.com/jinzhu/gorm"
   packages = [
     ".",
     "dialects/postgres",
-    "dialects/sqlite",
   ]
   pruneopts = "UT"
   revision = "742154be9a26e849f02d296073c077e0a7c23828"
@@ -71,14 +70,6 @@
   pruneopts = "UT"
   revision = "4ded0e9383f75c197b3a2aaa6d590ac52df6fd79"
   version = "v1.0.0"
-
-[[projects]]
-  digest = "1:ee0845ea64262e3d1a6e2eab768fcb2008a0c8e571b7a3bebea554a1c031aeeb"
-  name = "github.com/mattn/go-sqlite3"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "6c771bb9887719704b210e87e934f08be014bdb1"
-  version = "v1.6.0"
 
 [[projects]]
   branch = "master"
@@ -270,8 +261,6 @@
     "github.com/Nomon/gonfig",
     "github.com/jinzhu/gorm",
     "github.com/jinzhu/gorm/dialects/postgres",
-    "github.com/jinzhu/gorm/dialects/sqlite",
-    "github.com/lib/pq",
     "github.com/sirupsen/logrus",
     "gopkg.in/src-d/go-git.v4",
   ]

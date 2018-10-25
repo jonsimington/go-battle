@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -64,10 +67,62 @@ func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession s
 	return
 }
 
+func checkIfCommandExistsOnHost(commandName string) bool {
+	cmd := exec.Command(commandName)
+
+	err := cmd.Run()
+
+	return err == nil
+}
+
+func checkPythonVersionOnHost(pythonCommandName string) int {
+	cmd := exec.Command(pythonCommandName, "--version")
+
+	// capture output of command
+	var outb, errb bytes.Buffer
+	cmd.Stdout = &outb
+	cmd.Stderr = &errb
+
+	err := cmd.Run()
+	checkErr(err)
+
+	// trim newline from stderr output
+	cmdOutput := strings.TrimRightFunc(errb.String(), func(c rune) bool {
+		return c == '\r' || c == '\n'
+	})
+
+	// Python version format is: `Python x.y.z` so capture those version numbers via regex
+	re := regexp.MustCompile("^Python (.*?)\\.(.*?)\\.(.*?)")
+
+	match := re.FindStringSubmatch(cmdOutput)
+
+	hostPythonVersionStr := match[1]
+
+	// try to convert parsed version into an int
+	hostPythonVersion, err := strconv.Atoi(hostPythonVersionStr)
+	checkErr(err)
+
+	return hostPythonVersion
+}
+
 func runGame(playerLanguage string, playerDir string, gameType string, gameSession string) {
 	m := make(map[string]string)
-	m["py"] = "python3"
 	m["js"] = "node"
+
+	// check if host uses python vs python3 command, and if it's python, make sure the version is 3.x.x
+	if playerLanguage == "py" {
+		if checkIfCommandExistsOnHost("python3") {
+			m["py"] = "python3"
+		} else if checkIfCommandExistsOnHost("python") {
+			m["py"] = "python"
+
+			if checkPythonVersionOnHost(m["py"]) != 3 {
+				panic("Host does not support python3.  Cerveau python clients require python3.")
+			} else {
+				fmt.Println("Host supports python3 : ^ )")
+			}
+		}
+	}
 
 	var gameserverURL = conf.Get("gameserver")
 	var port = conf.Get("gameserverPlayPort")
@@ -102,12 +157,12 @@ func getGamelog(gamelogFilename string) *Gamelog {
 
 	glog := new(Gamelog)
 
-	getJson(glogURL, glog)
+	getJSON(glogURL, glog)
 
 	return glog
 }
 
-func getJson(url string, target interface{}) error {
+func getJSON(url string, target interface{}) error {
 	r, err := _httpClient.Get(url)
 	if err != nil {
 		return err
@@ -129,7 +184,7 @@ func getGameStatus(gameType string, gameSession string) string {
 
 	gameStatus := new(GameStatus)
 
-	getJson(url, gameStatus)
+	getJSON(url, gameStatus)
 
 	return gameStatus.Status
 }
@@ -147,7 +202,7 @@ func getGamelogFilename(gameType string, gameSession string) string {
 
 	gameStatus := new(GameStatus)
 
-	getJson(url, gameStatus)
+	getJSON(url, gameStatus)
 
 	if gameStatus.GamelogFilename != "" {
 		return gameStatus.GamelogFilename
@@ -157,6 +212,7 @@ func getGamelogFilename(gameType string, gameSession string) string {
 
 }
 
+// GameStatus represents the status of a played game
 type GameStatus struct {
 	GameName        string       `json:"gameName"`
 	GameSession     string       `json:"gameSession"`
@@ -166,6 +222,7 @@ type GameStatus struct {
 	GamelogFilename string       `json:"gamelogFilename"`
 }
 
+// GameClient represents a client in a game
 type GameClient struct {
 	Name         string `json:"name"`
 	Index        int    `json:"index"`
