@@ -25,6 +25,7 @@ status.png
 
 # downloaded dependencies
 vendor/
+.vendor-new/
 
 # emacs temp files
 *~
