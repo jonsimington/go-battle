@@ -12,11 +12,14 @@ services:
       - db:/var/lib/postgresql/data
 
   api:
-    build: .
+    depends_on:
+      - db
+    build:
+      dockerfile: api.Dockerfile
     ports:
       - "3000:3000"
     volumes:
-      - .:/usr/src/app
+      - ../go-battle:/usr/src/app
     command: go run API/main.go -b 0.0.0.0
 
 volumes:
