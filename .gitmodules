@@ -1,0 +1,3 @@
+[submodule "cerveau"]
+	path = cerveau
+	url = https://github.com/siggame/Cerveau.git
