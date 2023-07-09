@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gopkg.in/src-d/go-git.v4"
+	"github.com/go-git/go-git/v5"
 )
 
 // Client represents the code which is executed for a Player in a Game
