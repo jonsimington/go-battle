@@ -1,0 +1,39 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15.3-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - db:/var/lib/postgresql/data
+
+  api:
+    depends_on:
+      - db
+    build:
+      dockerfile: api.Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./go-battle:/usr/src/app
+    command: go run API/main.go -b 0.0.0.0
+
+  cerveau:
+    build:
+      dockerfile: ./cerveau/Dockerfile
+
+  web:
+    build:
+      dockerfile: ./go-battle-web/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+
+volumes:
+  db:
+    driver: local
