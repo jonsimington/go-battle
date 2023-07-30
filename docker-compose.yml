@@ -15,6 +15,7 @@ services:
     depends_on:
       - db
     build:
+      context: ./go-battle
       dockerfile: api.Dockerfile
     ports:
       - "3000:3000"
@@ -25,7 +26,8 @@ services:
 
   cerveau:
     build:
-      dockerfile: ./cerveau/Dockerfile
+      context: ./cerveau
+      dockerfile: Dockerfile
 
   web:
     build:

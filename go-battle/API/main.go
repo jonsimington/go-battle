@@ -16,8 +16,6 @@ func main() {
 	app.Post("/games", func(c *fiber.Ctx) error {
 		gameId := c.Query("game_id")
 
-		fmt.Println(gameId)
-
 		return c.SendString(fmt.Sprintf("Created game with id %s", gameId))
 	})
 
