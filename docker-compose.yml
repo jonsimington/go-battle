@@ -19,8 +19,12 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ../go-battle:/usr/src/app
+      - ./go-battle:/usr/src/app
     command: go run API/main.go -b 0.0.0.0
+
+  cerveau:
+    build:
+      dockerfile: ./cerveau/Dockerfile
 
 volumes:
   db:
