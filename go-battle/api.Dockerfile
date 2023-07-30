@@ -9,5 +9,3 @@ COPY . ./
 
 # install deps
 RUN go mod tidy
-
-# CMD ["air", "-c", ".air.toml"]

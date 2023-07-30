@@ -21,13 +21,14 @@ services:
       - "3000:3000"
     volumes:
       - ./go-battle:/usr/src/app
-    # command: go run API/main.go -b 0.0.0.0
     command: air -c .air.toml
 
   cerveau:
     build:
       context: ./cerveau
       dockerfile: Dockerfile
+    volumes:
+      - ./cerveau:/cerveau:delegated
 
   web:
     build:
