@@ -33,6 +33,9 @@ services:
       - "3001:3001"
     environment:
       - PORT=3001
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./go-battle-web:/usr/src/app/go-battle-web:delegated
 
 volumes:
   db:
