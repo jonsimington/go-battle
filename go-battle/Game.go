@@ -51,8 +51,8 @@ func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession s
 
 	makeClient(playerDir)
 
-	playerLanguage := player.client.language
-	gameType := player.client.game
+	playerLanguage := player.client.Language
+	gameType := player.client.Game
 
 	runGame(playerLanguage, playerDir, gameType, gameSession)
 

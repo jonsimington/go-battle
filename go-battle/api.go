@@ -76,8 +76,46 @@ func main() {
 		return c.SendString("Hello, World!")
 	})
 
+	app.Post("/client", func(c *fiber.Ctx) error {
+		clientRepoUrl := c.Query("repo_url")
+		clientLanguage := c.Query("language")
+		clientGame := c.Query("game")
+
+		if clientRepoUrl == "" {
+			return c.Status(400).SendString("Must supply `repo_url` query parameter which is a url to a git repo containing code for the client.")
+		}
+
+		if clientLanguage == "" {
+			return c.Status(400).SendString("Must supply `language` query parameter which is the programming language the client is written in.")
+		}
+
+		if clientGame == "" {
+			return c.Status(400).SendString("Must supply `game` query parameter which is the game this client is programmed to play.")
+		}
+
+		client := Client{
+			Repo:     clientRepoUrl,
+			Language: clientLanguage,
+			Game:     clientGame,
+		}
+
+		if !clientExists(db, clientRepoUrl) {
+			insertClient(db, &client)
+		} else {
+			return c.Status(400).SendString(fmt.Sprintf("Client with Repo URL `%s` already exists.", clientRepoUrl))
+		}
+
+		return c.Status(200).SendString(fmt.Sprintf("Created client for repo %s", clientRepoUrl))
+	})
+
 	app.Post("/games", func(c *fiber.Ctx) error {
 		gameId := c.Query("game_id")
+
+		// sessionID := getCurrentSessionID(db)
+
+		// create match
+
+		// then call func (m Match) StartMatch(db *gorm.DB)
 
 		return c.SendString(fmt.Sprintf("Created game with id %s!", gameId))
 	})

@@ -26,10 +26,10 @@ func (m Match) StartMatch(db *gorm.DB) {
 	var matchDir = filepath.FromSlash("tmp/" + strconv.Itoa(m.id))
 
 	// clone each player's repo, store in tmp loc
-	log.Printf("Cloning %s's repo: %s to %s", player1.name, player1.client.repo, matchDir)
+	log.Printf("Cloning %s's repo: %s to %s", player1.name, player1.client.Repo, matchDir)
 	player1.client.CloneRepo(matchDir + "/" + player1.name)
 
-	log.Printf("Cloning %s's repo: %s to %s", player2.name, player2.client.repo, matchDir)
+	log.Printf("Cloning %s's repo: %s to %s", player2.name, player2.client.Repo, matchDir)
 	player2.client.CloneRepo(matchDir + "/" + player2.name)
 
 	var matchWG sync.WaitGroup
@@ -61,12 +61,12 @@ func (m Match) StartMatch(db *gorm.DB) {
 
 	// query cerveau API to get gamelogs for each game in match
 	for _, matchSession := range matchSessions {
-		gamelogFilename := getGamelogFilename(players[0].client.game, matchSession)
+		gamelogFilename := getGamelogFilename(players[0].client.Game, matchSession)
 
 		glog := getGamelog(gamelogFilename)
 
 		// once the game is finished, get the status and insert into DB
-		gameStatus := getGameStatus(players[0].client.game, matchSession)
+		gameStatus := getGameStatus(players[0].client.Game, matchSession)
 		insertGameStatus(db, gameStatus)
 
 		winner := glog.Winners[0]
