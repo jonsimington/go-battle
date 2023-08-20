@@ -18,11 +18,8 @@ import (
 
 // Create a new instance of the logger. You can have any number of instances.
 var log = logrus.New()
-
 var conf = NewConfig(nil)
-
 var wg sync.WaitGroup
-
 var db *gorm.DB
 
 func checkErr(err error) {
@@ -53,13 +50,18 @@ func init() {
 
 	log.Debugln(dsn)
 
-	_, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	var err error
+	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	checkErr(err)
 
-	// defer db.Close()
-
-	// db.AutoMigrate(&SessionID{}, &MatchID{}, &GameClient{}, &GameStatus{})
+	db.AutoMigrate(
+		&SessionID{},
+		&MatchID{},
+		&GameClient{},
+		&GameStatus{},
+		&Client{},
+	)
 
 	wg.Done()
 
