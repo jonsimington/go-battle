@@ -6,10 +6,9 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=go-battle
     ports:
       - '5432:5432'
-    volumes:
-      - db:/var/lib/postgresql/data
 
   api:
     depends_on:
@@ -29,6 +28,9 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./cerveau:/cerveau:delegated
+    ports:
+      - "3002:3000"
+      - "3080:3080"
 
   web:
     build:
