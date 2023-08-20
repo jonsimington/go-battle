@@ -6,8 +6,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"gorm.io/gorm"
 )
 
 // StartMatch begins a match between two players for n games

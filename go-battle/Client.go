@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/go-git/go-git/v5"
+	"gorm.io/gorm"
 )
 
 // Client represents the code which is executed for a Player in a Game

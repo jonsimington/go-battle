@@ -6,7 +6,6 @@ require (
 	github.com/Nomon/gonfig v0.0.0-20150921093313-1e0a775a3dc8
 	github.com/go-git/go-git/v5 v5.7.0
 	github.com/gofiber/fiber/v2 v2.47.0
-	github.com/jinzhu/gorm v1.9.2-0.20181007004937-742154be9a26
 	github.com/sirupsen/logrus v1.9.3
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.4
@@ -18,12 +17,9 @@ require (
 	github.com/acomagu/bufpipe v1.0.4 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
-	github.com/denisenkom/go-mssqldb v0.12.3 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
-	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
-	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/imdario/mergo v0.3.15 // indirect
@@ -35,11 +31,9 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.16.3 // indirect
-	github.com/lib/pq v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
-	github.com/mattn/go-sqlite3 v1.14.17 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.27.8 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect

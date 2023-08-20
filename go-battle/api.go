@@ -12,7 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	. "github.com/Nomon/gonfig"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

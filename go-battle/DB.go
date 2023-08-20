@@ -3,8 +3,7 @@ package main
 import (
 	"sync"
 
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"gorm.io/gorm"
 )
 
 // SessionID describes an ID for a game session
