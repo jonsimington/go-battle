@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"runtime"
@@ -72,11 +73,10 @@ func init() {
 func main() {
 	app := fiber.New()
 
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Hello, World!")
-	})
-
-	app.Post("/client", func(c *fiber.Ctx) error {
+	///////////////////////////////////////////////////////////////////////////
+	// CLIENTS
+	///////////////////////////////////////////////////////////////////////////
+	app.Post("/clients", func(c *fiber.Ctx) error {
 		clientRepoUrl := c.Query("repo_url")
 		clientLanguage := c.Query("language")
 		clientGame := c.Query("game")
@@ -84,11 +84,9 @@ func main() {
 		if clientRepoUrl == "" {
 			return c.Status(400).SendString("Must supply `repo_url` query parameter which is a url to a git repo containing code for the client.")
 		}
-
 		if clientLanguage == "" {
 			return c.Status(400).SendString("Must supply `language` query parameter which is the programming language the client is written in.")
 		}
-
 		if clientGame == "" {
 			return c.Status(400).SendString("Must supply `game` query parameter which is the game this client is programmed to play.")
 		}
@@ -108,6 +106,21 @@ func main() {
 		return c.Status(200).SendString(fmt.Sprintf("Created client for repo %s", clientRepoUrl))
 	})
 
+	app.Get("/clients", func(c *fiber.Ctx) error {
+		clients := getClients()
+
+		jsonClients, err := json.Marshal(clients)
+
+		if err != nil {
+			log.Errorln(fmt.Sprintf("Error marshalling list of clients: %s", err))
+		}
+
+		return c.Status(200).SendString(string(jsonClients))
+	})
+
+	///////////////////////////////////////////////////////////////////////////
+	// GAMES
+	///////////////////////////////////////////////////////////////////////////
 	app.Post("/games", func(c *fiber.Ctx) error {
 		gameId := c.Query("game_id")
 

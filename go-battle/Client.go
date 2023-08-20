@@ -33,6 +33,14 @@ func clientExists(db *gorm.DB, repo string) bool {
 	return len(clients) > 0
 }
 
+func getClients() []Client {
+	var clients []Client
+
+	db.Find(&clients)
+
+	return clients
+}
+
 // CloneRepo clones a git repo and its submodules recursively
 func (c Client) CloneRepo(dir string) *git.Repository {
 	r, err := git.PlainClone(dir, false, &git.CloneOptions{
