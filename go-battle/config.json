@@ -2,9 +2,9 @@
     "gameserver": "localhost",
     "gameserverPlayPort": "3000",
     "gameserverStatusPort": "3080",
-    "DB_TYPE": "postgres",
     "DB_USER": "postgres",
+    "DB_PASS": "postgres",
     "DB_NAME": "go-battle",
-    "DB_HOST": "localhost",
+    "DB_HOST": "db",
     "DB_PORT": 5432
 }

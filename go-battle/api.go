@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"runtime"
+	"strconv"
 
 	"sync"
 
@@ -9,8 +12,9 @@ import (
 	"github.com/sirupsen/logrus"
 
 	. "github.com/Nomon/gonfig"
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // Create a new instance of the logger. You can have any number of instances.
@@ -29,38 +33,39 @@ func checkErr(err error) {
 }
 
 func init() {
-	// log.Out = os.Stdout
-	// log.Level = logrus.DebugLevel
+	log.Out = os.Stdout
+	log.Level = logrus.DebugLevel
 
-	// conf.Use("local", NewJsonConfig("../config.json"))
+	conf.Use("local", NewJsonConfig("./config.json"))
 
-	// runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	// wg.Add(1)
+	wg.Add(1)
 
-	// // INIT DB
-	// dbHost := conf.Get("DB_HOST")
-	// dbPort, _ := strconv.Atoi(conf.Get("DB_PORT"))
-	// dbUser := conf.Get("DB_USER")
-	// dbPass := conf.Get("DB_PASS")
-	// dbName := conf.Get("DB_NAME")
-	// dbType := conf.Get("DB_TYPE")
+	// INIT DB
+	dbHost := conf.Get("DB_HOST")
+	dbPort, _ := strconv.Atoi(conf.Get("DB_PORT"))
+	dbUser := conf.Get("DB_USER")
+	dbPass := conf.Get("DB_PASS")
+	dbName := conf.Get("DB_NAME")
 
-	// dbInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-	// 	dbHost, dbPort, dbUser, dbPass, dbName)
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		dbHost, dbPort, dbUser, dbPass, dbName)
 
-	// db, err := gorm.Open(dbType, dbInfo)
+	log.Debugln(dsn)
 
-	// checkErr(err)
+	_, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
+	checkErr(err)
 
 	// defer db.Close()
 
-	// // db.AutoMigrate(&SessionID{}, &MatchID{}, &GameClient{}, &GameStatus{})
+	// db.AutoMigrate(&SessionID{}, &MatchID{}, &GameClient{}, &GameStatus{})
 
-	// wg.Done()
+	wg.Done()
 
-	// // wait until DB is initialized before continuing
-	// wg.Wait()
+	// wait until DB is initialized before continuing
+	wg.Wait()
 }
 
 func main() {
