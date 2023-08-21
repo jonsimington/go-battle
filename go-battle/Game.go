@@ -40,6 +40,15 @@ func getGames(players []int) []Game {
 	return games
 }
 
+var gameLock = &sync.Mutex{}
+
+func insertGame(db *gorm.DB, game *Game) {
+	gameLock.Lock()
+	defer gameLock.Unlock()
+
+	db.Create(&game)
+}
+
 func (g Game) PlayGame(gameSession string) bool {
 	var matchID = strconv.Itoa(g.Match)
 	pwd, _ := os.Getwd()

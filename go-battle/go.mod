@@ -6,6 +6,7 @@ require (
 	github.com/Nomon/gonfig v0.0.0-20150921093313-1e0a775a3dc8
 	github.com/go-git/go-git/v5 v5.7.0
 	github.com/gofiber/fiber/v2 v2.47.0
+	github.com/lib/pq v1.10.9
 	github.com/sirupsen/logrus v1.9.3
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.4

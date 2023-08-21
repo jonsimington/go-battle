@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"sync"
 
@@ -108,7 +109,7 @@ func main() {
 	})
 
 	app.Get("/clients", func(c *fiber.Ctx) error {
-		clients := getClients()
+		clients := getClients([]int{})
 
 		jsonClients, err := json.Marshal(clients)
 
@@ -123,11 +124,52 @@ func main() {
 	// PLAYERS
 	///////////////////////////////////////////////////////////////////////////
 	app.Post("/players", func(c *fiber.Ctx) error {
+		name := c.Query("name")
+		clientId := c.Query("client_id")
+
+		if name == "" {
+			return c.Status(400).SendString("Must supply `name` query parameter which is the name of the Player.")
+		}
+		if clientId == "" {
+			return c.Status(400).SendString("Must supply `client_id` query parameter which is id of the Player's Client.")
+		}
+
+		if playerExists(db, name) {
+			return c.Status(400).SendString(fmt.Sprintf("A player by the name of `%s` already exists!", name))
+		}
+
+		clientIdInt, clientIdIntErr := strconv.Atoi(clientId)
+
+		if clientIdIntErr != nil {
+			return c.Status(400).SendString(fmt.Sprintf("`client_id` query parameter must be an integer"))
+		}
+
+		foundClients := getClients([]int{clientIdInt})
+
+		if len(foundClients) == 0 {
+			return c.Status(400).SendString(fmt.Sprintf("`client_id` %d does not exist!", clientIdInt))
+		}
+
+		log.Debugln(foundClients[0])
+
+		player := Player{
+			Name:   name,
+			Client: foundClients[0],
+		}
+
+		insertPlayer(db, &player)
+
 		return c.SendString("")
 	})
 
 	app.Get("/players", func(c *fiber.Ctx) error {
-		players := getPlayers()
+		ids := c.Query("ids")
+
+		playersList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
+			return strings.ReplaceAll(s, " ", "")
+		}))
+
+		players := getPlayers(playersList)
 
 		jsonPlayers, err := json.Marshal(players)
 
@@ -142,7 +184,32 @@ func main() {
 	// GAMES
 	///////////////////////////////////////////////////////////////////////////
 	app.Post("/games", func(c *fiber.Ctx) error {
-		gameId := c.Query("game_id")
+		// gameId := c.Query("game_id")
+		numGames, _ := strconv.Atoi(c.Query("num_games"))
+		playersQuery := c.Query("players")
+
+		playersList, _ := sliceAtoi(map2(strings.Split(playersQuery, ","), func(s string) string {
+			return strings.ReplaceAll(s, " ", "")
+		}))
+
+		players := getPlayers(playersList)
+
+		match := Match{
+			Id:       getCurrentMatchID(db),
+			NumGames: numGames,
+			Players:  players,
+		}
+
+		insertMatch(db, &match)
+
+		game := Game{
+			Match:   match.Id,
+			Players: players,
+			Winner:  int(players[0].ID),
+			Loser:   int(players[1].ID),
+		}
+
+		insertGame(db, &game)
 
 		// sessionID := getCurrentSessionID(db)
 
@@ -150,11 +217,17 @@ func main() {
 
 		// then call func (m Match) StartMatch(db *gorm.DB)
 
-		return c.SendString(fmt.Sprintf("Created game with id %s!", gameId))
+		return c.SendString(fmt.Sprintf("Created game with id %s!", 1))
 	})
 
 	app.Get("/games", func(c *fiber.Ctx) error {
-		games := getGames()
+		players := c.Query("players")
+
+		playersList, err := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
+			return strings.ReplaceAll(s, " ", "")
+		}))
+
+		games := getGames(playersList)
 
 		jsonGames, err := json.Marshal(games)
 

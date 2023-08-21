@@ -26,11 +26,11 @@ type Match struct {
 	Players  []Player `json:"players" gorm:"many2many:match_players"`
 }
 
-var matchLock = &sync.Mutex{}
+var matchIDLock = &sync.Mutex{}
 
 func getCurrentMatchID(db *gorm.DB) int {
-	matchLock.Lock()
-	defer matchLock.Unlock()
+	matchIDLock.Lock()
+	defer matchIDLock.Unlock()
 
 	var match = new(MatchID)
 
@@ -41,6 +41,15 @@ func getCurrentMatchID(db *gorm.DB) int {
 	db.Last(&lastMatch)
 
 	return lastMatch.MatchID
+}
+
+var matchLock = &sync.Mutex{}
+
+func insertMatch(db *gorm.DB, match *Match) {
+	matchLock.Lock()
+	defer matchLock.Unlock()
+
+	db.Create(&match)
 }
 
 // StartMatch begins a match between two players for n games

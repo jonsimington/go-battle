@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -33,10 +34,14 @@ func clientExists(db *gorm.DB, repo string) bool {
 	return len(clients) > 0
 }
 
-func getClients() []Client {
+func getClients(ids []int) []Client {
 	var clients []Client
 
-	db.Find(&clients)
+	if len(ids) > 0 {
+		db.Where("id = ANY(?)", pq.Array(ids)).Find(&clients)
+	} else {
+		db.Find(&clients)
+	}
 
 	return clients
 }
