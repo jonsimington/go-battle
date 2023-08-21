@@ -1,18 +1,14 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
-	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -30,10 +26,16 @@ var _httpClient = &http.Client{
 	Timeout: time.Second * 10,
 }
 
-func getGames() []Game {
+func getGames(players []int) []Game {
 	var games []Game
 
-	db.Find(&games)
+	if len(players) > 0 {
+		gamesWithPlayers := db.Table("game_players").Where("player_id = ANY(?)", pq.Array(players)).Select("game_id")
+
+		db.Where("id = ANY(?)", pq.Array(gamesWithPlayers)).Find(&games)
+	} else {
+		db.Find(&games)
+	}
 
 	return games
 }
@@ -77,44 +79,6 @@ func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession s
 	runGame(playerLanguage, playerDir, gameType, gameSession)
 
 	return
-}
-
-func checkIfCommandExistsOnHost(commandName string) bool {
-	cmd := exec.Command(commandName)
-
-	err := cmd.Run()
-
-	return err == nil
-}
-
-func checkPythonVersionOnHost(pythonCommandName string) int {
-	cmd := exec.Command(pythonCommandName, "--version")
-
-	// capture output of command
-	var outb, errb bytes.Buffer
-	cmd.Stdout = &outb
-	cmd.Stderr = &errb
-
-	err := cmd.Run()
-	checkErr(err)
-
-	// trim newline from stderr output
-	cmdOutput := strings.TrimRightFunc(errb.String(), func(c rune) bool {
-		return c == '\r' || c == '\n'
-	})
-
-	// Python version format is: `Python x.y.z` so capture those version numbers via regex
-	re := regexp.MustCompile("^Python (.*?)\\.(.*?)\\.(.*?)")
-
-	match := re.FindStringSubmatch(cmdOutput)
-
-	hostPythonVersionStr := match[1]
-
-	// try to convert parsed version into an int
-	hostPythonVersion, err := strconv.Atoi(hostPythonVersionStr)
-	checkErr(err)
-
-	return hostPythonVersion
 }
 
 func runGame(playerLanguage string, playerDir string, gameType string, gameSession string) {
@@ -171,21 +135,6 @@ func getGamelog(gamelogFilename string) *Gamelog {
 	getJSON(glogURL, glog)
 
 	return glog
-}
-
-func getJSON(url string, target interface{}) error {
-	r, err := _httpClient.Get(url)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-
-	var _json = json.NewDecoder(r.Body).Decode(target)
-	if _json != nil {
-		fmt.Println(_json)
-	}
-
-	return _json
 }
 
 func getGameStatus(gameType string, gameSession string) *GameStatus {
