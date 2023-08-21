@@ -126,6 +126,18 @@ func main() {
 		return c.SendString("")
 	})
 
+	app.Get("/players", func(c *fiber.Ctx) error {
+		players := getPlayers()
+
+		jsonPlayers, err := json.Marshal(players)
+
+		if err != nil {
+			log.Errorln(fmt.Sprintf("Error marshalling list of players: %s", err))
+		}
+
+		return c.Status(200).SendString(string(jsonPlayers))
+	})
+
 	///////////////////////////////////////////////////////////////////////////
 	// GAMES
 	///////////////////////////////////////////////////////////////////////////

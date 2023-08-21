@@ -10,3 +10,11 @@ type Player struct {
 	ClientID int
 	Client   Client `json:"client" gorm:"foreignKey:ClientID"`
 }
+
+func getPlayers() []Player {
+	var players []Player
+
+	db.Find(&players)
+
+	return players
+}
