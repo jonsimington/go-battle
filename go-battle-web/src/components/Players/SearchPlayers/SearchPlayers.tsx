@@ -4,7 +4,7 @@ import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { styled } from '@stitches/react';
 import { PlayersResult } from '../../../models/PlayersResult';
 
-interface SearchPlayersProps<T> {
+interface SearchPlayersProps {
     tableData: any[]
 }
 
@@ -33,15 +33,10 @@ const columns: IColumnType<PlayersResult>[] = [
         key: "UpdatedAt",
         title: "Updated At",
         width: 200,
-    },
-    {
-        key: "DeletedAt",
-        title: "Deleted At",
-        width: 200,
-    },
+    }
 ];
 
-export function SearchPlayers<T>({ tableData }: SearchPlayersProps<T>): JSX.Element {
+export function SearchPlayers({ tableData }: SearchPlayersProps): JSX.Element {
     let data: PlayersResult[] = [];
 
     tableData.forEach((d) => {

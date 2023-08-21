@@ -4,6 +4,7 @@ import { FaSpinner } from "react-icons/fa6";
 import { DynamicTable } from '../DynamicTable/DynamicTable';
 import { Type } from 'typescript';
 import { SearchPlayers } from '../Players/SearchPlayers/SearchPlayers';
+import { SearchGames } from '../Games/SearchGames/SearchGames';
 
 interface DbTableViewProps<T> {
     context: string;
@@ -39,6 +40,9 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
                 <>
                 {context == "players" &&
                     <SearchPlayers tableData={data ?? []}></SearchPlayers>
+                }
+                {context == "games" &&
+                    <SearchGames tableData={data ?? []}></SearchGames>
                 }
                 </>
             )

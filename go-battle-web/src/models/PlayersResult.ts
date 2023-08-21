@@ -1,5 +1,5 @@
 export interface PlayersResult {
-    ID: string;
+    ID: number;
     CreatedAt: Date;
     UpdatedAt: Date;
     DeletedAt: Date;
