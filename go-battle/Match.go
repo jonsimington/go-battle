@@ -47,7 +47,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 	player1 := m.players[0]
 	player2 := m.players[1]
 
-	log.Printf("Starting match %d (%d games) between %s and %s", m.id, m.numGames, player1.name, player2.name)
+	log.Printf("Starting match %d (%d games) between %s and %s", m.id, m.numGames, player1.Name, player2.Name)
 
 	// init players slice
 	players := []Player{
@@ -58,11 +58,11 @@ func (m Match) StartMatch(db *gorm.DB) {
 	var matchDir = filepath.FromSlash("tmp/" + strconv.Itoa(m.id))
 
 	// clone each player's repo, store in tmp loc
-	log.Printf("Cloning %s's repo: %s to %s", player1.name, player1.client.Repo, matchDir)
-	player1.client.CloneRepo(matchDir + "/" + player1.name)
+	log.Printf("Cloning %s's repo: %s to %s", player1.Name, player1.Client.Repo, matchDir)
+	player1.Client.CloneRepo(matchDir + "/" + player1.Name)
 
-	log.Printf("Cloning %s's repo: %s to %s", player2.name, player2.client.Repo, matchDir)
-	player2.client.CloneRepo(matchDir + "/" + player2.name)
+	log.Printf("Cloning %s's repo: %s to %s", player2.Name, player2.Client.Repo, matchDir)
+	player2.Client.CloneRepo(matchDir + "/" + player2.Name)
 
 	var matchWG sync.WaitGroup
 	matchWG.Add(m.numGames)
@@ -93,12 +93,12 @@ func (m Match) StartMatch(db *gorm.DB) {
 
 	// query cerveau API to get gamelogs for each game in match
 	for _, matchSession := range matchSessions {
-		gamelogFilename := getGamelogFilename(players[0].client.Game, matchSession)
+		gamelogFilename := getGamelogFilename(players[0].Client.Game, matchSession)
 
 		glog := getGamelog(gamelogFilename)
 
 		// once the game is finished, get the status and insert into DB
-		gameStatus := getGameStatus(players[0].client.Game, matchSession)
+		gameStatus := getGameStatus(players[0].Client.Game, matchSession)
 		insertGameStatus(db, gameStatus)
 
 		winner := glog.Winners[0]

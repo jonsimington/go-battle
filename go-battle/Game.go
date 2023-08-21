@@ -20,7 +20,7 @@ import (
 type Game struct {
 	gorm.Model
 
-	Players []Player `json:"players"` // TODO: join this to players table
+	Players []Player `json:"players" gorm:"many2many:game_players"`
 	Winner  int      `json:"winner"`
 	Loser   int      `json:"loser"`
 	Match   int      `json:"match"`
@@ -52,7 +52,7 @@ func (g Game) PlayGame(gameSession string) bool {
 	for _, player := range g.Players {
 
 		go func(player Player) {
-			playerDir := matchDir + "/" + player.name + "/"
+			playerDir := matchDir + "/" + player.Name + "/"
 
 			playGame(player, playerDir, &gameplayWG, gameSession)
 
@@ -71,8 +71,8 @@ func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession s
 
 	makeClient(playerDir)
 
-	playerLanguage := player.client.Language
-	gameType := player.client.Game
+	playerLanguage := player.Client.Language
+	gameType := player.Client.Game
 
 	runGame(playerLanguage, playerDir, gameType, gameSession)
 

@@ -60,6 +60,8 @@ func init() {
 		&GameClient{},
 		&GameStatus{},
 		&Client{},
+		&Game{},
+		&Player{},
 	)
 
 	wg.Done()
@@ -139,7 +141,15 @@ func main() {
 	})
 
 	app.Get("/games", func(c *fiber.Ctx) error {
-		return c.SendString("Here are the games!")
+		games := getGames()
+
+		jsonGames, err := json.Marshal(games)
+
+		if err != nil {
+			log.Errorln(fmt.Sprintf("Error marshalling list of games: %s", err))
+		}
+
+		return c.Status(200).SendString(string(jsonGames))
 	})
 
 	app.Listen(":3000")
