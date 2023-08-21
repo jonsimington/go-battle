@@ -19,7 +19,6 @@ export interface IColumnType<T> {
 const TableWrapper = styled("table", {
     borderCollapse: "collapse",
     border: "none",
-    fontFamily: "Anek Telugu",
 });
 
 export function DynamicTable<T>({ data, columns }: DynamicTableProps<T>): JSX.Element {
