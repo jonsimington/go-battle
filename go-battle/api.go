@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/sirupsen/logrus"
 
 	. "github.com/Nomon/gonfig"
@@ -74,6 +75,10 @@ func init() {
 
 func main() {
 	app := fiber.New()
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:3001",
+	}))
 
 	///////////////////////////////////////////////////////////////////////////
 	// CLIENTS
