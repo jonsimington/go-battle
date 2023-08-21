@@ -18,10 +18,12 @@ type MatchID struct {
 
 // Match represents a series of games in a Tournament
 type Match struct {
-	id       int
-	numGames int
-	games    []Game
-	players  []Player
+	gorm.Model
+
+	Id       int      `json:"id"`
+	NumGames int      `json:"numGames"`
+	Games    []Game   `json:"games" gorm:"many2many:match_games"`
+	Players  []Player `json:"players" gorm:"many2many:match_players"`
 }
 
 var matchLock = &sync.Mutex{}
@@ -44,10 +46,10 @@ func getCurrentMatchID(db *gorm.DB) int {
 // StartMatch begins a match between two players for n games
 func (m Match) StartMatch(db *gorm.DB) {
 
-	player1 := m.players[0]
-	player2 := m.players[1]
+	player1 := m.Players[0]
+	player2 := m.Players[1]
 
-	log.Printf("Starting match %d (%d games) between %s and %s", m.id, m.numGames, player1.Name, player2.Name)
+	log.Printf("Starting match %d (%d games) between %s and %s", m.Id, m.NumGames, player1.Name, player2.Name)
 
 	// init players slice
 	players := []Player{
@@ -55,7 +57,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 		player2,
 	}
 
-	var matchDir = filepath.FromSlash("tmp/" + strconv.Itoa(m.id))
+	var matchDir = filepath.FromSlash("tmp/" + strconv.Itoa(m.Id))
 
 	// clone each player's repo, store in tmp loc
 	log.Printf("Cloning %s's repo: %s to %s", player1.Name, player1.Client.Repo, matchDir)
@@ -65,24 +67,24 @@ func (m Match) StartMatch(db *gorm.DB) {
 	player2.Client.CloneRepo(matchDir + "/" + player2.Name)
 
 	var matchWG sync.WaitGroup
-	matchWG.Add(m.numGames)
+	matchWG.Add(m.NumGames)
 
 	var matchSessions []string
 
 	// play numGames games between each player
-	for i := 0; i < m.numGames; i++ {
+	for i := 0; i < m.NumGames; i++ {
 		go func() {
 			g := Game{
 				Players: players,
 				Winner:  1,
 				Loser:   2,
-				Match:   m.id,
+				Match:   m.Id,
 			}
 
 			currentSession := strconv.Itoa(getCurrentSessionID(db))
 			matchSessions = append(matchSessions, currentSession)
 
-			fmt.Println("playing game -- match: ", strconv.Itoa(m.id), " session: ", currentSession)
+			fmt.Println("playing game -- match: ", strconv.Itoa(m.Id), " session: ", currentSession)
 			g.PlayGame(currentSession)
 
 			matchWG.Done()

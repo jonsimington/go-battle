@@ -62,6 +62,7 @@ func init() {
 		&Client{},
 		&Game{},
 		&Player{},
+		&Match{},
 	)
 
 	wg.Done()
