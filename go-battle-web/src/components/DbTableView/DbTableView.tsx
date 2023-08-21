@@ -1,25 +1,18 @@
 import React, { FC, useEffect, useState } from 'react';
 import styles from './DbTableView.module.css';
 import { FaSpinner } from "react-icons/fa6";
-import { DynamicTable } from '../DynamicTable/DynamicTable';
-import { Type } from 'typescript';
 import { SearchPlayers } from '../Players/SearchPlayers/SearchPlayers';
 import { SearchGames } from '../Games/SearchGames/SearchGames';
 import { SearchMatches } from '../Matches/SearchMatches/SearchMatches';
+import { SearchClients } from '../Clients/SearchClients/SearchClients';
 
 interface DbTableViewProps<T> {
     context: string;
-    // rowType: Type;
 }
 
 export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
     const [data, setData] = useState<unknown[]>();
     const [loading, setLoading] = useState(true);
-
-    const tableTitle = context.charAt(0).toUpperCase() + context.substring(1);
-
-    
-
 
     // fetch data from api TODO: config this urlBase
     useEffect(() => {
@@ -47,6 +40,9 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
                 }
                 {context == "matches" &&
                     <SearchMatches tableData={data ?? []}></SearchMatches>
+                }
+                {context == "clients" &&
+                    <SearchClients tableData={data ?? []}></SearchClients>
                 }
                 </>
             )

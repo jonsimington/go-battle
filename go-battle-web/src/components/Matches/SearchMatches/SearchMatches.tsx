@@ -2,7 +2,6 @@ import React, { FC } from 'react';
 import styles from './SearchMatches.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { styled } from '@stitches/react';
-import { PlayersResult } from '../../../models/PlayersResult';
 import { MatchesResult } from '../../../models/MatchesResult';
 
 interface SearchMatchesProps {
