@@ -6,8 +6,10 @@ import CreateClient from './components/Clients/CreateClient/CreateClient'
 import CreatePlayer from './components/Players/CreatePlayer/CreatePlayer'
 import CreateGame from './components/Games/CreateGame/CreateGame'
 import CreateMatch from './components/Matches/CreateMatch/CreateMatch'
-import DbTableView from './components/DbTableView/DbTableView'
 import Navigation from './components/Navigation/Navigation'
+
+import { PlayersResult } from './models/PlayersResult';
+import { DbTableView } from './components/DbTableView/DbTableView';
 
 function App() {
   return (
@@ -31,9 +33,6 @@ function App() {
                 </BrowserRouter>
             </div>
         </div>
-
-
-        
     </>
   );
 }
