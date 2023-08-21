@@ -73,10 +73,10 @@ func (m Match) StartMatch(db *gorm.DB) {
 	for i := 0; i < m.numGames; i++ {
 		go func() {
 			g := Game{
-				players,
-				1,
-				2,
-				m.id,
+				Players: players,
+				Winner:  1,
+				Loser:   2,
+				Match:   m.id,
 			}
 
 			currentSession := strconv.Itoa(getCurrentSessionID(db))

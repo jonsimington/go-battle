@@ -12,22 +12,34 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // Game represents a game between two Players in a Tournament
 type Game struct {
-	players []Player
-	winner  int
-	loser   int
-	match   int
+	gorm.Model
+
+	Players []Player `json:"players"` // TODO: join this to players table
+	Winner  int      `json:"winner"`
+	Loser   int      `json:"loser"`
+	Match   int      `json:"match"`
 }
 
 var _httpClient = &http.Client{
 	Timeout: time.Second * 10,
 }
 
+func getGames() []Game {
+	var games []Game
+
+	db.Find(&games)
+
+	return games
+}
+
 func (g Game) PlayGame(gameSession string) bool {
-	var matchID = strconv.Itoa(g.match)
+	var matchID = strconv.Itoa(g.Match)
 	pwd, _ := os.Getwd()
 
 	var matchDir = pwd + "/tmp/" + matchID
@@ -37,7 +49,7 @@ func (g Game) PlayGame(gameSession string) bool {
 	gameplayWG.Add(2)
 
 	// play game for each player
-	for _, player := range g.players {
+	for _, player := range g.Players {
 
 		go func(player Player) {
 			playerDir := matchDir + "/" + player.name + "/"
