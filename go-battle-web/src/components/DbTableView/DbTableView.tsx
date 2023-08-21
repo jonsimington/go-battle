@@ -5,6 +5,7 @@ import { DynamicTable } from '../DynamicTable/DynamicTable';
 import { Type } from 'typescript';
 import { SearchPlayers } from '../Players/SearchPlayers/SearchPlayers';
 import { SearchGames } from '../Games/SearchGames/SearchGames';
+import { SearchMatches } from '../Matches/SearchMatches/SearchMatches';
 
 interface DbTableViewProps<T> {
     context: string;
@@ -43,6 +44,9 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
                 }
                 {context == "games" &&
                     <SearchGames tableData={data ?? []}></SearchGames>
+                }
+                {context == "matches" &&
+                    <SearchMatches tableData={data ?? []}></SearchMatches>
                 }
                 </>
             )
