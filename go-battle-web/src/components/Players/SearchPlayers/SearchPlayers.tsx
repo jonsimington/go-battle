@@ -15,6 +15,16 @@ const columns: IColumnType<PlayersResult>[] = [
         width: 200,
     },
     {
+        key: "name",
+        title: "Name",
+        width: 200,
+    },
+    {
+        key: "ClientID",
+        title: "Client ID",
+        width: 200,
+    },
+    {
         key: "CreatedAt",
         title: "Created At",
         width: 200,
@@ -27,16 +37,6 @@ const columns: IColumnType<PlayersResult>[] = [
     {
         key: "DeletedAt",
         title: "Deleted At",
-        width: 200,
-    },
-    {
-        key: "name",
-        title: "Name",
-        width: 200,
-    },
-    {
-        key: "ClientID",
-        title: "Client ID",
         width: 200,
     },
 ];
