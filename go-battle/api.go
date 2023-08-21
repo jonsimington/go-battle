@@ -185,18 +185,30 @@ func main() {
 	///////////////////////////////////////////////////////////////////////////
 	app.Post("/games", func(c *fiber.Ctx) error {
 		// gameId := c.Query("game_id")
-		numGames, _ := strconv.Atoi(c.Query("num_games"))
+		numGames := c.Query("num_games")
+		numGamesInt, numGamesIntErr := strconv.Atoi(numGames)
 		playersQuery := c.Query("players")
+
+		if numGamesIntErr != nil {
+			return c.Status(400).SendString(fmt.Sprintf("`num_games` query parameter must be an integer"))
+		}
+		if numGames == "" {
+			return c.Status(400).SendString("The `players` query param value must be a comma-separated list of two ints")
+		}
 
 		playersList, _ := sliceAtoi(map2(strings.Split(playersQuery, ","), func(s string) string {
 			return strings.ReplaceAll(s, " ", "")
 		}))
 
+		if len(playersList) != 2 {
+			return c.Status(400).SendString("The `players` query param value must be a comma-separated list of two ints")
+		}
+
 		players := getPlayers(playersList)
 
 		match := Match{
 			Id:       getCurrentMatchID(db),
-			NumGames: numGames,
+			NumGames: numGamesInt,
 			Players:  players,
 		}
 
@@ -238,6 +250,57 @@ func main() {
 		return c.Status(200).SendString(string(jsonGames))
 	})
 
+	///////////////////////////////////////////////////////////////////////////
+	// MATCHES
+	///////////////////////////////////////////////////////////////////////////
+	app.Post("/matches", func(c *fiber.Ctx) error {
+		numGames := c.Query("num_games")
+		numGamesInt, numGamesIntErr := strconv.Atoi(numGames)
+		playersQuery := c.Query("players")
+
+		if numGamesIntErr != nil {
+			return c.Status(400).SendString(fmt.Sprintf("`num_games` query parameter must be an integer"))
+		}
+		if numGames == "" {
+			return c.Status(400).SendString("The `players` query param value must be a comma-separated list of two ints")
+		}
+
+		playersList, _ := sliceAtoi(map2(strings.Split(playersQuery, ","), func(s string) string {
+			return strings.ReplaceAll(s, " ", "")
+		}))
+
+		if len(playersList) != 2 {
+			return c.Status(400).SendString("The `players` query param value must be a comma-separated list of two ints")
+		}
+
+		players := getPlayers(playersList)
+
+		match := Match{
+			Id:       getCurrentMatchID(db),
+			NumGames: numGamesInt,
+			Players:  players,
+		}
+
+		return c.Status(200).SendString(fmt.Sprintf("%s", match))
+	})
+
+	app.Get("/matches", func(c *fiber.Ctx) error {
+		ids := c.Query("ids")
+
+		idList, err := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
+			return strings.ReplaceAll(s, " ", "")
+		}))
+
+		matches := getMatches(idList)
+
+		jsonMatches, err := json.Marshal(matches)
+
+		if err != nil {
+			log.Errorln(fmt.Sprintf("Error marshalling list of matches: %s", err))
+		}
+
+		return c.Status(200).SendString(string(jsonMatches))
+	})
 	app.Listen(":3000")
 }
 

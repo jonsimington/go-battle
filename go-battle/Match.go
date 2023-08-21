@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -50,6 +51,18 @@ func insertMatch(db *gorm.DB, match *Match) {
 	defer matchLock.Unlock()
 
 	db.Create(&match)
+}
+
+func getMatches(ids []int) []Match {
+	var matches []Match
+
+	if len(ids) > 0 {
+		db.Where("id = ANY(?)", pq.Array(ids)).Find(&matches)
+	} else {
+		db.Find(&matches)
+	}
+
+	return matches
 }
 
 // StartMatch begins a match between two players for n games
