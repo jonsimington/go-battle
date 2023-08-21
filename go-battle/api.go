@@ -49,8 +49,6 @@ func init() {
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		dbHost, dbPort, dbUser, dbPass, dbName)
 
-	log.Debugln(dsn)
-
 	var err error
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
@@ -116,6 +114,13 @@ func main() {
 		}
 
 		return c.Status(200).SendString(string(jsonClients))
+	})
+
+	///////////////////////////////////////////////////////////////////////////
+	// PLAYERS
+	///////////////////////////////////////////////////////////////////////////
+	app.Post("/players", func(c *fiber.Ctx) error {
+		return c.SendString("")
 	})
 
 	///////////////////////////////////////////////////////////////////////////

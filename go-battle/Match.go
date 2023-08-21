@@ -9,6 +9,38 @@ import (
 	"gorm.io/gorm"
 )
 
+// MatchID describes an ID for a game session
+type MatchID struct {
+	gorm.Model
+
+	MatchID int `sql:"AUTO_INCREMENT" gorm:"primary_key"`
+}
+
+// Match represents a series of games in a Tournament
+type Match struct {
+	id       int
+	numGames int
+	games    []Game
+	players  []Player
+}
+
+var matchLock = &sync.Mutex{}
+
+func getCurrentMatchID(db *gorm.DB) int {
+	matchLock.Lock()
+	defer matchLock.Unlock()
+
+	var match = new(MatchID)
+
+	db.Create(&match)
+
+	var lastMatch MatchID
+
+	db.Last(&lastMatch)
+
+	return lastMatch.MatchID
+}
+
 // StartMatch begins a match between two players for n games
 func (m Match) StartMatch(db *gorm.DB) {
 

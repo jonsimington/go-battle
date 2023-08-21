@@ -14,6 +14,14 @@ import (
 	"time"
 )
 
+// Game represents a game between two Players in a Tournament
+type Game struct {
+	players []Player
+	winner  int
+	loser   int
+	match   int
+}
+
 var _httpClient = &http.Client{
 	Timeout: time.Second * 10,
 }
