@@ -12,26 +12,28 @@ import Navigation from './components/Navigation/Navigation'
 function App() {
   return (
     <>
-        <Navigation />
-        <BrowserRouter>
-            <Routes>
-                <Route path="/" />
-                <Route path="players/create" element={<CreatePlayer />} />
-                <Route path="players/search" element={<DbTableView context="players" />} />
-                <Route path="clients/create" element={<CreateClient />} />
-                <Route path="clients/search" element={<DbTableView context="clients" />} />
-                <Route path="matches/create" element={<CreateMatch />} />
-                <Route path="matches/search" element={<DbTableView context="matches" />} />
-                <Route path="games/create" element={<CreateGame />} />
-                <Route path="games/search" element={<DbTableView context="games" />} />
-            </Routes>
-        </BrowserRouter>
+        <div className="wrapper">
+            <Navigation />
 
-        <div className="App">
             <div className="body">
-                <Outlet />
+                <BrowserRouter>
+                    <Routes>
+                        <Route path="/" />
+                        <Route path="players/create" element={<CreatePlayer />} />
+                        <Route path="players/search" element={<DbTableView context="players" />} />
+                        <Route path="clients/create" element={<CreateClient />} />
+                        <Route path="clients/search" element={<DbTableView context="clients" />} />
+                        <Route path="matches/create" element={<CreateMatch />} />
+                        <Route path="matches/search" element={<DbTableView context="matches" />} />
+                        <Route path="games/create" element={<CreateGame />} />
+                        <Route path="games/search" element={<DbTableView context="games" />} />
+                    </Routes>
+                </BrowserRouter>
             </div>
         </div>
+
+
+        
     </>
   );
 }

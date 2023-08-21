@@ -7,7 +7,7 @@ interface DbTableViewProps {
 
 const DbTableView: FC<DbTableViewProps> = (props) => (
   <div className={styles.DbTableView} data-testid="DbTableView">
-    DbTableView Component {props.context}
+    DbTableView Component, context: {props.context}
   </div>
 );
 
