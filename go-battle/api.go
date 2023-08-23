@@ -158,16 +158,16 @@ func main() {
 			return c.Status(400).SendString(fmt.Sprintf("`client_id` %d does not exist!", clientIdInt))
 		}
 
-		log.Debugln(foundClients[0])
+		client := foundClients[0]
 
 		player := Player{
 			Name:   name,
-			Client: foundClients[0],
+			Client: client,
 		}
 
 		insertPlayer(db, &player)
 
-		return c.SendString("")
+		return c.SendString(fmt.Sprintf("Created player `%s` with client `%s`", name, client.Repo))
 	})
 
 	app.Get("/players", func(c *fiber.Ctx) error {
