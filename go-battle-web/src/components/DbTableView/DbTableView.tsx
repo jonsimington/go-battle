@@ -16,7 +16,7 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
 
     const apiUrl = process.env.REACT_APP_API_URL;
 
-    // fetch data from api TODO: config this urlBase
+    // fetch data from api
     useEffect(() => {
         fetch(`${apiUrl}/${context}`, {mode:'cors'})
           .then(response => response.json())

@@ -65,7 +65,7 @@ const CreateClient: FC<CreateClientProps> = (props) => {
 
             <Form.Group className="mb-3" controlId="repositoryLanguage">
                 <Form.Label className="h5">Repository Language</Form.Label>
-                <Form.Select aria-label="Select Programming Language" value={languageValue} onChange={handleLanguageValueChange}>
+                <Form.Select value={languageValue} onChange={handleLanguageValueChange}>
                     <option value="py">Python</option>
                     <option value="js">JavaScript</option>
                 </Form.Select>
@@ -73,7 +73,7 @@ const CreateClient: FC<CreateClientProps> = (props) => {
 
             <Form.Group className="mb-3" controlId="game">
                 <Form.Label className="h5">Game</Form.Label>
-                <Form.Select aria-label="Select Game" value={gameValue} onChange={handleGameValueChange}>
+                <Form.Select value={gameValue} onChange={handleGameValueChange}>
                     <option value="chess">Chess</option>
                 </Form.Select>
             </Form.Group>
