@@ -22,15 +22,6 @@ const TableWrapper = styled("table", {
 });
 
 export function DynamicTable<T>({ data, columns }: DynamicTableProps<T>): JSX.Element {
-    // const [columns, setColumns] = useState([])
-    // const [rows, setRows] = useState([])
-
-    // const headers = Object.keys(Object.values(props.data)[0])
-
-    // console.log(typeof(props.data))
-    // console.log(`dynamic table props: ${JSON.stringify(props.data)}`)
-
-
     return (
         <TableWrapper>
             <thead>
@@ -42,8 +33,3 @@ export function DynamicTable<T>({ data, columns }: DynamicTableProps<T>): JSX.El
         </TableWrapper>
       );
 }
-
-
-// export const DynamicTable: FC<DynamicTableProps<T>> = (props) => {
-    
-// }
