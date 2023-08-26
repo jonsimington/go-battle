@@ -1,7 +1,5 @@
-import React, { FC } from 'react';
 import styles from './SearchPlayers.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
-import { styled } from '@stitches/react';
 import { PlayersResult } from '../../../models/PlayersResult';
 
 interface SearchPlayersProps {
@@ -21,8 +19,15 @@ const columns: IColumnType<PlayersResult>[] = [
     },
     {
         key: "ClientID",
-        title: "Client ID",
+        title: "Client",
         width: 200,
+        render: (_, { ClientID }) => {
+            return (
+                <>
+                    <a href={`${window.location.origin}/clients/search?ids=${ClientID}`}>{ClientID}</a>
+                </>
+            )
+        }
     },
     {
         key: "CreatedAt",

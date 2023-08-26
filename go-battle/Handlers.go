@@ -43,7 +43,13 @@ func postClientsHandler(c *fiber.Ctx) error {
 }
 
 func getClientsHandler(c *fiber.Ctx) error {
-	clients := getClients([]int{})
+	ids := c.Query("ids")
+
+	clientsList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
+		return strings.ReplaceAll(s, " ", "")
+	}))
+
+	clients := getClients(clientsList)
 
 	jsonClients, err := json.Marshal(clients)
 

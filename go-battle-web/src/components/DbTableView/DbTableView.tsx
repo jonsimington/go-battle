@@ -5,6 +5,7 @@ import { SearchPlayers } from '../Players/SearchPlayers/SearchPlayers';
 import { SearchGames } from '../Games/SearchGames/SearchGames';
 import { SearchMatches } from '../Matches/SearchMatches/SearchMatches';
 import { SearchClients } from '../Clients/SearchClients/SearchClients';
+import { useSearchParams } from 'react-router-dom';
 
 interface DbTableViewProps<T> {
     context: string;
@@ -13,12 +14,20 @@ interface DbTableViewProps<T> {
 export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
     const [data, setData] = useState<unknown[]>();
     const [loading, setLoading] = useState(true);
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const apiUrl = process.env.REACT_APP_API_URL;
 
     // fetch data from api
     useEffect(() => {
-        fetch(`${apiUrl}/${context}`, {mode:'cors'})
+        let url = `${apiUrl}/${context}`;
+        let ids = searchParams.get("ids");
+
+        if (ids != null) {
+            url += `?ids=${encodeURI(ids)}`
+        }
+
+        fetch(url, {mode:'cors'})
           .then(response => response.json())
           .then(json => {
             setData(json)
