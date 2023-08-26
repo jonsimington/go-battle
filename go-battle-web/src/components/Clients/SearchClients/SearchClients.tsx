@@ -41,11 +41,6 @@ const columns: IColumnType<ClientsResult>[] = [
         title: "Created At",
         width: 200,
     },
-    {
-        key: "UpdatedAt",
-        title: "Updated At",
-        width: 200,
-    }
 ];
 
 export function SearchClients({ tableData }: SearchClientsProps): JSX.Element {

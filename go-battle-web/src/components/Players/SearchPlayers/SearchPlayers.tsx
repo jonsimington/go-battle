@@ -34,11 +34,6 @@ const columns: IColumnType<PlayersResult>[] = [
         title: "Created At",
         width: 200,
     },
-    {
-        key: "UpdatedAt",
-        title: "Updated At",
-        width: 200,
-    }
 ];
 
 export function SearchPlayers({ tableData }: SearchPlayersProps): JSX.Element {
