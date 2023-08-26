@@ -13,7 +13,7 @@ type Player struct {
 
 	ID       int    `json:"id"`
 	Name     string `json:"name"`
-	ClientID int
+	ClientID int    `json:"client_id"`
 	Client   Client `json:"client" gorm:"foreignKey:ClientID"`
 }
 

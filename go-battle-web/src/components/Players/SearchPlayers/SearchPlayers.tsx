@@ -18,13 +18,13 @@ const columns: IColumnType<PlayersResult>[] = [
         width: 200,
     },
     {
-        key: "ClientID",
+        key: "client_id",
         title: "Client",
         width: 200,
-        render: (_, { ClientID }) => {
+        render: (_, { client_id }) => {
             return (
                 <>
-                    <a href={`${window.location.origin}/clients/search?ids=${ClientID}`}>{ClientID}</a>
+                    <a href={`${window.location.origin}/clients/search?ids=${client_id}`}>{client_id}</a>
                 </>
             )
         }

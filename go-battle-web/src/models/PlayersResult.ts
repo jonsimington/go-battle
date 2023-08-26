@@ -5,5 +5,5 @@ export interface PlayersResult {
     UpdatedAt: Date;
     DeletedAt: Date;
     name: string;
-    ClientID: number;
+    client_id: number;
 }
