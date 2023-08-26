@@ -11,6 +11,7 @@ import (
 type Player struct {
 	gorm.Model
 
+	ID       int    `json:"id"`
 	Name     string `json:"name"`
 	ClientID int
 	Client   Client `json:"client" gorm:"foreignKey:ClientID"`

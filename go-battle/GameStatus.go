@@ -10,6 +10,7 @@ import (
 type GameStatus struct {
 	gorm.Model
 
+	ID              int          `json:"id"`
 	GameName        string       `json:"gameName"`
 	GameSession     string       `json:"gameSession"`
 	NumberOfPlayers int          `json:"requiredNumberOfPlayers"`
