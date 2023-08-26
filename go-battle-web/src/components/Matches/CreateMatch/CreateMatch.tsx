@@ -107,7 +107,7 @@ const CreateMatch: FC<CreateMatchProps> = () => {
 
     return (
         <>
-        <Form data-bs-theme="dark" className="w-50" onSubmit={handleSubmit}>
+        <Form className="w-50" onSubmit={handleSubmit}>
             <Form.Group className="mb-3" controlId="numGames">
                 <Form.Label className="h5">Number of Games</Form.Label>
                 <Form.Control type="number" min="1" max="5" value={numGamesValue} onChange={handleNumGamesValueChange} />

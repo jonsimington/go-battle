@@ -94,7 +94,7 @@ const CreatePlayer: FC<CreatePlayerProps> = () => {
 
     return (
         <>
-        <Form data-bs-theme="dark" className="w-50" onSubmit={handleSubmit}>
+        <Form className="w-50" onSubmit={handleSubmit}>
             <Form.Group className="mb-3" controlId="repositoryUrl">
                 <Form.Label className="h5">Player Name</Form.Label>
                 <Form.Control type="text" value={nameValue} onChange={handleNameValueChange} />

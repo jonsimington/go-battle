@@ -17,7 +17,7 @@ function App() {
         <div className="wrapper">
             <Navigation />
 
-            <div className="body">
+            <div className="body" data-bs-theme="dark">
                 <BrowserRouter>
                     <Routes>
                         <Route path="/" />
