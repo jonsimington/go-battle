@@ -67,7 +67,7 @@ const CreateMatch: FC<CreateMatchProps> = () => {
                 setHasApiResponse(true);
                 const responseText = await response.text();
                 setAlertText(`HTTP ${response.status}: ${responseText}`);
-                
+
                 if (response.ok) {
                     setHasWarning(false);
                     setHasError(false);
@@ -110,7 +110,13 @@ const CreateMatch: FC<CreateMatchProps> = () => {
         <Form className="w-50" onSubmit={handleSubmit}>
             <Form.Group className="mb-3" controlId="numGames">
                 <Form.Label className="h5">Number of Games</Form.Label>
-                <Form.Control type="number" min="1" max="5" value={numGamesValue} onChange={handleNumGamesValueChange} />
+                <Form.Select value={numGamesValue} onChange={handleNumGamesValueChange}>
+                    <option value="1" key={`numGames-1`}>1</option>
+                    <option value="2" key={`numGames-2`}>2</option>
+                    <option value="3" key={`numGames-3`}>3</option>
+                    <option value="4" key={`numGames-4`}>4</option>
+                    <option value="5" key={`numGames-5`}>5</option>
+                </Form.Select>
             </Form.Group>
 
             <Row>
