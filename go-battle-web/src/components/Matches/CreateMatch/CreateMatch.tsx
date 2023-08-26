@@ -7,10 +7,10 @@ import { FaUserPlus } from 'react-icons/fa6';
 interface CreateMatchProps {}
 
 const CreateMatch: FC<CreateMatchProps> = () => {
-    const [numGamesValue, setNumGames] = useState('');
+    const [numGamesValue, setNumGames] = useState('1');
     const [playerOneValue, setPlayerOneValue] = useState('1');
     const [playerTwoValue, setPlayerTwoValue] = useState('1');
-    const [playersValue, setPlayersValue] = useState('1');
+    const [playersValue, setPlayersValue] = useState('1,1');
 
     const [players, setPlayers] = useState<PlayersResult[]>();
 

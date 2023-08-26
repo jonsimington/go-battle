@@ -20,7 +20,8 @@ type Game struct {
 	Players []Player `json:"players" gorm:"many2many:game_players"`
 	Winner  int      `json:"winner"`
 	Loser   int      `json:"loser"`
-	Match   int      `json:"match"`
+	MatchID int      `json:"match_id"`
+	Match   Match    `json:"match" gorm:"foreignKey:MatchID"`
 }
 
 var _httpClient = &http.Client{
@@ -33,9 +34,9 @@ func getGames(players []int) []Game {
 	if len(players) > 0 {
 		gamesWithPlayers := db.Table("game_players").Where("player_id = ANY(?)", pq.Array(players)).Select("game_id")
 
-		db.Where("id = ANY(?)", pq.Array(gamesWithPlayers)).Find(&games)
+		db.Preload("Match").Preload("Players").Preload("Clients").Where("id = ANY(?)", pq.Array(gamesWithPlayers)).Find(&games)
 	} else {
-		db.Find(&games)
+		db.Preload("Match").Preload("Players").Preload("Clients").Find(&games)
 	}
 
 	return games
@@ -51,7 +52,7 @@ func insertGame(db *gorm.DB, game *Game) {
 }
 
 func (g Game) PlayGame(gameSession string) bool {
-	var matchID = strconv.Itoa(g.Match)
+	var matchID = strconv.Itoa(g.Match.ID)
 	pwd, _ := os.Getwd()
 
 	var matchDir = pwd + "/tmp/" + matchID

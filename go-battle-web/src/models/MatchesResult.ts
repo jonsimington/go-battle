@@ -1,3 +1,6 @@
+import { GamesResult } from "./GamesResult";
+import { PlayersResult } from "./PlayersResult";
+
 export interface MatchesResult {
     ID: number;
     id: number;
@@ -5,7 +8,7 @@ export interface MatchesResult {
     UpdatedAt: Date;
     DeletedAt: Date;
     numGames: number;
-    games: number[];
-    players: number[];
+    games: GamesResult[];
+    players: PlayersResult[];
     status: string;
 }

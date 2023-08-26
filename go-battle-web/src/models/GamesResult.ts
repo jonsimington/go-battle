@@ -1,10 +1,13 @@
+import { MatchesResult } from "./MatchesResult";
+import { PlayersResult } from "./PlayersResult";
+
 export interface GamesResult {
     ID: number;
     CreatedAt: Date;
     UpdatedAt: Date;
     DeletedAt: Date;
-    players: number[];
+    players: PlayersResult[];
     winner: number;
     loser: number;
-    match: number;
+    match: MatchesResult;
 }

@@ -5,6 +5,8 @@ import { styled } from '@stitches/react';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay } from 'react-icons/fa6';
 import { Button } from 'react-bootstrap';
+import { PlayersResult } from '../../../models/PlayersResult';
+import { pluck } from '../../../utils/utils';
 
 interface SearchMatchesProps {
     tableData: any[]
@@ -43,11 +45,39 @@ const columns: IColumnType<MatchesResult>[] = [
         key: "games",
         title: "Games",
         width: 200,
+        render: (_, { games }) => {
+            const gameIds = games.map(pluck('id')).join(',');
+
+            if(gameIds.length > 0) {
+                return (
+                    <a href={`${window.location.origin}/games/search?ids=${encodeURI(gameIds)}`}>{gameIds}</a>
+                )
+            }
+            else {
+                return (
+                    <span>No Games Yet</span>
+                )
+            }
+        }
     },
     {
         key: "players",
         title: "Players",
         width: 200,
+        render: (_, { players }) => {
+            const playerIds = players.map(pluck('id')).join(',');
+
+            if(playerIds.length > 0) {
+                return (
+                    <a href={`${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`}>{playerIds}</a>
+                )
+            }
+            else {
+                return (
+                    <span>No Players</span>
+                )
+            }
+        }
     },
     {
         key: "CreatedAt",

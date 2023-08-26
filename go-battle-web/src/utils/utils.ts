@@ -8,3 +8,5 @@ export const translateClientLanguage = (languageCode: string) => {
             return "Unknown Language"
     }
 }
+
+export const pluck = (property: string | number) => (element: { [x: string]: any }) => element[property]

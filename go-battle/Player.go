@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/lib/pq"
@@ -21,9 +22,13 @@ func getPlayers(ids []int) []Player {
 	var players []Player
 
 	if len(ids) > 0 {
-		db.Where("id = ANY(?)", pq.Array(ids)).Find(&players)
+		db.Preload("Client").Where("id = ANY(?)", pq.Array(ids)).Find(&players)
 	} else {
-		db.Find(&players)
+		db.Preload("Client").Find(&players)
+	}
+
+	for _, p := range players {
+		log.Debugln(fmt.Sprintf("Player %s has client repo %s", p.Name, p.Client.Repo))
 	}
 
 	return players
@@ -34,6 +39,8 @@ var playerLock = &sync.Mutex{}
 func insertPlayer(db *gorm.DB, player *Player) {
 	playerLock.Lock()
 	defer playerLock.Unlock()
+
+	log.Debugln(fmt.Sprintf("Inserting: Player %s has client repo %s", player.Name, player.Client.Repo))
 
 	db.Create(&player)
 }
