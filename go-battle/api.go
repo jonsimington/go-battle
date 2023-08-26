@@ -56,7 +56,6 @@ func init() {
 
 	db.AutoMigrate(
 		&SessionID{},
-		&MatchID{},
 		&GameClient{},
 		&GameStatus{},
 		&Client{},
@@ -88,6 +87,7 @@ func main() {
 	app.Post("/games", postGamesHandler)
 	app.Get("/games", getGamesHandler)
 	app.Post("/matches", postMatchesHandler)
+	app.Post("/matches/start", startMatchHandler)
 	app.Get("/matches", getMatchesHandler)
 
 	app.Listen(":3000")

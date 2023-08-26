@@ -7,4 +7,5 @@ export interface MatchesResult {
     numGames: number;
     games: number[];
     players: number[];
+    status: string;
 }

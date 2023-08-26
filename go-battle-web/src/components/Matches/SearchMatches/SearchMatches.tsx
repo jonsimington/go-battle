@@ -3,20 +3,35 @@ import styles from './SearchMatches.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { styled } from '@stitches/react';
 import { MatchesResult } from '../../../models/MatchesResult';
+import { FaCirclePlay } from 'react-icons/fa6';
+import { Button } from 'react-bootstrap';
 
 interface SearchMatchesProps {
     tableData: any[]
 }
 
+const startMatch = (matchID: number) =>  {
+    const requestOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    };
+
+    const apiUrl = process.env.REACT_APP_API_URL;
+
+    fetch(`${apiUrl}/matches/start?match_id=${matchID}`, requestOptions)
+        .then(async response => {
+            const responseText = await response.text();
+            if (response.ok) {
+            } else if (response.status === 400) {
+            } else if (response.status === 500) {
+            }
+        })
+}
+
 const columns: IColumnType<MatchesResult>[] = [
     {
-        key: "ID",
-        title: "ID",
-        width: 200,
-    },
-    {
         key: "id",
-        title: "\"ID\"",
+        title: "ID",
         width: 200,
     },
     {
@@ -40,9 +55,23 @@ const columns: IColumnType<MatchesResult>[] = [
         width: 200,
     },
     {
-        key: "action",
+        key: "status",
+        title: "Status",
+        width: 200,
+    },
+    {
+        key: "startMatch",
         title: "Start Match",
-        width: 200
+        width: 200,
+        render: (_, { id }) => {
+            return (
+                <>
+                    <Button variant="outline-success" onClick={() => startMatch(id)}>
+                        <h3><FaCirclePlay /></h3>
+                    </Button>
+                </>
+            )
+        }
     }
 ];
 
@@ -51,14 +80,12 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
 
     tableData.forEach((d) => {
         let match =  {
-            ID: d['ID'],
             id: d['id'],
             CreatedAt: d['CreatedAt'],
-            UpdatedAt: d['UpdatedAt'],
-            DeletedAt: d['DeletedAt'],
             games: d['games'],
             numGames: d['numGames'],
-            players: d['players']
+            players: d['players'],
+            status: d['status']
         } as MatchesResult;
 
         data.push(match);

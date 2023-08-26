@@ -141,7 +141,7 @@ func postGamesHandler(c *fiber.Ctx) error {
 	players := getPlayers(playersList)
 
 	match := Match{
-		Id:       getCurrentMatchID(db),
+		ID:       getCurrentMatchID(db),
 		NumGames: numGamesInt,
 		Players:  players,
 	}
@@ -149,7 +149,7 @@ func postGamesHandler(c *fiber.Ctx) error {
 	insertMatch(db, &match)
 
 	game := Game{
-		Match:   match.Id,
+		Match:   match.ID,
 		Players: players,
 		Winner:  int(players[0].ID),
 		Loser:   int(players[1].ID),
@@ -210,14 +210,17 @@ func postMatchesHandler(c *fiber.Ctx) error {
 	players := getPlayers(playersList)
 
 	match := Match{
-		Id:       getCurrentMatchID(db),
+		ID:       getCurrentMatchID(db),
 		NumGames: numGamesInt,
 		Players:  players,
+		Status:   "Pending",
 	}
 
 	insertMatch(db, &match)
 
-	return c.Status(200).SendString(fmt.Sprintf("%s", match))
+	foundMatch := getMatch(match.ID)
+
+	return c.Status(200).SendString(fmt.Sprintf("Created match %d, status: %s", match.ID, foundMatch.Status))
 }
 
 func getMatchesHandler(c *fiber.Ctx) error {
@@ -236,4 +239,27 @@ func getMatchesHandler(c *fiber.Ctx) error {
 	}
 
 	return c.Status(200).SendString(string(jsonMatches))
+}
+
+func startMatchHandler(c *fiber.Ctx) error {
+	matchId := c.Query("match_id")
+	matchIdInt, matchIdIntErr := strconv.Atoi(matchId)
+
+	if matchId == "" {
+		return c.Status(400).SendString("The `match_id` query param value must be provided")
+	}
+
+	if matchIdIntErr != nil {
+		return c.Status(400).SendString(fmt.Sprintf("`match_id` query parameter must be an integer"))
+	}
+
+	var emptyMatch Match
+
+	match := getMatch(matchIdInt)
+
+	if compareMatches(match, emptyMatch) {
+		return c.Status(400).SendString(fmt.Sprintf("`match_id` query parameter must point to an existing Match"))
+	}
+
+	return c.Status(200).SendString(fmt.Sprintf("Started match %d", matchIdInt))
 }

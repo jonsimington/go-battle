@@ -10,41 +10,26 @@ import (
 	"gorm.io/gorm"
 )
 
-// MatchID describes an ID for a game session
-type MatchID struct {
-	gorm.Model
-
-	MatchID int `sql:"AUTO_INCREMENT" gorm:"primary_key"`
-}
-
 // Match represents a series of games in a Tournament
 type Match struct {
 	gorm.Model
 
-	Id       int      `json:"id"`
+	ID       int      `json:"id"`
 	NumGames int      `json:"numGames"`
 	Games    []Game   `json:"games" gorm:"many2many:match_games"`
 	Players  []Player `json:"players" gorm:"many2many:match_players"`
-}
-
-var matchIDLock = &sync.Mutex{}
-
-func getCurrentMatchID(db *gorm.DB) int {
-	matchIDLock.Lock()
-	defer matchIDLock.Unlock()
-
-	var match = new(MatchID)
-
-	db.Create(&match)
-
-	var lastMatch MatchID
-
-	db.Last(&lastMatch)
-
-	return lastMatch.MatchID
+	Status   string   `json:"status"`
 }
 
 var matchLock = &sync.Mutex{}
+
+func getCurrentMatchID(db *gorm.DB) int {
+	var lastMatch Match
+
+	db.Last(&lastMatch)
+
+	return lastMatch.ID + 1
+}
 
 func insertMatch(db *gorm.DB, match *Match) {
 	matchLock.Lock()
@@ -65,13 +50,25 @@ func getMatches(ids []int) []Match {
 	return matches
 }
 
+func getMatch(id int) Match {
+	var match Match
+
+	result := db.Find(&match, id)
+
+	if result.Error != nil {
+		log.Warningln(fmt.Sprintf("Error finding match %d: %s", id, result.Error))
+	}
+
+	return match
+}
+
 // StartMatch begins a match between two players for n games
 func (m Match) StartMatch(db *gorm.DB) {
 
 	player1 := m.Players[0]
 	player2 := m.Players[1]
 
-	log.Printf("Starting match %d (%d games) between %s and %s", m.Id, m.NumGames, player1.Name, player2.Name)
+	log.Printf("Starting match %d (%d games) between %s and %s", m.ID, m.NumGames, player1.Name, player2.Name)
 
 	// init players slice
 	players := []Player{
@@ -79,7 +76,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 		player2,
 	}
 
-	var matchDir = filepath.FromSlash("tmp/" + strconv.Itoa(m.Id))
+	var matchDir = filepath.FromSlash("tmp/" + strconv.Itoa(m.ID))
 
 	// clone each player's repo, store in tmp loc
 	log.Printf("Cloning %s's repo: %s to %s", player1.Name, player1.Client.Repo, matchDir)
@@ -100,13 +97,13 @@ func (m Match) StartMatch(db *gorm.DB) {
 				Players: players,
 				Winner:  1,
 				Loser:   2,
-				Match:   m.Id,
+				Match:   m.ID,
 			}
 
 			currentSession := strconv.Itoa(getCurrentSessionID(db))
 			matchSessions = append(matchSessions, currentSession)
 
-			fmt.Println("playing game -- match: ", strconv.Itoa(m.Id), " session: ", currentSession)
+			fmt.Println("playing game -- match: ", strconv.Itoa(m.ID), " session: ", currentSession)
 			g.PlayGame(currentSession)
 
 			matchWG.Done()
@@ -132,4 +129,12 @@ func (m Match) StartMatch(db *gorm.DB) {
 		fmt.Println("\tloser: ", loser.Name)
 	}
 	return
+}
+
+func compareMatches(matchOne Match, matchTwo Match) bool {
+	return matchOne.ID == matchTwo.ID &&
+		matchOne.ID == matchTwo.ID &&
+		matchOne.CreatedAt == matchTwo.CreatedAt &&
+		matchOne.UpdatedAt == matchTwo.UpdatedAt &&
+		matchOne.DeletedAt == matchTwo.DeletedAt
 }
