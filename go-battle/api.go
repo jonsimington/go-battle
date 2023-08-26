@@ -55,7 +55,6 @@ func init() {
 	checkErr(err)
 
 	db.AutoMigrate(
-		&SessionID{},
 		&GameClient{},
 		&GameStatus{},
 		&Client{},
