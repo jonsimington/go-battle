@@ -1,3 +1,5 @@
+import { ClientsResult } from "./ClientsResult";
+
 export interface PlayersResult {
     ID: number;
     id: number;
@@ -5,5 +7,5 @@ export interface PlayersResult {
     UpdatedAt: Date;
     DeletedAt: Date;
     name: string;
-    client_id: number;
+    client: ClientsResult;
 }
