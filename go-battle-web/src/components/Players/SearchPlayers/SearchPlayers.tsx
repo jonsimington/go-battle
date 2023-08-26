@@ -10,7 +10,7 @@ interface SearchPlayersProps {
 
 const columns: IColumnType<PlayersResult>[] = [
     {
-        key: "ID",
+        key: "id",
         title: "ID",
         width: 200,
     },
@@ -41,7 +41,7 @@ export function SearchPlayers({ tableData }: SearchPlayersProps): JSX.Element {
 
     tableData.forEach((d) => {
         let player =  {
-            ID: d['ID'],
+            id: d['id'],
             CreatedAt: d['CreatedAt'],
             UpdatedAt: d['UpdatedAt'],
             DeletedAt: d['DeletedAt'],

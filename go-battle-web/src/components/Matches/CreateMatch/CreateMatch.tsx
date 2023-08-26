@@ -101,8 +101,8 @@ const CreateMatch: FC<CreateMatchProps> = () => {
         )
     }
 
-    const renderPlayer = (player: PlayersResult) => {
-        return <option value={player.ID} key={player.ID}>ID {player.ID} | {player.name} | Client {player.ClientID}</option>
+    const renderPlayer = (player: PlayersResult, keyContext: string) => {
+        return <option value={player.id} key={`${keyContext}-${player.id}`}>ID {player.id} | {player.name} | Client {player.ClientID}</option>
     }
 
     return (
@@ -119,7 +119,7 @@ const CreateMatch: FC<CreateMatchProps> = () => {
                         <Form.Label className="h5">Player One</Form.Label>
                         <Form.Select value={playerOneValue} onChange={handlePlayerOneValueChange}>
                             {players?.map((player, i) => {
-                                return renderPlayer(player);
+                                return renderPlayer(player, 'playerOne');
                             })}
                         </Form.Select>
                     </Form.Group>
@@ -129,7 +129,7 @@ const CreateMatch: FC<CreateMatchProps> = () => {
                         <Form.Label className="h5">Player Two</Form.Label>
                         <Form.Select value={playerTwoValue} onChange={handlePlayerTwoValueChange}>
                             {players?.map((player, i) => {
-                                return renderPlayer(player);
+                                return renderPlayer(player, 'playerTwo');
                             })}
                         </Form.Select>
                     </Form.Group>
