@@ -40,9 +40,9 @@ const columns: IColumnType<MatchesResult>[] = [
         width: 200,
     },
     {
-        key: "UpdatedAt",
-        title: "Updated At",
-        width: 200,
+        key: "action",
+        title: "Start Match",
+        width: 200
     }
 ];
 

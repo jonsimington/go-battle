@@ -215,6 +215,8 @@ func postMatchesHandler(c *fiber.Ctx) error {
 		Players:  players,
 	}
 
+	insertMatch(db, &match)
+
 	return c.Status(200).SendString(fmt.Sprintf("%s", match))
 }
 

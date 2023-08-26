@@ -64,7 +64,7 @@ const CreatePlayer: FC<CreatePlayerProps> = () => {
                     setHasError(false);
                 } else if (response.status === 400) {
                     setHasWarning(true);
-                } else if (response.status == 500) {
+                } else if (response.status === 500) {
                     setHasError(true);
                 }
             })
