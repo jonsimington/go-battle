@@ -76,20 +76,7 @@ const columns: IColumnType<MatchesResult>[] = [
 ];
 
 export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
-    let data: MatchesResult[] = [];
-
-    tableData.forEach((d) => {
-        let match =  {
-            id: d['id'],
-            CreatedAt: d['CreatedAt'],
-            games: d['games'],
-            numGames: d['numGames'],
-            players: d['players'],
-            status: d['status']
-        } as MatchesResult;
-
-        data.push(match);
-    })
+    let data: MatchesResult[] = tableData;
 
     return (
         <>

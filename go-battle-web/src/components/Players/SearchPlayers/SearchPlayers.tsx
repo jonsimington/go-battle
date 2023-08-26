@@ -37,20 +37,7 @@ const columns: IColumnType<PlayersResult>[] = [
 ];
 
 export function SearchPlayers({ tableData }: SearchPlayersProps): JSX.Element {
-    let data: PlayersResult[] = [];
-
-    tableData.forEach((d) => {
-        let player =  {
-            id: d['id'],
-            CreatedAt: d['CreatedAt'],
-            UpdatedAt: d['UpdatedAt'],
-            DeletedAt: d['DeletedAt'],
-            name: d['name'],
-            ClientID: d['ClientID'],
-        } as PlayersResult;
-
-        data.push(player);
-    })
+    let data: PlayersResult[] = tableData;
 
     return (
         <>
