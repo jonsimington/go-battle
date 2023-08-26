@@ -18,6 +18,13 @@ const columns: IColumnType<ClientsResult>[] = [
         key: "repo",
         title: "Repo",
         width: 200,
+        render: (_, { repo }) => {
+            return (
+                <>
+                    <a href={repo}>{repo}</a>
+                </>
+            )
+        }
     },
     {
         key: "language",
