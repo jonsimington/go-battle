@@ -102,7 +102,7 @@ const CreateMatch: FC<CreateMatchProps> = () => {
     }
 
     const renderPlayer = (player: PlayersResult, keyContext: string) => {
-        return <option value={player.id} key={`${keyContext}-${player.id}`}>ID {player.id} | {player.name} | Client {player.client.ID}</option>
+        return <option value={player.ID} key={`${keyContext}-${player.ID}`}>ID {player.ID} | {player.name} | Client {player.client.ID}</option>
     }
 
     return (

@@ -32,7 +32,7 @@ const startMatch = (matchID: number) =>  {
 
 const columns: IColumnType<MatchesResult>[] = [
     {
-        key: "id",
+        key: "ID",
         title: "ID",
         width: 200,
     },
@@ -46,7 +46,7 @@ const columns: IColumnType<MatchesResult>[] = [
         title: "Games",
         width: 200,
         render: (_, { games }) => {
-            const gameIds = games.map(pluck('id')).join(',');
+            const gameIds = games.map(pluck('ID')).join(', ');
 
             if(gameIds.length > 0) {
                 return (
@@ -65,7 +65,7 @@ const columns: IColumnType<MatchesResult>[] = [
         title: "Players",
         width: 200,
         render: (_, { players }) => {
-            const playerIds = players.map(pluck('id')).join(',');
+            const playerIds = players.map(pluck('ID')).join(', ');
 
             if(playerIds.length > 0) {
                 return (
@@ -93,10 +93,10 @@ const columns: IColumnType<MatchesResult>[] = [
         key: "startMatch",
         title: "Start Match",
         width: 200,
-        render: (_, { id }) => {
+        render: (_, { ID }) => {
             return (
                 <>
-                    <Button variant="outline-success" onClick={() => startMatch(id)}>
+                    <Button variant="outline-success" onClick={() => startMatch(ID)}>
                         <h3><FaCirclePlay /></h3>
                     </Button>
                 </>

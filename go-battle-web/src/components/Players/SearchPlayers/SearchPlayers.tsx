@@ -8,7 +8,7 @@ interface SearchPlayersProps {
 
 const columns: IColumnType<PlayersResult>[] = [
     {
-        key: "id",
+        key: "ID",
         title: "ID",
         width: 200,
     },

@@ -19,7 +19,7 @@ const columns: IColumnType<GamesResult>[] = [
         title: "Players",
         width: 200,
         render: (_, { players }) => {
-            const playerIds = players.map(pluck('id')).join(',');
+            const playerIds = players.map(pluck('ID')).join(', ');
 
             if(playerIds.length > 0) {
                 return (
@@ -54,7 +54,7 @@ const columns: IColumnType<GamesResult>[] = [
         title: "Match ID",
         width: 200,
         render: (_, { match }) => {
-            return <a href={`${window.location.origin}/matches/search?ids=${encodeURI(match.id.toString())}`}>{match.id}</a>
+            return <a href={`${window.location.origin}/matches/search?ids=${encodeURI(match.ID.toString())}`}>{match.ID}</a>
         }
     },
     {
