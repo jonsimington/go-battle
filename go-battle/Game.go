@@ -34,9 +34,20 @@ func getGames(players []int) []Game {
 	if len(players) > 0 {
 		gamesWithPlayers := db.Table("game_players").Where("player_id = ANY(?)", pq.Array(players)).Select("game_id")
 
-		db.Preload("Match").Preload("Players").Preload("Players.Client").Where("id = ANY(?)", pq.Array(gamesWithPlayers)).Find(&games)
+		db.Preload("Match").
+			Preload("Match.Players").
+			Preload("Match.Players.Client").
+			Preload("Players").
+			Preload("Players.Client").
+			Where("id = ANY(?)", pq.Array(gamesWithPlayers)).
+			Find(&games)
 	} else {
-		db.Preload("Match").Preload("Players").Preload("Players.Client").Find(&games)
+		db.Preload("Match").
+			Preload("Match.Players").
+			Preload("Match.Players.Client").
+			Preload("Players").
+			Preload("Players.Client").
+			Find(&games)
 	}
 
 	return games

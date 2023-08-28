@@ -9,11 +9,16 @@ import (
 // SessionID describes an ID for a game session
 type Session struct {
 	gorm.Model
-
-	ID int `json:"id"`
 }
 
 var sessionLock = &sync.Mutex{}
+
+func insertSession(db *gorm.DB, session *Session) {
+	sessionLock.Lock()
+	defer sessionLock.Unlock()
+
+	db.Create(&session)
+}
 
 func getCurrentSessionID(db *gorm.DB) int {
 	sessionLock.Lock()
@@ -23,5 +28,5 @@ func getCurrentSessionID(db *gorm.DB) int {
 
 	db.Last(&lastSession)
 
-	return lastSession.ID + 1
+	return int(lastSession.ID) + 1
 }

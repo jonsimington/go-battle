@@ -42,9 +42,16 @@ func getMatches(ids []int) []Match {
 	var matches []Match
 
 	if len(ids) > 0 {
-		db.Preload("Games").Preload("Players").Preload("Players.Client").Where("id = ANY(?)", pq.Array(ids)).Find(&matches)
+		db.Preload("Games").
+			Preload("Players").
+			Preload("Players.Client").
+			Where("id = ANY(?)", pq.Array(ids)).
+			Find(&matches)
 	} else {
-		db.Preload("Games").Preload("Players").Preload("Players.Client").Find(&matches)
+		db.Preload("Games").
+			Preload("Players").
+			Preload("Players.Client").
+			Find(&matches)
 	}
 
 	return matches
@@ -101,7 +108,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 			}
 
 			// insertGame(db, &g)
-
+			insertSession(db, &Session{})
 			currentSession := strconv.Itoa(getCurrentSessionID(db))
 			matchSessions = append(matchSessions, currentSession)
 

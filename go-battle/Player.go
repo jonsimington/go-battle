@@ -21,9 +21,12 @@ func getPlayers(ids []int) []Player {
 	var players []Player
 
 	if len(ids) > 0 {
-		db.Preload("Client").Where("id = ANY(?)", pq.Array(ids)).Find(&players)
+		db.Preload("Client").
+			Where("id = ANY(?)", pq.Array(ids)).
+			Find(&players)
 	} else {
-		db.Preload("Client").Find(&players)
+		db.Preload("Client").
+			Find(&players)
 	}
 
 	return players
