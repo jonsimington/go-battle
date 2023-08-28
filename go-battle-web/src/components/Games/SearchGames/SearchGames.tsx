@@ -38,7 +38,11 @@ const columns: IColumnType<GamesResult>[] = [
         title: "Winner",
         width: 200,
         render: (_, { winner }) => {
-            return <a href={`${window.location.origin}/players/search?ids=${encodeURI(winner.toString())}`}>{winner}</a>
+            if (winner === 0) {
+                return "Undetermined"
+            } else {
+                return <a href={`${window.location.origin}/players/search?ids=${encodeURI(winner.toString())}`}>{winner}</a>
+            }
         }
     },
     {
@@ -46,7 +50,11 @@ const columns: IColumnType<GamesResult>[] = [
         title: "Loser",
         width: 200,
         render: (_, { loser }) => {
-            return <a href={`${window.location.origin}/players/search?ids=${encodeURI(loser.toString())}`}>{loser}</a>
+            if (loser === 0) {
+                return "Undetermined"
+            } else {
+                return <a href={`${window.location.origin}/players/search?ids=${encodeURI(loser.toString())}`}>{loser}</a>
+            }
         }
     },
     {
