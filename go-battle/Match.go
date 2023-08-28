@@ -38,6 +38,26 @@ func insertMatch(db *gorm.DB, match *Match) {
 	db.Create(&match)
 }
 
+func addGameToMatch(db *gorm.DB, match Match, game Game) {
+	var m Match
+
+	db.Where("id = ?", match.ID).First(&m)
+
+	m.Games = append(m.Games, game)
+
+	db.Save(&m)
+}
+
+func updateMatchStatus(db *gorm.DB, match Match, status string) {
+	var m Match
+
+	db.Where("id = ?", match.ID).First(&m)
+
+	m.Status = status
+
+	db.Save(&m)
+}
+
 func getMatches(ids []int) []Match {
 	var matches []Match
 
@@ -60,7 +80,10 @@ func getMatches(ids []int) []Match {
 func getMatch(id int) Match {
 	var match Match
 
-	result := db.Preload("Games").Preload("Players").Preload("Players.Client").Find(&match, id)
+	result := db.Preload("Games").
+		Preload("Players").
+		Preload("Players.Client").
+		Find(&match, id)
 
 	if result.Error != nil {
 		log.Warningln(fmt.Sprintf("Error finding match %d: %s", id, result.Error))
@@ -71,6 +94,7 @@ func getMatch(id int) Match {
 
 // StartMatch begins a match between two players for n games
 func (m Match) StartMatch(db *gorm.DB) {
+	updateMatchStatus(db, m, "In Progress")
 
 	player1 := m.Players[0]
 	player2 := m.Players[1]
@@ -110,6 +134,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 			}
 
 			insertGame(db, &g)
+			addGameToMatch(db, m, g)
 
 			fmt.Println("playing game -- match: ", strconv.Itoa(m.ID), " session: ", currentSession)
 			g.PlayGame(currentSession)
