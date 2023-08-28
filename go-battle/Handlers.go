@@ -174,12 +174,24 @@ func postGamesHandler(c *fiber.Ctx) error {
 
 func getGamesHandler(c *fiber.Ctx) error {
 	players := c.Query("players")
+	ids := c.Query("ids")
 
 	playersList, err := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
 	}))
+	idList, err := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
+		return strings.ReplaceAll(s, " ", "")
+	}))
 
-	games := getGames(playersList)
+	var games []Game
+
+	if len(playersList) > 0 {
+		games = getGamesWithPlayers(playersList)
+	} else if len(idList) > 0 {
+		games = getGamesById(idList)
+	} else {
+		games = getGamesById([]int{})
+	}
 
 	jsonGames, err := json.Marshal(games)
 

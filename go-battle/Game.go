@@ -30,7 +30,7 @@ var _httpClient = &http.Client{
 	Timeout: time.Second * 10,
 }
 
-func getGames(players []int) []Game {
+func getGamesWithPlayers(players []int) []Game {
 	var games []Game
 
 	if len(players) > 0 {
@@ -42,6 +42,29 @@ func getGames(players []int) []Game {
 			Preload("Players").
 			Preload("Players.Client").
 			Where("id = ANY(?)", pq.Array(gamesWithPlayers)).
+			Find(&games)
+	} else {
+		db.Preload("Match").
+			Preload("Match.Players").
+			Preload("Match.Players.Client").
+			Preload("Players").
+			Preload("Players.Client").
+			Find(&games)
+	}
+
+	return games
+}
+
+func getGamesById(ids []int) []Game {
+	var games []Game
+
+	if len(ids) > 0 {
+		db.Preload("Match").
+			Preload("Match.Players").
+			Preload("Match.Players.Client").
+			Preload("Players").
+			Preload("Players.Client").
+			Where("id = ANY(?)", pq.Array(ids)).
 			Find(&games)
 	} else {
 		db.Preload("Match").
