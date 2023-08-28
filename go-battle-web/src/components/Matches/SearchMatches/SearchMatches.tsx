@@ -66,10 +66,11 @@ const columns: IColumnType<MatchesResult>[] = [
         width: 200,
         render: (_, { players }) => {
             const playerIds = players.map(pluck('ID')).join(', ');
+            const playerNames = players.map(pluck('name')).join(', ');
 
             if(playerIds.length > 0) {
                 return (
-                    <a href={`${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`}>{playerIds}</a>
+                    <a href={`${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`}>{playerNames}</a>
                 )
             }
             else {
