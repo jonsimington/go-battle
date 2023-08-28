@@ -3,6 +3,7 @@ import styles from './SearchClients.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { styled } from '@stitches/react';
 import { ClientsResult } from '../../../models/ClientsResult';
+import { prettyDate } from '../../../utils/utils';
 
 interface SearchClientsProps {
     tableData: any[]
@@ -40,6 +41,9 @@ const columns: IColumnType<ClientsResult>[] = [
         key: "CreatedAt",
         title: "Created At",
         width: 200,
+        render: (_, { CreatedAt }) => {
+            return prettyDate(CreatedAt.toString())
+        }
     },
 ];
 

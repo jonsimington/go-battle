@@ -2,7 +2,7 @@ import React, { FC } from 'react';
 import styles from './SearchGames.module.css';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
-import { pluck } from '../../../utils/utils';
+import { pluck, prettyDate } from '../../../utils/utils';
 
 interface SearchGamesProps {
     tableData: any[]
@@ -61,6 +61,9 @@ const columns: IColumnType<GamesResult>[] = [
         key: "CreatedAt",
         title: "Created At",
         width: 200,
+        render: (_, { CreatedAt }) => {
+            return prettyDate(CreatedAt.toString())
+        }
     },
 ];
 

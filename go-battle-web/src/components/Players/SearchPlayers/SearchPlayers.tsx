@@ -1,6 +1,7 @@
 import styles from './SearchPlayers.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { PlayersResult } from '../../../models/PlayersResult';
+import { prettyDate } from '../../../utils/utils';
 
 interface SearchPlayersProps {
     tableData: any[]
@@ -33,6 +34,9 @@ const columns: IColumnType<PlayersResult>[] = [
         key: "CreatedAt",
         title: "Created At",
         width: 200,
+        render: (_, { CreatedAt }) => {
+            return prettyDate(CreatedAt.toString())
+        }
     },
 ];
 

@@ -6,7 +6,7 @@ import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay } from 'react-icons/fa6';
 import { Button } from 'react-bootstrap';
 import { PlayersResult } from '../../../models/PlayersResult';
-import { pluck } from '../../../utils/utils';
+import { pluck, prettyDate } from '../../../utils/utils';
 
 interface SearchMatchesProps {
     tableData: any[]
@@ -83,6 +83,9 @@ const columns: IColumnType<MatchesResult>[] = [
         key: "CreatedAt",
         title: "Created At",
         width: 200,
+        render: (_, { CreatedAt }) => {
+            return prettyDate(CreatedAt.toString())
+        }
     },
     {
         key: "status",
