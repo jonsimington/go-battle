@@ -13,6 +13,12 @@ export const pluck = (property: string | number) => (element: { [x: string]: any
 
 export const prettyDate = (date: string) => {
     const d = new Date(date)
-    const prettyDate = `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()} ${d.getUTCHours()}:${d.getUTCMinutes()}:${d.getUTCSeconds()} UTC`;
+    const prettyDate = `${leftZeroPad(d.getMonth()+1, 2)}/${leftZeroPad(d.getDate(), 2)}/${d.getFullYear()} ${leftZeroPad(d.getUTCHours(), 2)}:${leftZeroPad(d.getUTCMinutes(), 2)}:${leftZeroPad(d.getUTCSeconds(), 2)} UTC`;
     return prettyDate
+}
+
+export const leftZeroPad = (num: number | string, size: number) => {
+    num = num.toString();
+    while (num.length < size) num = "0" + num;
+    return num;
 }
