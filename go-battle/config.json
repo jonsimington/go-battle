@@ -1,7 +1,7 @@
 {
-    "gameserver": "localhost",
-    "gameserverPlayPort": "3000",
-    "gameserverStatusPort": "3080",
+    "cerveauHost": "cerveau.simington.io",
+    "cerveauApiPort": "3000",
+    "cerveauWebPort": "3080",
     "DB_USER": "postgres",
     "DB_PASS": "postgres",
     "DB_NAME": "go-battle",

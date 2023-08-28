@@ -121,8 +121,8 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 		}
 	}
 
-	var gameserverURL = conf.Get("gameserver")
-	var port = conf.Get("gameserverPlayPort")
+	var gameserverURL = conf.Get("cerveauHost")
+	var port = conf.Get("cerveauApiPort")
 
 	// run game
 	runCmd := exec.Command(m[playerLanguage], playerDir+"main."+playerLanguage, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
@@ -147,8 +147,8 @@ func makeClient(playerDir string) {
 }
 
 func getGamelog(gamelogFilename string) *Gamelog {
-	var cerveauURL = conf.Get("gameserver")
-	var port = conf.Get("gameserverStatusPort")
+	var cerveauURL = conf.Get("cerveauHost")
+	var port = conf.Get("cerveauWebPort")
 
 	glogURL := "http://" + cerveauURL + ":" + port + "/gamelog/" + gamelogFilename
 
@@ -160,8 +160,8 @@ func getGamelog(gamelogFilename string) *Gamelog {
 }
 
 func getGameStatus(gameType string, gameSession string) *GameStatus {
-	var cerveauURL = conf.Get("gameserver")
-	var port = conf.Get("gameserverStatusPort")
+	var cerveauURL = conf.Get("cerveauHost")
+	var port = conf.Get("cerveauWebPort")
 	url := "http://" + cerveauURL + ":" + port + "/status/" + gameType + "/" + gameSession
 
 	gameStatus := new(GameStatus)
@@ -172,8 +172,8 @@ func getGameStatus(gameType string, gameSession string) *GameStatus {
 }
 
 func getGamelogFilename(gameType string, gameSession string) string {
-	var cerveauURL = conf.Get("gameserver")
-	var port = conf.Get("gameserverStatusPort")
+	var cerveauURL = conf.Get("cerveauHost")
+	var port = conf.Get("cerveauWebPort")
 	url := "http://" + cerveauURL + ":" + port + "/status/" + gameType + "/" + gameSession
 
 	status := "running"
