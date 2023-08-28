@@ -100,17 +100,16 @@ func (m Match) StartMatch(db *gorm.DB) {
 	// play numGames games between each player
 	for i := 0; i < m.NumGames; i++ {
 		go func() {
-			g := Game{
-				Players: players,
-				Winner:  1,
-				Loser:   2,
-				Match:   m,
-			}
-
-			// insertGame(db, &g)
 			insertSession(db, &Session{})
 			currentSession := strconv.Itoa(getCurrentSessionID(db))
 			matchSessions = append(matchSessions, currentSession)
+
+			g := Game{
+				Players: players,
+				Match:   m,
+			}
+
+			insertGame(db, &g)
 
 			fmt.Println("playing game -- match: ", strconv.Itoa(m.ID), " session: ", currentSession)
 			g.PlayGame(currentSession)

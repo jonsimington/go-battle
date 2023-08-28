@@ -267,5 +267,7 @@ func startMatchHandler(c *fiber.Ctx) error {
 		return c.Status(400).SendString(fmt.Sprintf("`match_id` query parameter must point to an existing Match"))
 	}
 
+	match.StartMatch(db)
+
 	return c.Status(200).SendString(fmt.Sprintf("Started match %d", matchIdInt))
 }

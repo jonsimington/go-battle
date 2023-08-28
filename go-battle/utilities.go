@@ -52,6 +52,12 @@ func checkIfCommandExistsOnHost(commandName string) bool {
 
 	err := cmd.Run()
 
+	log.Debugln(fmt.Sprintf("Command `%s` exists?: %s", commandName, !strings.Contains(err.Error(), "executable file not found")))
+
+	if strings.Contains(err.Error(), "executable file not found") {
+		return false
+	}
+
 	return err == nil
 }
 

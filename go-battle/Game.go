@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
@@ -119,17 +121,34 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 				panic("Host does not support python3.  Cerveau python clients require python3.")
 			}
 		}
+	} else if playerLanguage == "js" {
+		npmInstallCommand := exec.Command("npm", "install", "--prefix", playerDir)
+
+		npmInstallCommand.Start()
+		npmInstallCommand.Wait()
 	}
 
 	var gameserverURL = conf.Get("cerveauHost")
 	var port = conf.Get("cerveauApiPort")
+	var exePath = playerDir + "main." + playerLanguage
+
+	log.Debugln(fmt.Sprintf("Executing command: `%s %s %s %s %s %s %s`", m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession))
+
+	if _, err := os.Stat(exePath); errors.Is(err, os.ErrNotExist) {
+		log.Warnf(fmt.Sprintf("`%s` doesn't exist!", exePath))
+	}
 
 	// run game
-	runCmd := exec.Command(m[playerLanguage], playerDir+"main."+playerLanguage, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
+	runCmd := exec.Command(m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
 
-	// wait for game to finish
-	runCmd.Start()
-	runCmd.Wait()
+	// runCmd.Stdout = os.Stdout
+	// runCmd.Stderr = os.Stderr
+
+	runErr := runCmd.Run()
+
+	if runErr != nil {
+		log.Warningln(fmt.Sprintf("Play game command returned error: %s", runErr))
+	}
 
 	return
 }
