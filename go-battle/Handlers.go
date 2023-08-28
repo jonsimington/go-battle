@@ -147,7 +147,6 @@ func postGamesHandler(c *fiber.Ctx) error {
 	players := getPlayers(playersList)
 
 	match := Match{
-		ID:       getCurrentMatchID(db),
 		NumGames: numGamesInt,
 		Players:  players,
 	}
@@ -228,7 +227,6 @@ func postMatchesHandler(c *fiber.Ctx) error {
 	players := getPlayers(playersList)
 
 	match := Match{
-		ID:       getCurrentMatchID(db),
 		NumGames: numGamesInt,
 		Players:  players,
 		Status:   "Pending",
@@ -236,7 +234,7 @@ func postMatchesHandler(c *fiber.Ctx) error {
 
 	insertMatch(db, &match)
 
-	foundMatch := getMatch(match.ID)
+	foundMatch := getMatch(int(match.ID))
 
 	return c.Status(200).SendString(fmt.Sprintf("Created match %d, status: %s", match.ID, foundMatch.Status))
 }

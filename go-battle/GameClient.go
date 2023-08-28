@@ -6,7 +6,6 @@ import "gorm.io/gorm"
 type GameClient struct {
 	gorm.Model
 
-	ID           int    `json:"id"`
 	Name         string `json:"name"`
 	Index        int    `json:"index"`
 	Spectating   bool   `json:"spectating"`

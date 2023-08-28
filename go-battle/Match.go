@@ -14,7 +14,6 @@ import (
 type Match struct {
 	gorm.Model
 
-	ID       int      `json:"id"`
 	NumGames int      `json:"numGames"`
 	Games    []Game   `json:"games" gorm:"many2many:match_games"`
 	Players  []Player `json:"players" gorm:"many2many:match_players"`
@@ -28,7 +27,7 @@ func getCurrentMatchID(db *gorm.DB) int {
 
 	db.Last(&lastMatch)
 
-	return lastMatch.ID + 1
+	return int(lastMatch.ID) + 1
 }
 
 func insertMatch(db *gorm.DB, match *Match) {
@@ -107,7 +106,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 		player2,
 	}
 
-	var matchDir = filepath.FromSlash("tmp/" + strconv.Itoa(m.ID))
+	var matchDir = filepath.FromSlash("tmp/" + strconv.Itoa(int(m.ID)))
 
 	// clone each player's repo, store in tmp loc
 	log.Printf("Cloning %s's repo: %s to %s", player1.Name, player1.Client.Repo, matchDir)
@@ -136,7 +135,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 			insertGame(db, &g)
 			addGameToMatch(db, m, g)
 
-			fmt.Println("playing game -- match: ", strconv.Itoa(m.ID), " session: ", currentSession)
+			fmt.Println("playing game -- match: ", strconv.Itoa(int(m.ID)), " session: ", currentSession)
 			g.PlayGame(currentSession)
 
 			matchWG.Done()

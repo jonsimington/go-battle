@@ -18,7 +18,6 @@ import (
 type Game struct {
 	gorm.Model
 
-	ID      int      `json:"id"`
 	Players []Player `json:"players" gorm:"many2many:game_players"`
 	Winner  int      `json:"winner"`
 	Loser   int      `json:"loser"`
@@ -88,7 +87,7 @@ func insertGame(db *gorm.DB, game *Game) {
 }
 
 func (g Game) PlayGame(gameSession string) bool {
-	var matchID = strconv.Itoa(g.Match.ID)
+	var matchID = strconv.Itoa(int(g.Match.ID))
 	pwd, _ := os.Getwd()
 
 	var matchDir = pwd + "/tmp/" + matchID
