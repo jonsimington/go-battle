@@ -9,13 +9,8 @@ import CreateMatch from './components/Matches/CreateMatch/CreateMatch'
 import Navigation from './components/Navigation/Navigation'
 
 import { DbTableView } from './components/DbTableView/DbTableView';
-import { useEffect } from 'react';
 
 function App() {
-  useEffect(() => {
-    document.title = "Go Battle";
-  }, []);
-      
   return (
     <>
         <div className="wrapper">
