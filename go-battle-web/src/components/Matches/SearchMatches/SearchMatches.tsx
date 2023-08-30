@@ -2,13 +2,31 @@ import styles from './SearchMatches.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaX } from 'react-icons/fa6';
-import { Alert, Button, Modal, Toast } from 'react-bootstrap';
+import { Button, Modal, Toast } from 'react-bootstrap';
 import { pluck, prettyDate } from '../../../utils/utils';
 import { useState } from 'react';
-import { rejects } from 'assert';
 
 interface SearchMatchesProps {
     tableData: any[]
+}
+
+const modalHeaderStyles = {
+    background: "#212529", 
+    color: "white",
+    border: "1px solid rgba(0, 0, 0, 0.175)",
+}
+const modalBodyStyles = {
+    background: "#343a40", 
+    color: "white",
+    border: "1px solid rgba(0, 0, 0, 0.175)",
+}
+const modalFooterStyles = {
+    background: "#212529", 
+    color: "white",
+    border: "1px solid rgba(0, 0, 0, 0.175)",
+}
+const modalStyles = {
+
 }
 
 export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
@@ -115,12 +133,13 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
 
     const [hasError, setHasError] = useState(false);
     const [hasWarning, setHasWarning] = useState(false);
-    const [hasApiResponse, setHasApiResponse] = useState(false);
     const [showToast, setShowToast] = useState(false);
+    const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
     const [alertText, setAlertText] = useState('');
 
+    const [matchIdToDelete, setMatchIdToDelete] = useState(-1);
+
     const handleFetchResponse = async (response: Response) => {
-        setHasApiResponse(true);
         setShowToast(true);
         const responseText = await response.text();
         setAlertText(`HTTP ${response.status}: ${responseText}`);
@@ -150,6 +169,11 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
     }
 
     const deleteMatch = (matchID: number) =>  {
+        setMatchIdToDelete(matchID);
+        setShowConfirmDeleteModal(true);
+    }
+
+    const confirmDeleteMatch = (matchID: number) => {
         const requestOptions = {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
@@ -159,6 +183,7 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
     
         fetch(`${apiUrl}/matches?match_id=${matchID}`, requestOptions)
             .then(async response => handleFetchResponse(response))
+            .then(() => setShowConfirmDeleteModal(false))
             .then(() => removeMatchFromTable(matchID));
     }
 
@@ -166,11 +191,30 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
         console.log(`rows before: ${data.length}`)
         data = data.filter((m: MatchesResult) => m.ID != matchID)
         console.log(`rows after: ${data.length}`)
-        
+    }
+
+    const renderConfirmDeleteModal = (title: string, body: string) => {
+        return (
+            <Modal show={showConfirmDeleteModal} onHide={() => setShowConfirmDeleteModal(false)} style={modalStyles}>
+                <Modal.Header style={modalHeaderStyles} closeButton>
+                    <Modal.Title>{title}</Modal.Title>
+                </Modal.Header>
+
+                <Modal.Body style={modalBodyStyles}>
+                    <p>{body}</p>
+                </Modal.Body>
+
+                <Modal.Footer style={modalFooterStyles}>
+                    <Button variant="secondary" onClick={() => setShowConfirmDeleteModal(false)}>Close</Button>
+                    <Button variant="danger" onClick={() => confirmDeleteMatch(matchIdToDelete)}>Delete</Button>
+                </Modal.Footer>
+            </Modal>
+        )
     }
 
     return (
         <>
+        {renderConfirmDeleteModal(`Delete Match ${matchIdToDelete}?`, `Are you sure you want to delete Match ${matchIdToDelete}?  This is permanent.`)}
         <h3>Matches</h3>
 
         <Toast className="my-3" 
