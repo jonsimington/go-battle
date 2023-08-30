@@ -12,17 +12,17 @@ interface SearchMatchesProps {
 }
 
 const modalHeaderStyles = {
-    background: COLORS.dark.primary, 
+    background: COLORS.dark.primary,
     color: COLORS.dark.text.primary,
     border: "1px solid rgba(0, 0, 0, 0.175)",
 }
 const modalBodyStyles = {
-    background: COLORS.dark.secondary, 
+    background: COLORS.dark.secondary,
     color: COLORS.dark.text.primary,
     border: "1px solid rgba(0, 0, 0, 0.175)",
 }
 const modalFooterStyles = {
-    background: COLORS.dark.primary, 
+    background: COLORS.dark.primary,
     color: COLORS.dark.text.primary,
     border: "1px solid rgba(0, 0, 0, 0.175)",
 }
@@ -35,7 +35,7 @@ const toastStyles = {
 }
 
 export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
-    let data: MatchesResult[] = tableData;
+    const [data, setData] = useState(tableData);
 
     const columns: IColumnType<MatchesResult>[] = [
         {
@@ -54,7 +54,7 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
             width: 125,
             render: (_, { games }) => {
                 const gameIds = games.map(pluck('ID')).join(', ');
-    
+
                 if(gameIds.length > 0) {
                     return (
                         <a href={`${window.location.origin}/games/search?ids=${encodeURI(gameIds)}`}>{gameIds}</a>
@@ -73,7 +73,7 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
             render: (_, { players }) => {
                 const playerIds = players.map(pluck('ID')).join(', ');
                 const playerNames = players.map(pluck('name')).join(', ');
-    
+
                 if(playerIds.length > 0) {
                     return (
                         <a href={`${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`}>{playerNames}</a>
@@ -161,9 +161,9 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
         };
-    
+
         const apiUrl = process.env.REACT_APP_API_URL;
-    
+
         fetch(`${apiUrl}/matches/start?match_id=${matchID}`, requestOptions)
             .then(async response => handleFetchResponse(response));
     }
@@ -178,9 +178,9 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
         };
-    
+
         const apiUrl = process.env.REACT_APP_API_URL;
-    
+
         fetch(`${apiUrl}/matches?match_id=${matchID}`, requestOptions)
             .then(async response => handleFetchResponse(response))
             .then(() => setShowConfirmDeleteModal(false))
@@ -188,9 +188,7 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
     }
 
     const removeMatchFromTable = (matchID: number) => {
-        console.log(`rows before: ${data.length}`)
-        data = data.filter((m: MatchesResult) => m.ID != matchID)
-        console.log(`rows after: ${data.length}`)
+        setData(data.filter((m: MatchesResult) => m.ID != matchID))
     }
 
     const renderConfirmDeleteModal = (title: string, body: string) => {
@@ -217,10 +215,10 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
         {renderConfirmDeleteModal(`Delete Match ${matchIdToDelete}?`, `Are you sure you want to delete Match ${matchIdToDelete}?  This is permanent.`)}
         <h3>Matches</h3>
 
-        <Toast className="my-3" 
-            bg={hasError ? "danger" : hasWarning ? "warning" : "success"} 
-            onClose={() => setShowToast(false)} 
-            show={showToast} 
+        <Toast className="my-3"
+            bg={hasError ? "danger" : hasWarning ? "warning" : "success"}
+            onClose={() => setShowToast(false)}
+            show={showToast}
             delay={5000}
             animation={true}
             style={toastStyles}

@@ -2,6 +2,7 @@ import styles from './SearchPlayers.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { PlayersResult } from '../../../models/PlayersResult';
 import { prettyDate } from '../../../utils/utils';
+import { useState } from 'react';
 
 interface SearchPlayersProps {
     tableData: any[]
@@ -40,7 +41,7 @@ const columns: IColumnType<PlayersResult>[] = [
 ];
 
 export function SearchPlayers({ tableData }: SearchPlayersProps): JSX.Element {
-    let data: PlayersResult[] = tableData;
+    const [data, setData] = useState(tableData);
 
     return (
         <>

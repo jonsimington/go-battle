@@ -1,7 +1,6 @@
-import React, { FC } from 'react';
+import { useState } from 'react';
 import styles from './SearchClients.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
-import { styled } from '@stitches/react';
 import { ClientsResult } from '../../../models/ClientsResult';
 import { prettyDate } from '../../../utils/utils';
 
@@ -47,7 +46,7 @@ const columns: IColumnType<ClientsResult>[] = [
 ];
 
 export function SearchClients({ tableData }: SearchClientsProps): JSX.Element {
-    let data: ClientsResult[] = tableData;
+    const [data, setData] = useState(tableData);
 
     return (
         <>

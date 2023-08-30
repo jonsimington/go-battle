@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import { useState } from 'react';
 import styles from './SearchGames.module.css';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
@@ -11,7 +11,7 @@ interface SearchGamesProps {
 }
 
 export function SearchGames({ tableData }: SearchGamesProps): JSX.Element {
-    let data: GamesResult[] = tableData;
+    const [data, setData] = useState(tableData);
 
     const columns: IColumnType<GamesResult>[] = [
         {
