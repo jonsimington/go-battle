@@ -65,7 +65,6 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
         {
             key: "players",
             title: "Players",
-            width: 200,
             render: (_, { players }) => {
                 const playerIds = players.map(pluck('ID')).join(', ');
                 const playerNames = players.map(pluck('name')).join(', ');

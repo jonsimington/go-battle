@@ -18,6 +18,8 @@ export interface IColumnType<T> {
 const TableWrapper = styled("table", {
     borderCollapse: "collapse",
     border: "none",
+    maxWidth: "95%",
+    minWidth: "75%"
 });
 
 export function DynamicTable<T>({ data, columns }: DynamicTableProps<T>): JSX.Element {

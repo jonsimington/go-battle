@@ -13,12 +13,11 @@ const columns: IColumnType<ClientsResult>[] = [
     {
         key: "ID",
         title: "ID",
-        width: 200,
+        width: 50,
     },
     {
         key: "repo",
         title: "Repo",
-        width: 200,
         render: (_, { repo }) => {
             return (
                 <>
@@ -30,12 +29,12 @@ const columns: IColumnType<ClientsResult>[] = [
     {
         key: "language",
         title: "Language",
-        width: 200,
+        width: 100,
     },
     {
         key: "game",
         title: "Game",
-        width: 200,
+        width: 100,
     },
     {
         key: "CreatedAt",

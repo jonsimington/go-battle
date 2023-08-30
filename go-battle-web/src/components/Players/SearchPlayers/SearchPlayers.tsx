@@ -11,17 +11,16 @@ const columns: IColumnType<PlayersResult>[] = [
     {
         key: "ID",
         title: "ID",
-        width: 200,
+        width: 50,
     },
     {
         key: "name",
         title: "Name",
-        width: 200,
     },
     {
         key: "client",
         title: "Client",
-        width: 200,
+        width: 100,
         render: (_, { client }) => {
             return (
                 <>
