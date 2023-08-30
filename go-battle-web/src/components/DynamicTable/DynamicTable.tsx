@@ -1,4 +1,3 @@
-import React, { FC, useEffect, useState } from 'react';
 import styles from './DynamicTable.module.css';
 import { styled } from "@stitches/react";
 import { TableHeader } from './TableHeader/TableHeader';

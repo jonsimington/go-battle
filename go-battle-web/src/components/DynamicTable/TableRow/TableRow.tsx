@@ -1,4 +1,3 @@
-import React, { FC } from 'react';
 import styles from './TableRow.module.css';
 import { styled } from "@stitches/react";
 
@@ -12,13 +11,16 @@ interface TableRowProps<T> {
 
 const TableRowItem = styled("tr", {
     cursor: "auto",
-    "&:nth-child(odd)": {
-        backgroundColor: "#f9f9f9",
+    "&": {
+        backgroundColor: "#212529",
     },
     "&:last-child": {
         borderBottomLeftRadius: 12,
         borderBottomRightRadius: 12,
     },
+    "&:hover": {
+        backgroundColor: "#343a40",
+    }
 });
 
 export function TableRow<T>({ data, columns }: TableRowProps<T>): JSX.Element {
@@ -26,13 +28,13 @@ export function TableRow<T>({ data, columns }: TableRowProps<T>): JSX.Element {
         <>
         {data.map((item, itemIndex) => (
             <TableRowItem key={`table-body-${itemIndex}`}>
-            {columns.map((column, columnIndex) => (
-                <TableRowCell
-                key={`table-row-cell-${columnIndex}`}
-                item={item}
-                column={column}
-                />
-            ))}
+                {columns.map((column, columnIndex) => (
+                    <TableRowCell
+                        key={`table-row-cell-${columnIndex}`}
+                        item={item}
+                        column={column}
+                    />
+                ))}
             </TableRowItem>
         ))}
         </>
