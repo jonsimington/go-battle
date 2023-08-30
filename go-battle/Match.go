@@ -37,6 +37,13 @@ func insertMatch(db *gorm.DB, match *Match) {
 	db.Create(&match)
 }
 
+func deleteMatch(db *gorm.DB, matchId int) {
+	matchLock.Lock()
+	defer matchLock.Unlock()
+
+	db.Delete(&Match{}, matchId)
+}
+
 func addGameToMatch(db *gorm.DB, match Match, game Game) {
 	var m Match
 

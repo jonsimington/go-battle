@@ -87,6 +87,7 @@ func main() {
 	app.Post("/games", postGamesHandler)
 	app.Get("/games", getGamesHandler)
 	app.Post("/matches", postMatchesHandler)
+	app.Delete("/matches", deleteMatchesHandler)
 	app.Post("/matches/start", startMatchHandler)
 	app.Get("/matches", getMatchesHandler)
 

@@ -239,6 +239,31 @@ func postMatchesHandler(c *fiber.Ctx) error {
 	return c.Status(200).SendString(fmt.Sprintf("Created match %d, status: %s", match.ID, foundMatch.Status))
 }
 
+func deleteMatchesHandler(c *fiber.Ctx) error {
+	matchId := c.Query("match_id")
+	matchIdInt, matchIdIntErr := strconv.Atoi(matchId)
+
+	if matchId == "" {
+		return c.Status(400).SendString("The `match_id` query param value must be provided")
+	}
+
+	if matchIdIntErr != nil {
+		return c.Status(400).SendString(fmt.Sprintf("`match_id` query parameter must be an integer"))
+	}
+
+	var emptyMatch Match
+
+	match := getMatch(matchIdInt)
+
+	if compareMatches(match, emptyMatch) {
+		return c.Status(400).SendString(fmt.Sprintf("`match_id` query parameter must point to an existing Match"))
+	}
+
+	deleteMatch(db, matchIdInt)
+
+	return c.Status(200).SendString(fmt.Sprintf("Deleted match %d", matchIdInt))
+}
+
 func getMatchesHandler(c *fiber.Ctx) error {
 	ids := c.Query("ids")
 
