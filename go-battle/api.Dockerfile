@@ -1,11 +1,12 @@
-FROM golang:1.19.10 as builder
+FROM golang:1.19.10-bullseye as builder
 
 WORKDIR /usr/src/app
 
 RUN go install github.com/cosmtrek/air@latest
 
 # install node so we can run js clients
-ENV NODE_VERSION=18.17.1
+ENV NODE_VERSION=10.24.1
+RUN apt update
 RUN apt install -y curl
 RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
 ENV NVM_DIR=/root/.nvm
