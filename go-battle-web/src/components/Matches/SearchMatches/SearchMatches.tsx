@@ -5,28 +5,33 @@ import { FaCirclePlay, FaX } from 'react-icons/fa6';
 import { Button, Modal, Toast } from 'react-bootstrap';
 import { pluck, prettyDate } from '../../../utils/utils';
 import { useState } from 'react';
+import { COLORS } from '../../../utils/colors';
 
 interface SearchMatchesProps {
     tableData: any[]
 }
 
 const modalHeaderStyles = {
-    background: "#212529", 
-    color: "white",
+    background: COLORS.dark.primary, 
+    color: COLORS.dark.text.primary,
     border: "1px solid rgba(0, 0, 0, 0.175)",
 }
 const modalBodyStyles = {
-    background: "#343a40", 
-    color: "white",
+    background: COLORS.dark.secondary, 
+    color: COLORS.dark.text.primary,
     border: "1px solid rgba(0, 0, 0, 0.175)",
 }
 const modalFooterStyles = {
-    background: "#212529", 
-    color: "white",
+    background: COLORS.dark.primary, 
+    color: COLORS.dark.text.primary,
     border: "1px solid rgba(0, 0, 0, 0.175)",
 }
 const modalStyles = {
 
+}
+const toastStyles = {
+    maxWidth: "95%",
+    minWidth: "75%"
 }
 
 export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
@@ -218,6 +223,7 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
             show={showToast} 
             delay={5000}
             animation={true}
+            style={toastStyles}
             autohide>
             <Toast.Body>{alertText}</Toast.Body>
         </Toast>

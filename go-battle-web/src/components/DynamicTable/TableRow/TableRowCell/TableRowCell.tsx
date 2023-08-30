@@ -4,6 +4,7 @@ import { styled } from "@stitches/react";
 import get from "lodash.get";
 
 import { IColumnType } from "../../DynamicTable";
+import { COLORS } from '../../../../utils/colors';
 
 interface TableRowCellProps<T> {
     item: T;
@@ -13,7 +14,7 @@ interface TableRowCellProps<T> {
 const TableCell = styled("td", {
     padding: 12,
     fontSize: 14,
-    color: "grey",
+    color: COLORS.dark.text.secondary,
     textAlign: "center",
 });
 

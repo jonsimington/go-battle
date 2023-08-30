@@ -1,13 +1,14 @@
 import styles from './TableHeader.module.css';
 import { styled } from "@stitches/react";
 import { IColumnType } from "../DynamicTable";
+import { COLORS } from '../../../utils/colors';
 
 interface TableHeaderProps<T> {
     columns: IColumnType<T>[];
 }
 
 const TableHeaderCell = styled("th", {
-    backgroundColor: "#343a40",
+    backgroundColor: COLORS.dark.secondary,
     padding: 12,
     fontWeight: 500,
     textAlign: "center",

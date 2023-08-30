@@ -3,6 +3,7 @@ import { styled } from "@stitches/react";
 
 import { IColumnType } from "../DynamicTable";
 import { TableRowCell } from './TableRowCell/TableRowCell';
+import { COLORS } from '../../../utils/colors';
 
 interface TableRowProps<T> {
     data: T[];
@@ -12,14 +13,14 @@ interface TableRowProps<T> {
 const TableRowItem = styled("tr", {
     cursor: "auto",
     "&": {
-        backgroundColor: "#212529",
+        backgroundColor: COLORS.dark.primary,
     },
     "&:last-child": {
         borderBottomLeftRadius: 12,
         borderBottomRightRadius: 12,
     },
     "&:hover": {
-        backgroundColor: "#343a40",
+        backgroundColor: COLORS.dark.secondary,
     }
 });
 
