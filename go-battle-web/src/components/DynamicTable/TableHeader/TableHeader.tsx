@@ -10,7 +10,7 @@ const TableHeaderCell = styled("th", {
     backgroundColor: "#343a40",
     padding: 12,
     fontWeight: 500,
-    textAlign: "left",
+    textAlign: "center",
     fontSize: 14,
     color: "white",
     "&:first-child": {

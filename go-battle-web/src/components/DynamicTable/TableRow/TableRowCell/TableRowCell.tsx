@@ -14,6 +14,7 @@ const TableCell = styled("td", {
     padding: 12,
     fontSize: 14,
     color: "grey",
+    textAlign: "center",
 });
 
 export function TableRowCell<T>({ item, column }: TableRowCellProps<T>): JSX.Element {

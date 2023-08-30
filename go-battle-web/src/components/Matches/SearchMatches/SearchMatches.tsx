@@ -102,13 +102,11 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
             render: (_, { ID, status }) => {
                 return (
                     <>
-                        <div className="text-center">
-                            {status === "Pending" &&
-                                <Button variant="outline-success" onClick={() => startMatch(ID)}>
-                                    <h3><FaCirclePlay /></h3>
-                                </Button>
-                            }
-                        </div>
+                        {status === "Pending" &&
+                            <Button variant="outline-success" onClick={() => startMatch(ID)}>
+                                <h3><FaCirclePlay /></h3>
+                            </Button>
+                        }
                     </>
                 )
             }
@@ -120,11 +118,9 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
             render: (_, { ID }) => {
                 return (
                     <>
-                        <div className="text-center">
-                            <Button variant="outline-danger" onClick={() => deleteMatch(ID)}>
-                                <h3><FaX /></h3>
-                            </Button>
-                        </div>
+                        <Button variant="outline-danger" onClick={() => deleteMatch(ID)}>
+                            <h3><FaX /></h3>
+                        </Button>
                     </>
                 )
             }
