@@ -156,8 +156,8 @@ func postGamesHandler(c *fiber.Ctx) error {
 	game := Game{
 		Match:   match,
 		Players: players,
-		Winner:  int(players[0].ID),
-		Loser:   int(players[1].ID),
+		Winner:  &players[0],
+		Loser:   &players[1],
 	}
 
 	insertGame(db, &game)

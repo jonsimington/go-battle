@@ -7,8 +7,8 @@ export interface GamesResult {
     UpdatedAt: Date;
     DeletedAt: Date;
     players: PlayersResult[];
-    winner: number;
-    loser: number;
+    winner: PlayersResult;
+    loser: PlayersResult;
     match: MatchesResult;
     session_id: number;
 	gamelog_url: string;

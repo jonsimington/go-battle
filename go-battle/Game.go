@@ -19,8 +19,10 @@ type Game struct {
 	gorm.Model
 
 	Players    []Player `json:"players" gorm:"many2many:game_players"`
-	Winner     int      `json:"winner"`
-	Loser      int      `json:"loser"`
+	Winner     *Player  `json:"winner" gorm:"foreignKey:WinnerID"`
+	WinnerID   *int     `json:"winner_id" gorm:"default:null"`
+	Loser      *Player  `json:"loser" gorm:"foreignKey:LoserID"`
+	LoserID    *int     `json:"loser_id" gorm:"default:null"`
 	MatchID    int      `json:"match_id"`
 	Match      Match    `json:"match" gorm:"foreignKey:MatchID"`
 	SessionID  int      `json:"session_id"`
@@ -65,6 +67,8 @@ func getGamesById(ids []int) []Game {
 			Preload("Match.Players.Client").
 			Preload("Players").
 			Preload("Players.Client").
+			Preload("Winner").
+			Preload("Loser").
 			Where("id = ANY(?)", pq.Array(ids)).
 			Find(&games)
 	} else {
@@ -73,6 +77,8 @@ func getGamesById(ids []int) []Game {
 			Preload("Match.Players.Client").
 			Preload("Players").
 			Preload("Players.Client").
+			Preload("Winner").
+			Preload("Loser").
 			Find(&games)
 	}
 
@@ -88,7 +94,7 @@ func insertGame(db *gorm.DB, game *Game) {
 	db.Create(&game)
 }
 
-func updateGameGamelogUrl(db *gorm.DB, game Game, gamelogUrl string) {
+func setGamelogUrl(db *gorm.DB, game Game, gamelogUrl string) {
 	gameLock.Lock()
 	defer gameLock.Unlock()
 
@@ -97,6 +103,40 @@ func updateGameGamelogUrl(db *gorm.DB, game Game, gamelogUrl string) {
 	db.Where("id = ?", game.ID).First(&g)
 
 	g.GamelogUrl = gamelogUrl
+
+	db.Save(&g)
+}
+
+func setWinner(db *gorm.DB, game Game, winnerName string) {
+	gameLock.Lock()
+	defer gameLock.Unlock()
+
+	var g Game
+
+	db.Where("id = ?", game.ID).First(&g)
+
+	var p Player
+
+	db.Where("name = ?", winnerName).First(&p)
+
+	g.Winner = &p
+
+	db.Save(&g)
+}
+
+func setLoser(db *gorm.DB, game Game, loserName string) {
+	gameLock.Lock()
+	defer gameLock.Unlock()
+
+	var g Game
+
+	db.Where("id = ?", game.ID).First(&g)
+
+	var p Player
+
+	db.Where("name = ?", loserName).First(&p)
+
+	g.Loser = &p
 
 	db.Save(&g)
 }

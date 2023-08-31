@@ -160,7 +160,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 		gamelogFilename := getGamelogFilename(players[0].Client.Game, game.SessionID)
 		gamelogUrl := getGamelogUrl(gamelogFilename)
 
-		updateGameGamelogUrl(db, game, gamelogUrl)
+		setGamelogUrl(db, game, gamelogUrl)
 
 		glog := getGamelog(gamelogFilename)
 
@@ -168,12 +168,21 @@ func (m Match) StartMatch(db *gorm.DB) {
 		gameStatus := getGameStatus(players[0].Client.Game, game.SessionID)
 		insertGameStatus(db, gameStatus)
 
-		winner := glog.Winners[0]
-		loser := glog.Losers[0]
+		// no winners or losers means draw
+		if len(glog.Winners) == 0 {
+			log.Debugln("Draw!")
+		} else {
+			winner := glog.Winners[0]
+			loser := glog.Losers[0]
 
-		log.Debugln(fmt.Println("Session ", game.SessionID, " Summary"))
-		log.Debugln(fmt.Println("\twinner: ", winner.Name))
-		log.Debugln(fmt.Println("\tloser: ", loser.Name))
+			setWinner(db, game, winner.Name)
+			setLoser(db, game, loser.Name)
+
+			log.Debugln(fmt.Println("Session ", game.SessionID, " Summary"))
+			log.Debugln(fmt.Println("\twinner: ", winner.Name))
+			log.Debugln(fmt.Println("\tloser: ", loser.Name))
+		}
+
 	}
 
 	updateMatchStatus(db, m, "Complete")

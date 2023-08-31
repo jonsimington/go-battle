@@ -43,10 +43,10 @@ export function SearchGames({ tableData }: SearchGamesProps): JSX.Element {
             title: "Winner",
             width: 200,
             render: (_, { winner }) => {
-                if (winner === 0) {
+                if (winner.ID === 0) {
                     return "Undetermined"
                 } else {
-                    return <a href={`${window.location.origin}/players/search?ids=${encodeURI(winner.toString())}`}>{winner}</a>
+                    return <a href={`${window.location.origin}/players/search?ids=${encodeURI(winner.ID.toString())}`}>{winner.name}</a>
                 }
             }
         },
@@ -55,10 +55,10 @@ export function SearchGames({ tableData }: SearchGamesProps): JSX.Element {
             title: "Loser",
             width: 200,
             render: (_, { loser }) => {
-                if (loser === 0) {
+                if (loser.ID === 0) {
                     return "Undetermined"
                 } else {
-                    return <a href={`${window.location.origin}/players/search?ids=${encodeURI(loser.toString())}`}>{loser}</a>
+                    return <a href={`${window.location.origin}/players/search?ids=${encodeURI(loser.ID.toString())}`}>{loser.name}</a>
                 }
             }
         },
