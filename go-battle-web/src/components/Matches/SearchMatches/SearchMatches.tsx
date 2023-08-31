@@ -3,7 +3,7 @@ import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaX } from 'react-icons/fa6';
 import { Badge, Button, Modal, Toast } from 'react-bootstrap';
-import { pluck, prettyDate } from '../../../utils/utils';
+import { pluck, prettyDate, slugify } from '../../../utils/utils';
 import { useState } from 'react';
 import { COLORS } from '../../../utils/colors';
 
@@ -108,13 +108,14 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                         <>
                             {playerScores.map((score) => {
                                 let badgeColor = allPlayersHaveSameScore(playerScores) ? "secondary" : playerScores[playerScores.length - 1]?.name === score.name ? "success" : "danger";
+                                let badgeKey = `player-score-badge-${slugify(score.name)}-${ID}`;
+                                let aKey = `player-score-a-${slugify(score.name)}-${ID}`;
+                                let playersLink = `${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`;
 
                                 return (
-                                    <>
-                                        <a href={`${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`} key={`player-score-a-${score.name}-${ID}`}>
-                                            <Badge bg={badgeColor} className="mx-1" key={`player-score-badge-${score.name}-${ID}`}>{score.name}: {score.wins}</Badge>
-                                        </a>
-                                    </>
+                                    <a href={playersLink} key={aKey}>
+                                        <Badge bg={badgeColor} className="mx-1" key={badgeKey}>{score.name}: {score.wins}</Badge>
+                                    </a>
                                 )
                             })}
                         </>
