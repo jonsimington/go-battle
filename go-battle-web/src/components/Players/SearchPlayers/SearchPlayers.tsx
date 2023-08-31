@@ -3,9 +3,12 @@ import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { PlayersResult } from '../../../models/PlayersResult';
 import { prettyDate } from '../../../utils/utils';
 import { useState } from 'react';
+import { Button } from 'react-bootstrap';
+import { FaCirclePlay, FaSpinner } from 'react-icons/fa6';
 
 interface SearchPlayersProps {
-    tableData: any[]
+    tableData: any[],
+    refreshData: Function,
 }
 
 const columns: IColumnType<PlayersResult>[] = [
@@ -40,7 +43,7 @@ const columns: IColumnType<PlayersResult>[] = [
     },
 ];
 
-export function SearchPlayers({ tableData }: SearchPlayersProps): JSX.Element {
+export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): JSX.Element {
     const [data, setData] = useState(tableData);
 
     return (

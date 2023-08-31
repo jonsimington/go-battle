@@ -5,7 +5,7 @@ import { TableRow } from './TableRow/TableRow';
 
 interface DynamicTableProps<T> {
     data: T[]
-    columns: IColumnType<T>[];
+    columns: IColumnType<T>[]
 }
 
 export interface IColumnType<T> {

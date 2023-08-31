@@ -6,6 +6,7 @@ import { prettyDate } from '../../../utils/utils';
 
 interface SearchClientsProps {
     tableData: any[]
+    refreshData: Function
 }
 
 const columns: IColumnType<ClientsResult>[] = [
@@ -45,7 +46,7 @@ const columns: IColumnType<ClientsResult>[] = [
     },
 ];
 
-export function SearchClients({ tableData }: SearchClientsProps): JSX.Element {
+export function SearchClients({ tableData, refreshData }: SearchClientsProps): JSX.Element {
     const [data, setData] = useState(tableData);
 
     return (

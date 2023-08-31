@@ -19,24 +19,28 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
 
     const apiUrl = process.env.REACT_APP_API_URL;
 
-    // fetch data from api
-    useEffect(() => {
+    const fetchFromApi = () => {
         let url = `${apiUrl}/${context}`;
         let ids = searchParams.get("ids");
 
         if (ids != null) {
-            url += `?ids=${encodeURI(ids)}`
+            url += `?ids=${encodeURI(ids)}`;
         }
 
         fetch(url, {mode:'cors'})
           .then(response => response.json())
           .then((json: ApiResult[]) => {
-            json.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
-            setData(json)
+            json.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0);
+            setData(json);
           })
           .catch(error => console.error(error))
           .finally(() => setLoading(false));
-      }, []);
+    }
+
+    // fetch data from api
+    useEffect(() => {
+        fetchFromApi();
+    }, []);
 
     return (
         <>
@@ -45,16 +49,16 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
             ) : (
                 <>
                 {context == "players" &&
-                    <SearchPlayers tableData={data ?? []}></SearchPlayers>
+                    <SearchPlayers tableData={data ?? []} refreshData={fetchFromApi}></SearchPlayers>
                 }
                 {context == "games" &&
-                    <SearchGames tableData={data ?? []}></SearchGames>
+                    <SearchGames tableData={data ?? []} refreshData={fetchFromApi}></SearchGames>
                 }
                 {context == "matches" &&
-                    <SearchMatches tableData={data ?? []}></SearchMatches>
+                    <SearchMatches tableData={data ?? []} refreshData={fetchFromApi}></SearchMatches>
                 }
                 {context == "clients" &&
-                    <SearchClients tableData={data ?? []}></SearchClients>
+                    <SearchClients tableData={data ?? []} refreshData={fetchFromApi}></SearchClients>
                 }
                 </>
             )

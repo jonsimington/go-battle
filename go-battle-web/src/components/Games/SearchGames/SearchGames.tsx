@@ -8,9 +8,10 @@ import { FaTv } from 'react-icons/fa6';
 
 interface SearchGamesProps {
     tableData: any[]
+    refreshData: Function
 }
 
-export function SearchGames({ tableData }: SearchGamesProps): JSX.Element {
+export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.Element {
     const [data, setData] = useState(tableData);
 
     const columns: IColumnType<GamesResult>[] = [

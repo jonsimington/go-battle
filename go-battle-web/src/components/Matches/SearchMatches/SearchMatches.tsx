@@ -9,6 +9,7 @@ import { COLORS } from '../../../utils/colors';
 
 interface SearchMatchesProps {
     tableData: any[]
+    refreshData: Function
 }
 
 interface PlayerScore {
@@ -48,7 +49,7 @@ const allPlayersHaveSameScore = (players: PlayerScore[]) => {
     }
 }
 
-export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
+export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): JSX.Element {
     const [data, setData] = useState(tableData);
 
     const columns: IColumnType<MatchesResult>[] = [
@@ -228,7 +229,8 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
     }
 
     const removeMatchFromTable = (matchID: number) => {
-        setData(data.filter((m: MatchesResult) => m.ID != matchID))
+        setData(data.filter((m: MatchesResult) => m.ID != matchID));
+        refreshData();
     }
 
     const renderConfirmDeleteModal = (title: string, body: string) => {
