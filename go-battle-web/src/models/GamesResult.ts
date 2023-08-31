@@ -1,11 +1,8 @@
+import { ApiResult } from "./ApiResult";
 import { MatchesResult } from "./MatchesResult";
 import { PlayersResult } from "./PlayersResult";
 
-export interface GamesResult {
-    ID: number;
-    CreatedAt: Date;
-    UpdatedAt: Date;
-    DeletedAt: Date;
+export interface GamesResult extends ApiResult {
     players: PlayersResult[];
     winner: PlayersResult;
     loser: PlayersResult;

@@ -1,10 +1,7 @@
+import { ApiResult } from "./ApiResult";
 import { ClientsResult } from "./ClientsResult";
 
-export interface PlayersResult {
-    ID: number;
-    CreatedAt: Date;
-    UpdatedAt: Date;
-    DeletedAt: Date;
+export interface PlayersResult extends ApiResult {
     name: string;
     client: ClientsResult;
 }

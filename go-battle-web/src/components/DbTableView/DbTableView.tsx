@@ -6,13 +6,14 @@ import { SearchGames } from '../Games/SearchGames/SearchGames';
 import { SearchMatches } from '../Matches/SearchMatches/SearchMatches';
 import { SearchClients } from '../Clients/SearchClients/SearchClients';
 import { useSearchParams } from 'react-router-dom';
+import { ApiResult } from '../../models/ApiResult';
 
 interface DbTableViewProps<T> {
     context: string;
 }
 
 export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
-    const [data, setData] = useState<unknown[]>();
+    const [data, setData] = useState<ApiResult[]>();
     const [loading, setLoading] = useState(true);
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -29,7 +30,8 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
 
         fetch(url, {mode:'cors'})
           .then(response => response.json())
-          .then(json => {
+          .then((json: ApiResult[]) => {
+            json.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
             setData(json)
           })
           .catch(error => console.error(error))

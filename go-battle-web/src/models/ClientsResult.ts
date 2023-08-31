@@ -1,8 +1,6 @@
-export interface ClientsResult {
-    ID: number;
-    CreatedAt: Date;
-    UpdatedAt: Date;
-    DeletedAt: Date;
+import { ApiResult } from "./ApiResult";
+
+export interface ClientsResult extends ApiResult {
     repo: string;
     language: string;
     game: string;
