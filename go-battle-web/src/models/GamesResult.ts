@@ -10,4 +10,6 @@ export interface GamesResult {
     winner: number;
     loser: number;
     match: MatchesResult;
+    session_id: number;
+	gamelog_url: string;
 }

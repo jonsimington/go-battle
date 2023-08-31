@@ -82,12 +82,14 @@ export function SearchGames({ tableData }: SearchGamesProps): JSX.Element {
             key: "visualize",
             title: "Visualize",
             width: 100,
-            render: (_, {  }) => {
+            render: (_, { gamelog_url }) => {
                 return (
                     <>
-                        <Button variant="outline-info" href={""}>
-                            <h4><FaTv /></h4>
-                        </Button>
+                        {gamelog_url !== undefined && gamelog_url !== "" &&
+                            <Button variant="outline-info" href={gamelog_url}>
+                                <h4><FaTv /></h4>
+                            </Button>
+                        }
                     </>
                 )
             }
