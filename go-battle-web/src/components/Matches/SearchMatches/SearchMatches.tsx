@@ -2,13 +2,19 @@ import styles from './SearchMatches.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaX } from 'react-icons/fa6';
-import { Button, Modal, Toast } from 'react-bootstrap';
+import { Badge, Button, Modal, Toast } from 'react-bootstrap';
 import { pluck, prettyDate } from '../../../utils/utils';
 import { useState } from 'react';
 import { COLORS } from '../../../utils/colors';
 
 interface SearchMatchesProps {
     tableData: any[]
+}
+
+interface PlayerScore {
+    name: string;
+    id: number;
+    wins: number;
 }
 
 const modalHeaderStyles = {
@@ -32,6 +38,14 @@ const modalStyles = {
 const toastStyles = {
     maxWidth: "95%",
     minWidth: "75%"
+}
+
+const allPlayersHaveSameScore = (players: PlayerScore[]) => {
+    if (players.length !== 2) {
+        throw("Assumed only two players per match");
+    } else {
+        return players[0].wins === players[1].wins;
+    }
 }
 
 export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
@@ -70,13 +84,39 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
         {
             key: "players",
             title: "Players",
-            render: (_, { players }) => {
+            render: (_, { players, games, ID }) => {
                 const playerIds = players.map(pluck('ID')).join(', ');
-                const playerNames = players.map(pluck('name')).join(', ');
+                const playerNames = players.map(pluck('name'));
+
+                let playerScores: PlayerScore[] = [];
+
+                playerNames.forEach(playerName => {
+                    let playerWins = games.filter((g) => g.winner?.name === playerName).length;
+                    let playerID = players.filter((p) => p.name === playerName)[0].ID
+                    playerScores.push({
+                        name: playerName,
+                        wins: playerWins,
+                        id: playerID
+                    } as PlayerScore)
+                });
+
+                playerScores.sort((a, b) => a.wins < b.wins ? -1 : a.wins > b.wins ? 0 : 1)
 
                 if(playerIds.length > 0) {
                     return (
-                        <a href={`${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`}>{playerNames}</a>
+                        <>
+                            {playerScores.map((score) => {
+                                let badgeColor = allPlayersHaveSameScore(playerScores) ? "secondary" : playerScores[playerScores.length - 1]?.name === score.name ? "success" : "danger";
+
+                                return (
+                                    <>
+                                        <a href={`${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`} key={`player-score-a-${score.name}-${ID}`}>
+                                            <Badge bg={badgeColor} className="mx-1" key={`player-score-badge-${score.name}-${ID}`}>{score.name}: {score.wins}</Badge>
+                                        </a>
+                                    </>
+                                )
+                            })}
+                        </>
                     )
                 }
                 else {
@@ -107,7 +147,7 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
                 return (
                     <>
                         {status === "Pending" &&
-                            <Button variant="outline-success" onClick={() => startMatch(ID)}>
+                            <Button variant="outline-success" onClick={() => startMatch(ID)} key={`startMatchButton-${ID}`}>
                                 <h3><FaCirclePlay /></h3>
                             </Button>
                         }
@@ -122,7 +162,7 @@ export function SearchMatches({ tableData }: SearchMatchesProps): JSX.Element {
             render: (_, { ID }) => {
                 return (
                     <>
-                        <Button variant="outline-danger" onClick={() => deleteMatch(ID)}>
+                        <Button variant="outline-danger" onClick={() => deleteMatch(ID)} key={`deleteMatchButton-${ID}`}>
                             <h3><FaX /></h3>
                         </Button>
                     </>

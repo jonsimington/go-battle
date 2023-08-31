@@ -69,12 +69,16 @@ func getMatches(ids []int) []Match {
 
 	if len(ids) > 0 {
 		db.Preload("Games").
+			Preload("Games.Winner").
+			Preload("Games.Loser").
 			Preload("Players").
 			Preload("Players.Client").
 			Where("id = ANY(?)", pq.Array(ids)).
 			Find(&matches)
 	} else {
 		db.Preload("Games").
+			Preload("Games.Winner").
+			Preload("Games.Loser").
 			Preload("Players").
 			Preload("Players.Client").
 			Find(&matches)
@@ -87,6 +91,8 @@ func getMatch(id int) Match {
 	var match Match
 
 	result := db.Preload("Games").
+		Preload("Games.Winner").
+		Preload("Games.Loser").
 		Preload("Players").
 		Preload("Players.Client").
 		Find(&match, id)
