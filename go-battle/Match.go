@@ -125,22 +125,27 @@ func (m Match) StartMatch(db *gorm.DB) {
 	var matchWG sync.WaitGroup
 	matchWG.Add(m.NumGames)
 
-	var matchSessions []string
+	var matchSessions []int
 
 	// play numGames games between each player
 	for i := 0; i < m.NumGames; i++ {
 		go func() {
 			insertSession(db, &Session{})
-			currentSession := strconv.Itoa(getCurrentSessionID(db))
+			currentSession := getCurrentSessionID(db)
 			matchSessions = append(matchSessions, currentSession)
 
 			g := Game{
-				Players: players,
-				Match:   m,
+				Players:   players,
+				Match:     m,
+				SessionID: currentSession,
 			}
 
+			// insert Game into DB
 			insertGame(db, &g)
 			addGameToMatch(db, m, g)
+
+			// add Game to the match in memory
+			m.Games = append(m.Games, g)
 
 			fmt.Println("playing game -- match: ", strconv.Itoa(int(m.ID)), " session: ", currentSession)
 			g.PlayGame(currentSession)
@@ -151,22 +156,27 @@ func (m Match) StartMatch(db *gorm.DB) {
 	}
 	matchWG.Wait()
 
-	// query cerveau API to get gamelogs for each game in match
-	for _, matchSession := range matchSessions {
-		gamelogFilename := getGamelogFilename(players[0].Client.Game, matchSession)
+	for _, game := range m.Games {
+		gamelogFilename := getGamelogFilename(players[0].Client.Game, game.SessionID)
+		gamelogUrl := getGamelogUrl(gamelogFilename)
+
+		updateGameGamelogUrl(db, game, gamelogUrl)
 
 		glog := getGamelog(gamelogFilename)
 
 		// once the game is finished, get the status and insert into DB
-		gameStatus := getGameStatus(players[0].Client.Game, matchSession)
+		gameStatus := getGameStatus(players[0].Client.Game, game.SessionID)
 		insertGameStatus(db, gameStatus)
 
 		winner := glog.Winners[0]
 		loser := glog.Losers[0]
-		fmt.Println("Session ", matchSession, " Summary")
-		fmt.Println("\twinner: ", winner.Name)
-		fmt.Println("\tloser: ", loser.Name)
+
+		log.Debugln(fmt.Println("Session ", game.SessionID, " Summary"))
+		log.Debugln(fmt.Println("\twinner: ", winner.Name))
+		log.Debugln(fmt.Println("\tloser: ", loser.Name))
 	}
+
+	updateMatchStatus(db, m, "Complete")
 	return
 }
 

@@ -1,5 +1,6 @@
 {
-    "cerveauHost": "cerveau.simington.io",
+    "cerveauApiHost": "cerveau.simington.io",
+    "cerveauWebHost": "web.cerveau.simington.io",
     "cerveauApiPort": "3000",
     "cerveauWebPort": "3080",
     "DB_USER": "postgres",

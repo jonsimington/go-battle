@@ -18,11 +18,13 @@ import (
 type Game struct {
 	gorm.Model
 
-	Players []Player `json:"players" gorm:"many2many:game_players"`
-	Winner  int      `json:"winner"`
-	Loser   int      `json:"loser"`
-	MatchID int      `json:"match_id"`
-	Match   Match    `json:"match" gorm:"foreignKey:MatchID"`
+	Players    []Player `json:"players" gorm:"many2many:game_players"`
+	Winner     int      `json:"winner"`
+	Loser      int      `json:"loser"`
+	MatchID    int      `json:"match_id"`
+	Match      Match    `json:"match" gorm:"foreignKey:MatchID"`
+	SessionID  int      `json:"session_id"`
+	GamelogUrl string   `json:"gamelog_url"`
 }
 
 var _httpClient = &http.Client{
@@ -86,7 +88,20 @@ func insertGame(db *gorm.DB, game *Game) {
 	db.Create(&game)
 }
 
-func (g Game) PlayGame(gameSession string) bool {
+func updateGameGamelogUrl(db *gorm.DB, game Game, gamelogUrl string) {
+	gameLock.Lock()
+	defer gameLock.Unlock()
+
+	var g Game
+
+	db.Where("id = ?", game.ID).First(&g)
+
+	g.GamelogUrl = gamelogUrl
+
+	db.Save(&g)
+}
+
+func (g Game) PlayGame(gameSession int) bool {
 	var matchID = strconv.Itoa(int(g.Match.ID))
 	pwd, _ := os.Getwd()
 
@@ -115,7 +130,7 @@ func (g Game) PlayGame(gameSession string) bool {
 	return true
 }
 
-func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession string) {
+func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession int) {
 
 	makeClient(playerDir)
 
@@ -127,7 +142,7 @@ func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession s
 	return
 }
 
-func runGame(playerLanguage string, playerDir string, gameType string, gameSession string) {
+func runGame(playerLanguage string, playerDir string, gameType string, gameSession int) {
 	m := make(map[string]string)
 	m["js"] = "node"
 
@@ -146,11 +161,14 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 	} else if playerLanguage == "js" {
 		npmInstallCommand := exec.Command("npm", "install", "--prefix", playerDir)
 
+		npmInstallCommand.Stdout = os.Stdout
+		npmInstallCommand.Stderr = os.Stderr
+
 		npmInstallCommand.Start()
 		npmInstallCommand.Wait()
 	}
 
-	var gameserverURL = conf.Get("cerveauHost")
+	var gameserverURL = conf.Get("cerveauApiHost")
 	var port = conf.Get("cerveauApiPort")
 	var exePath = playerDir + "main." + playerLanguage
 
@@ -161,10 +179,10 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 	}
 
 	// run game
-	runCmd := exec.Command(m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
+	runCmd := exec.Command(m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
 
-	// runCmd.Stdout = os.Stdout
-	// runCmd.Stderr = os.Stderr
+	runCmd.Stdout = os.Stdout
+	runCmd.Stderr = os.Stderr
 
 	runErr := runCmd.Run()
 
@@ -188,10 +206,7 @@ func makeClient(playerDir string) {
 }
 
 func getGamelog(gamelogFilename string) *Gamelog {
-	var cerveauURL = conf.Get("cerveauHost")
-	var port = conf.Get("cerveauWebPort")
-
-	glogURL := "http://" + cerveauURL + ":" + port + "/gamelog/" + gamelogFilename
+	glogURL := getGamelogUrl(gamelogFilename)
 
 	glog := new(Gamelog)
 
@@ -200,10 +215,9 @@ func getGamelog(gamelogFilename string) *Gamelog {
 	return glog
 }
 
-func getGameStatus(gameType string, gameSession string) *GameStatus {
-	var cerveauURL = conf.Get("cerveauHost")
-	var port = conf.Get("cerveauWebPort")
-	url := "http://" + cerveauURL + ":" + port + "/status/" + gameType + "/" + gameSession
+func getGameStatus(gameType string, gameSession int) *GameStatus {
+	var cerveauURL = conf.Get("cerveauWebHost")
+	url := "https://" + cerveauURL + "/status/" + gameType + "/" + strconv.Itoa(gameSession)
 
 	gameStatus := new(GameStatus)
 
@@ -212,10 +226,9 @@ func getGameStatus(gameType string, gameSession string) *GameStatus {
 	return gameStatus
 }
 
-func getGamelogFilename(gameType string, gameSession string) string {
-	var cerveauURL = conf.Get("cerveauHost")
-	var port = conf.Get("cerveauWebPort")
-	url := "http://" + cerveauURL + ":" + port + "/status/" + gameType + "/" + gameSession
+func getGamelogFilename(gameType string, gameSession int) string {
+	var cerveauURL = conf.Get("cerveauWebHost")
+	url := "https://" + cerveauURL + "/status/" + gameType + "/" + strconv.Itoa(gameSession)
 
 	status := "running"
 
@@ -232,5 +245,11 @@ func getGamelogFilename(gameType string, gameSession string) string {
 	}
 
 	return getGamelogFilename(gameType, gameSession)
+}
 
+func getGamelogUrl(gamelogFilename string) string {
+	var cerveauURL = conf.Get("cerveauWebHost")
+	glogURL := "https://" + cerveauURL + "/gamelog/" + gamelogFilename
+
+	return glogURL
 }
