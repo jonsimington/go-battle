@@ -238,7 +238,8 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 	runErr := runCmd.Run()
 
 	if runErr != nil {
-		log.Warningln(fmt.Sprintf("Play game command returned error: %s", runErr))
+		log.Warningln(fmt.Sprintf("Play game command returned error: `%s`, trying again", runErr))
+		runGame(playerLanguage, playerDir, gameType, gameSession)
 	}
 
 	return
