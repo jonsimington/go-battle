@@ -9,4 +9,5 @@ export interface GamesResult extends ApiResult {
     match: MatchesResult;
     session_id: number;
 	gamelog_url: string;
+    draw: boolean;
 }

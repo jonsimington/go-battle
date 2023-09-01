@@ -20,6 +20,7 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
     const apiUrl = process.env.REACT_APP_API_URL;
 
     const fetchFromApi = () => {
+        setLoading(true);
         let url = `${apiUrl}/${context}`;
         let ids = searchParams.get("ids");
 

@@ -2,8 +2,8 @@ import styles from './SearchMatches.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaX } from 'react-icons/fa6';
-import { Badge, Button, Modal, Toast } from 'react-bootstrap';
-import { pluck, slugify } from '../../../utils/utils';
+import { Badge, Button, Modal, OverlayTrigger, Toast, Tooltip } from 'react-bootstrap';
+import { delay, pluck, slugify } from '../../../utils/utils';
 import { useState } from 'react';
 import { COLORS } from '../../../utils/colors';
 import moment from 'moment';
@@ -17,6 +17,8 @@ interface PlayerScore {
     name: string;
     id: number;
     wins: number;
+    losses: number;
+    draws: number;
 }
 
 const modalHeaderStyles = {
@@ -67,7 +69,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         {
             key: "games",
             title: "Games",
-            width: 125,
+            width: 100,
             render: (_, { games }) => {
                 const gameIds = games.map(pluck('ID')).join(', ');
 
@@ -94,10 +96,14 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
                 playerNames.forEach(playerName => {
                     let playerWins = games.filter((g) => g.winner?.name === playerName).length;
+                    let playerLosses = games.filter((g) => g.loser?.name === playerName).length;
+                    let playerDraws = games.filter((g) => g.draw === true).length * 0.5
                     let playerID = players.filter((p) => p.name === playerName)[0].ID
                     playerScores.push({
                         name: playerName,
                         wins: playerWins,
+                        losses: playerLosses,
+                        draws: playerDraws,
                         id: playerID
                     } as PlayerScore)
                 });
@@ -115,7 +121,9 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
                                 return (
                                     <a href={playersLink} key={aKey}>
-                                        <Badge bg={badgeColor} className="mx-1" key={badgeKey}>{score.name}: {score.wins}</Badge>
+                                        <OverlayTrigger placement="top" overlay={renderPlayerRecordTooltip(score)}>
+                                            <Badge bg={badgeColor} className="mx-1" key={badgeKey}>{score.name}: {score.wins + score.draws}</Badge>
+                                        </OverlayTrigger>
                                     </a>
                                 )
                             })}
@@ -131,10 +139,18 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         },
         {
             key: "CreatedAt",
-            title: "Created At",
-            width: 200,
+            title: "Created",
+            width: 150,
             render: (_, { CreatedAt }) => {
                 return moment(CreatedAt.toString()).fromNow();
+            }
+        },
+        {
+            key: "UpdatedAt",
+            title: "Updated",
+            width: 150,
+            render: (_, { UpdatedAt }) => {
+                return moment(UpdatedAt.toString()).fromNow();
             }
         },
         {
@@ -144,7 +160,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         },
         {
             key: "startMatch",
-            title: "Start Match",
+            title: "Play Match",
             width: 100,
             render: (_, { ID, status }) => {
                 return (
@@ -208,7 +224,13 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         const apiUrl = process.env.REACT_APP_API_URL;
 
         fetch(`${apiUrl}/matches/start?match_id=${matchID}`, requestOptions)
-            .then(async response => handleFetchResponse(response));
+            .then(async response => handleFetchResponse(response))
+            .then(async () => {
+                await delay(1000)
+            })
+            .then(() => {
+                refreshData()
+            });
     }
 
     const deleteMatch = (matchID: number) =>  {
@@ -251,6 +273,14 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                     <Button variant="danger" onClick={() => confirmDeleteMatch(matchIdToDelete)}>Delete</Button>
                 </Modal.Footer>
             </Modal>
+        )
+    }
+
+    const renderPlayerRecordTooltip = (player: PlayerScore) => {
+        return (
+            <Tooltip id={`tooltip-${slugify(player.name)}`} style={{position:"fixed"}}>
+                Wins: {player.wins} | Losses: {player.losses} | Draws: {player.draws * 2}
+            </Tooltip>
         )
     }
 

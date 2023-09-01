@@ -33,3 +33,7 @@ export const slugify = (text: string) =>
     .replace(/\s+/g, '-')
     .replace(/[^\w-]+/g, '')
     .replace(/--+/g, '-')
+
+export const delay = (ms: number) => {
+    return new Promise( resolve => setTimeout(resolve, ms) );
+}
