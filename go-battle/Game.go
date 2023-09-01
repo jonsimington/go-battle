@@ -209,15 +209,15 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 				panic("Host does not support python3.  Cerveau python clients require python3.")
 			}
 		}
-	} else if playerLanguage == "js" {
-		npmInstallCommand := exec.Command("npm", "install", "--prefix", playerDir)
-
-		// npmInstallCommand.Stdout = os.Stdout
-		// npmInstallCommand.Stderr = os.Stderr
-
-		npmInstallCommand.Start()
-		npmInstallCommand.Wait()
 	}
+	// 	npmInstallCommand := exec.Command("npm", "install", "--prefix", playerDir)
+
+	// 	// npmInstallCommand.Stdout = os.Stdout
+	// 	// npmInstallCommand.Stderr = os.Stderr
+
+	// 	npmInstallCommand.Start()
+	// 	npmInstallCommand.Wait()
+	// }
 
 	var gameserverURL = conf.Get("cerveauApiHost")
 	var port = conf.Get("cerveauApiPort")
