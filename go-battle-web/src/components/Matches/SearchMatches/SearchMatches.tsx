@@ -1,12 +1,13 @@
 import styles from './SearchMatches.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
-import { FaCirclePlay, FaX } from 'react-icons/fa6';
+import { FaCirclePlay, FaSpinner, FaX } from 'react-icons/fa6';
 import { Badge, Button, Modal, OverlayTrigger, Toast, Tooltip } from 'react-bootstrap';
 import { delay, pluck, slugify } from '../../../utils/utils';
 import { useState } from 'react';
 import { COLORS } from '../../../utils/colors';
 import moment from 'moment';
+import { log } from 'console';
 
 interface SearchMatchesProps {
     tableData: any[]
@@ -54,6 +55,7 @@ const allPlayersHaveSameScore = (players: PlayerScore[]) => {
 
 export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): JSX.Element {
     const [data, setData] = useState(tableData);
+    const [matchesPlaying, setMatchesPlaying] = useState<number[]>([]);
 
     const columns: IColumnType<MatchesResult>[] = [
         {
@@ -163,15 +165,19 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             title: "Play Match",
             width: 100,
             render: (_, { ID, status }) => {
-                return (
-                    <>
-                        {status === "Pending" &&
-                            <Button variant="outline-success" onClick={() => startMatch(ID)} key={`startMatchButton-${ID}`}>
-                                <h3><FaCirclePlay /></h3>
-                            </Button>
-                        }
-                    </>
-                )
+                if(status === "Pending" && !matchesPlaying.includes(ID)) {
+                    return (
+                        <Button variant="outline-success" onClick={() => startMatch(ID)} key={`startMatchButton-${ID}`}>
+                            <h3><FaCirclePlay /></h3>
+                        </Button>
+                    )
+                } else if(matchesPlaying.includes(ID)) {
+                    return (
+                        <Button variant="outline-info" key={`matchPlayingIcon-${ID}`}>
+                            <h3><FaSpinner  className="icon-spin" /></h3>
+                        </Button>
+                    )
+                }
             }
         },
         {
@@ -216,6 +222,8 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
     }
 
     const startMatch = (matchID: number) =>  {
+        setMatchesPlaying([...matchesPlaying, matchID])
+
         const requestOptions = {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -226,10 +234,11 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         fetch(`${apiUrl}/matches/start?match_id=${matchID}`, requestOptions)
             .then(async response => handleFetchResponse(response))
             .then(async () => {
-                await delay(1000)
+                await delay(1000);
             })
             .then(() => {
-                refreshData()
+                refreshData();
+                setMatchesPlaying(matchesPlaying.filter((mID) => mID != matchID));
             });
     }
 
