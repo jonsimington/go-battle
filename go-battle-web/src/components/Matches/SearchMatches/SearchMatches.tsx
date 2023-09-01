@@ -179,7 +179,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                             <h3><FaCirclePlay /></h3>
                         </Button>
                     )
-                } else if(matchesPlaying.includes(ID)) {
+                } else if(status == "In Progress" || matchesPlaying.includes(ID)) {
                     return (
                         <Button variant="outline-info" key={`matchPlayingIcon-${ID}`}>
                             <h3><FaSpinner  className="icon-spin" /></h3>
