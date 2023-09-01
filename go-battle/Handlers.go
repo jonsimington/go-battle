@@ -304,5 +304,12 @@ func startMatchHandler(c *fiber.Ctx) error {
 
 	match.StartMatch(db)
 
-	return c.Status(200).SendString(fmt.Sprintf("Started match %d", matchIdInt))
+	match = getMatch(matchIdInt)
+	winner, draw := getPlayerWithMostWins(match)
+
+	if draw {
+		return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Draw!", matchIdInt))
+	} else {
+		return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Winner: %s", matchIdInt, winner.Name))
+	}
 }

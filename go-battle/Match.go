@@ -231,3 +231,32 @@ func compareMatches(matchOne Match, matchTwo Match) bool {
 		matchOne.UpdatedAt == matchTwo.UpdatedAt &&
 		matchOne.DeletedAt == matchTwo.DeletedAt
 }
+
+func getPlayerWithMostWins(match Match) (Player, bool) {
+	player1 := match.Players[0]
+	player2 := match.Players[1]
+
+	var player1Wins float32 = 0
+	var player2Wins float32 = 0
+
+	for _, g := range match.Games {
+		if match.Draw {
+			player1Wins += 0.5
+			player2Wins += 0.5
+		} else if g.Winner != nil {
+			if g.Winner.ID == player1.ID {
+				player1Wins += 1
+			} else if g.Winner.ID == player2.ID {
+				player2Wins += 1
+			}
+		}
+	}
+
+	if player1Wins > player2Wins {
+		return player1, false
+	} else if player2Wins > player1Wins {
+		return player2, false
+	}
+
+	return player2, true
+}
