@@ -4,7 +4,7 @@ import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaSpinner, FaX } from 'react-icons/fa6';
 import { Badge, Button, Col, Container, Dropdown, Modal, OverlayTrigger, Row, Toast, Tooltip } from 'react-bootstrap';
 import { delay, elapsedTime, pluck, prettyDate, prettyTimeAgo, slugify } from '../../../utils/utils';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { COLORS } from '../../../utils/colors';
 import moment from 'moment';
 import TimeAgo from 'timeago-react';
@@ -71,6 +71,9 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
     const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
     const [alertText, setAlertText] = useState('');
 
+    useEffect(() => {
+        sortData("created-desc", {})
+    }, [])
 
     const columns: IColumnType<MatchesResult>[] = [
         {
@@ -314,11 +317,17 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
         if(eventKey === "created") {
             sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
-        } else if(eventKey === "updated") {
+        }
+        else if(eventKey === "created-desc") {
+            sortedData.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
+        }
+        else if(eventKey === "updated") {
             sortedData.sort((a, b) => a.UpdatedAt < b.UpdatedAt ? -1 : a.UpdatedAt > b.UpdatedAt ? 1 : 0)
-        } else if(eventKey === "numGames") {
+        }
+        else if(eventKey === "numGames") {
             sortedData.sort((a, b) => a.numGames < b.numGames ? -1 : a.numGames > b.numGames ? 1 : 0)
-        } else if(eventKey === "status") {
+        }
+        else if(eventKey === "status") {
             sortedData.sort((a, b) => a.status > b.status ? -1 : a.status < b.status ? 0 : 1)
         }
 
