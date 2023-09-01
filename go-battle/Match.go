@@ -157,10 +157,10 @@ func (m Match) StartMatch(db *gorm.DB) {
 	var matchDir = filepath.FromSlash("tmp/" + strconv.Itoa(int(m.ID)))
 
 	// clone each player's repo, store in tmp loc
-	log.Debugf("Cloning %s's repo: %s to %s", player1.Name, player1.Client.Repo, matchDir)
+	log.Infof("Cloning %s's repo: %s to %s", player1.Name, player1.Client.Repo, matchDir)
 	player1.Client.CloneRepo(matchDir + "/" + player1.Name)
 
-	log.Debugf("Cloning %s's repo: %s to %s", player2.Name, player2.Client.Repo, matchDir)
+	log.Infof("Cloning %s's repo: %s to %s", player2.Name, player2.Client.Repo, matchDir)
 	player2.Client.CloneRepo(matchDir + "/" + player2.Name)
 
 	var matchWG sync.WaitGroup
@@ -240,14 +240,14 @@ func (m Match) StartMatch(db *gorm.DB) {
 
 			handleEloChanges(player1, player2, &winner, false)
 
-			log.Debugf("Session %d Summary", game.SessionID)
-			log.Debugf("\twinner: %s", winner.Name)
-			log.Debugf("\tloser: %s", loser.Name)
+			log.Infof("Session %d Summary", game.SessionID)
+			log.Infof("\twinner: %s", winner.Name)
+			log.Infof("\tloser: %s", loser.Name)
 		}
 	}
 
 	if player1Wins == player2Wins {
-		log.Debugf("It's a match draw!")
+		log.Infof("It's a match draw!")
 		updateMatchDraw(db, m, true)
 	}
 
