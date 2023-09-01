@@ -8,4 +8,6 @@ export interface MatchesResult extends ApiResult {
     players: PlayersResult[];
     status: string;
     draw: boolean;
+    start_time: Date;
+    end_time: Date;
 }

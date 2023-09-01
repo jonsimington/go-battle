@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/lib/pq"
 	"gorm.io/gorm"
@@ -14,11 +15,13 @@ import (
 type Match struct {
 	gorm.Model
 
-	NumGames int      `json:"numGames"`
-	Games    []Game   `json:"games" gorm:"many2many:match_games"`
-	Players  []Player `json:"players" gorm:"many2many:match_players"`
-	Status   string   `json:"status"`
-	Draw     bool     `json:"draw"`
+	NumGames  int       `json:"numGames"`
+	Games     []Game    `json:"games" gorm:"many2many:match_games"`
+	Players   []Player  `json:"players" gorm:"many2many:match_players"`
+	Status    string    `json:"status"`
+	Draw      bool      `json:"draw"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
 }
 
 var matchLock = &sync.Mutex{}
@@ -75,6 +78,26 @@ func updateMatchDraw(db *gorm.DB, match Match, draw bool) {
 	db.Save(&m)
 }
 
+func updateMatchStartTime(db *gorm.DB, match Match, time time.Time) {
+	var m Match
+
+	db.Where("id = ?", match.ID).First(&m)
+
+	m.StartTime = time
+
+	db.Save(&m)
+}
+
+func updateMatchEndTime(db *gorm.DB, match Match, time time.Time) {
+	var m Match
+
+	db.Where("id = ?", match.ID).First(&m)
+
+	m.EndTime = time
+
+	db.Save(&m)
+}
+
 func getMatches(ids []int) []Match {
 	var matches []Match
 
@@ -118,6 +141,7 @@ func getMatch(id int) Match {
 // StartMatch begins a match between two players for n games
 func (m Match) StartMatch(db *gorm.DB) {
 	updateMatchStatus(db, m, "In Progress")
+	updateMatchStartTime(db, m, time.Now())
 
 	player1 := m.Players[0]
 	player2 := m.Players[1]
@@ -221,6 +245,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 	}
 
 	updateMatchStatus(db, m, "Complete")
+	updateMatchEndTime(db, m, time.Now())
 	return
 }
 

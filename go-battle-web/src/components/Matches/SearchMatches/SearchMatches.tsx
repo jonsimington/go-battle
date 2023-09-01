@@ -3,7 +3,7 @@ import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaSpinner, FaX } from 'react-icons/fa6';
 import { Badge, Button, Col, Container, Dropdown, Modal, OverlayTrigger, Row, Toast, Tooltip } from 'react-bootstrap';
-import { delay, pluck, prettyDate, slugify } from '../../../utils/utils';
+import { delay, elapsedTime, pluck, prettyDate, prettyTimeAgo, slugify } from '../../../utils/utils';
 import { useState } from 'react';
 import { COLORS } from '../../../utils/colors';
 import moment from 'moment';
@@ -182,6 +182,19 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             key: "status",
             title: "Status",
             width: 125,
+            render: (_, { status, start_time, end_time }) => {
+                const elapsed = prettyTimeAgo(elapsedTime(start_time, end_time));
+                
+                if (status === "Complete") {
+                    return (
+                        <OverlayTrigger placement="top" overlay={renderElapsedMatchTimeTooltip(elapsed)}>
+                            <span>{status}</span>
+                        </OverlayTrigger>
+                    )
+                } else {
+                    return status;
+                }
+            }
         },
         {
             key: "startMatch",
@@ -343,6 +356,14 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         return (
             <Tooltip id={`tooltip-date-${date}`} style={{position:"fixed"}}>
                 {prettyDate(date.toString())}
+            </Tooltip>
+        )
+    }
+
+    const renderElapsedMatchTimeTooltip = (time: string) => {
+        return (
+            <Tooltip id={`tooltip-elapsedTime-${time}`} style={{position:"fixed"}}>
+                Elapsed Time: {time}
             </Tooltip>
         )
     }
