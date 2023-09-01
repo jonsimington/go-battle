@@ -3,7 +3,7 @@ import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaSpinner, FaX } from 'react-icons/fa6';
 import { Badge, Button, Modal, OverlayTrigger, Toast, Tooltip } from 'react-bootstrap';
-import { delay, pluck, slugify } from '../../../utils/utils';
+import { delay, pluck, prettyDate, slugify } from '../../../utils/utils';
 import { useState } from 'react';
 import { COLORS } from '../../../utils/colors';
 import moment from 'moment';
@@ -144,7 +144,11 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             title: "Created",
             width: 150,
             render: (_, { CreatedAt }) => {
-                return moment(CreatedAt.toString()).fromNow();
+                return (
+                    <OverlayTrigger placement="top" overlay={renderDateTooltip(CreatedAt)}>
+                        <span>{moment(CreatedAt.toString()).fromNow()}</span>
+                    </OverlayTrigger>
+                )
             }
         },
         {
@@ -152,7 +156,11 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             title: "Updated",
             width: 150,
             render: (_, { UpdatedAt }) => {
-                return moment(UpdatedAt.toString()).fromNow();
+                return (
+                    <OverlayTrigger placement="top" overlay={renderDateTooltip(UpdatedAt)}>
+                        <span>{moment(UpdatedAt.toString()).fromNow()}</span>
+                    </OverlayTrigger>
+                )
             }
         },
         {
@@ -289,6 +297,14 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         return (
             <Tooltip id={`tooltip-${slugify(player.name)}`} style={{position:"fixed"}}>
                 Wins: {player.wins} | Losses: {player.losses} | Draws: {player.draws * 2}
+            </Tooltip>
+        )
+    }
+
+    const renderDateTooltip = (date: Date) => {
+        return (
+            <Tooltip id={`tooltip-date-${date}`} style={{position:"fixed"}}>
+                {prettyDate(date.toString())}
             </Tooltip>
         )
     }

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import styles from './SearchGames.module.css';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
-import { pluck } from '../../../utils/utils';
-import { Button } from 'react-bootstrap';
+import { pluck, prettyDate } from '../../../utils/utils';
+import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { FaTv } from 'react-icons/fa6';
 import moment from 'moment';
 
@@ -77,7 +77,11 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             title: "Created At",
             width: 200,
             render: (_, { CreatedAt }) => {
-                return moment(CreatedAt.toString()).fromNow();
+                return (
+                    <OverlayTrigger placement="top" overlay={renderDateTooltip(CreatedAt)}>
+                        <span>{moment(CreatedAt.toString()).fromNow()}</span>
+                    </OverlayTrigger>
+                )
             }
         },
         {
@@ -97,6 +101,14 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             }
         },
     ];
+
+    const renderDateTooltip = (date: Date) => {
+        return (
+            <Tooltip id={`tooltip-date-${date}`} style={{position:"fixed"}}>
+                {prettyDate(date.toString())}
+            </Tooltip>
+        )
+    }
 
     return (
         <>
