@@ -18,6 +18,7 @@ type Match struct {
 	Games    []Game   `json:"games" gorm:"many2many:match_games"`
 	Players  []Player `json:"players" gorm:"many2many:match_players"`
 	Status   string   `json:"status"`
+	Draw     bool     `json:"draw"`
 }
 
 var matchLock = &sync.Mutex{}
@@ -60,6 +61,16 @@ func updateMatchStatus(db *gorm.DB, match Match, status string) {
 	db.Where("id = ?", match.ID).First(&m)
 
 	m.Status = status
+
+	db.Save(&m)
+}
+
+func updateMatchDraw(db *gorm.DB, match Match, draw bool) {
+	var m Match
+
+	db.Where("id = ?", match.ID).First(&m)
+
+	m.Draw = draw
 
 	db.Save(&m)
 }
@@ -111,7 +122,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 	player1 := m.Players[0]
 	player2 := m.Players[1]
 
-	log.Printf("Starting match %d (%d games) between %s and %s", m.ID, m.NumGames, player1.Name, player2.Name)
+	log.Infof("Starting match %d (%d games) between %s and %s", m.ID, m.NumGames, player1.Name, player2.Name)
 
 	// init players slice
 	players := []Player{
@@ -122,10 +133,10 @@ func (m Match) StartMatch(db *gorm.DB) {
 	var matchDir = filepath.FromSlash("tmp/" + strconv.Itoa(int(m.ID)))
 
 	// clone each player's repo, store in tmp loc
-	log.Printf("Cloning %s's repo: %s to %s", player1.Name, player1.Client.Repo, matchDir)
+	log.Debugf("Cloning %s's repo: %s to %s", player1.Name, player1.Client.Repo, matchDir)
 	player1.Client.CloneRepo(matchDir + "/" + player1.Name)
 
-	log.Printf("Cloning %s's repo: %s to %s", player2.Name, player2.Client.Repo, matchDir)
+	log.Debugf("Cloning %s's repo: %s to %s", player2.Name, player2.Client.Repo, matchDir)
 	player2.Client.CloneRepo(matchDir + "/" + player2.Name)
 
 	var matchWG sync.WaitGroup
@@ -133,12 +144,16 @@ func (m Match) StartMatch(db *gorm.DB) {
 
 	var matchSessions []int
 
-	// play numGames games between each player
+	// Create a session for each game in the match
 	for i := 0; i < m.NumGames; i++ {
-		go func() {
-			insertSession(db, &Session{})
-			currentSession := getCurrentSessionID(db)
-			matchSessions = append(matchSessions, currentSession)
+		insertSession(db, &Session{})
+		currentSession := getCurrentSessionID(db)
+		matchSessions = append(matchSessions, currentSession)
+	}
+
+	// play a game concurrently for each session we created
+	for _, session := range matchSessions {
+		go func(currentSession int) {
 
 			g := Game{
 				Players:   players,
@@ -146,22 +161,22 @@ func (m Match) StartMatch(db *gorm.DB) {
 				SessionID: currentSession,
 			}
 
-			// insert Game into DB
 			insertGame(db, &g)
 			addGameToMatch(db, m, g)
 
 			// add Game to the match in memory
 			m.Games = append(m.Games, g)
 
-			fmt.Println("playing game -- match: ", strconv.Itoa(int(m.ID)), " session: ", currentSession)
 			g.PlayGame(currentSession)
 
 			matchWG.Done()
 			return
-		}()
+		}(session)
 	}
+
 	matchWG.Wait()
 
+	// for each game played, set the game result
 	for _, game := range m.Games {
 		gamelogFilename := getGamelogFilename(players[0].Client.Game, game.SessionID)
 		gamelogUrl := getGamelogUrl(gamelogFilename)
@@ -177,6 +192,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 		// no winners or losers means draw
 		if len(glog.Winners) == 0 {
 			log.Debugln("Draw!")
+			updateMatchDraw(db, m, true)
 		} else {
 			winner := glog.Winners[0]
 			loser := glog.Losers[0]
@@ -184,11 +200,10 @@ func (m Match) StartMatch(db *gorm.DB) {
 			setWinner(db, game, winner.Name)
 			setLoser(db, game, loser.Name)
 
-			log.Debugln(fmt.Println("Session ", game.SessionID, " Summary"))
-			log.Debugln(fmt.Println("\twinner: ", winner.Name))
-			log.Debugln(fmt.Println("\tloser: ", loser.Name))
+			log.Debugf("Session ", game.SessionID, " Summary")
+			log.Debugf("\twinner: ", winner.Name)
+			log.Debugf("\tloser: ", loser.Name)
 		}
-
 	}
 
 	updateMatchStatus(db, m, "Complete")

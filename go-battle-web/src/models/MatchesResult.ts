@@ -7,4 +7,5 @@ export interface MatchesResult extends ApiResult {
     games: GamesResult[];
     players: PlayersResult[];
     status: string;
+    draw: boolean;
 }
