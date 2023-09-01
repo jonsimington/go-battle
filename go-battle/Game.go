@@ -212,8 +212,8 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 	} else if playerLanguage == "js" {
 		npmInstallCommand := exec.Command("npm", "install", "--prefix", playerDir)
 
-		npmInstallCommand.Stdout = os.Stdout
-		npmInstallCommand.Stderr = os.Stderr
+		// npmInstallCommand.Stdout = os.Stdout
+		// npmInstallCommand.Stderr = os.Stderr
 
 		npmInstallCommand.Start()
 		npmInstallCommand.Wait()
@@ -223,7 +223,7 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 	var port = conf.Get("cerveauApiPort")
 	var exePath = playerDir + "main." + playerLanguage
 
-	log.Debugln(fmt.Sprintf("Executing command: `%s %s %s %s %s %s %s`", m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession))
+	log.Debugln(fmt.Sprintf("Executing command: `%s %s %s %s %s %s %d`", m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession))
 
 	if _, err := os.Stat(exePath); errors.Is(err, os.ErrNotExist) {
 		log.Warnf(fmt.Sprintf("`%s` doesn't exist!", exePath))
@@ -232,8 +232,8 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 	// run game
 	runCmd := exec.Command(m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
 
-	runCmd.Stdout = os.Stdout
-	runCmd.Stderr = os.Stderr
+	// runCmd.Stdout = os.Stdout
+	// runCmd.Stderr = os.Stderr
 
 	runErr := runCmd.Run()
 
