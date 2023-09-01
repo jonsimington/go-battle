@@ -7,7 +7,7 @@ import { delay, pluck, prettyDate, slugify } from '../../../utils/utils';
 import { useState } from 'react';
 import { COLORS } from '../../../utils/colors';
 import moment from 'moment';
-import { log } from 'console';
+import TimeAgo from 'timeago-react';
 
 interface SearchMatchesProps {
     tableData: any[]
@@ -20,6 +20,11 @@ interface PlayerScore {
     wins: number;
     losses: number;
     draws: number;
+}
+
+interface MatchStartTime {
+    id: number;
+    startTime: Date;
 }
 
 const modalHeaderStyles = {
@@ -56,6 +61,7 @@ const allPlayersHaveSameScore = (players: PlayerScore[]) => {
 export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): JSX.Element {
     const [data, setData] = useState(tableData);
     const [matchesPlaying, setMatchesPlaying] = useState<number[]>([]);
+    const [matchStartTimes, setMatchStartTimes] = useState<MatchStartTime[]>([]);
 
     const columns: IColumnType<MatchesResult>[] = [
         {
@@ -171,7 +177,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         {
             key: "startMatch",
             title: "Play Match",
-            width: 100,
+            width: 125,
             render: (_, { ID, status }) => {
                 if(status === "Pending" && !matchesPlaying.includes(ID)) {
                     return (
@@ -181,9 +187,18 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                     )
                 } else if(status == "In Progress" || matchesPlaying.includes(ID)) {
                     return (
-                        <Button variant="outline-info" key={`matchPlayingIcon-${ID}`}>
-                            <h3><FaSpinner  className="icon-spin" /></h3>
-                        </Button>
+                        <>
+                            <div className="row d-inline-flex">
+                                <Button variant="outline-info" key={`matchPlayingIcon-${ID}`}>
+                                    <h3><FaSpinner  className="icon-spin" /></h3>
+                                </Button>
+                            </div>
+                            <div className="row">
+                            
+                                <TimeAgo datetime={matchStartTimes.filter((m) => m.id == ID)[0]?.startTime ?? new Date()} opts={{minInterval: 1}} className="mt-1" />
+
+                            </div>
+                        </>
                     )
                 }
             }
@@ -230,7 +245,11 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
     }
 
     const startMatch = (matchID: number) =>  {
-        setMatchesPlaying([...matchesPlaying, matchID])
+        setMatchesPlaying([...matchesPlaying, matchID]);
+        setMatchStartTimes([...matchStartTimes, {
+            id: matchID,
+            startTime: new Date(),
+        }]);
 
         const requestOptions = {
             method: 'POST',
@@ -284,7 +303,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         } else if(eventKey === "numGames") {
             sortedData.sort((a, b) => a.numGames < b.numGames ? -1 : a.numGames > b.numGames ? 1 : 0)
         } else if(eventKey === "status") {
-            sortedData.sort((a, b) => a.status < b.status ? -1 : a.status > b.status ? 1 : 0)
+            sortedData.sort((a, b) => a.status > b.status ? -1 : a.status < b.status ? 0 : 1)
         }
 
         setData(sortedData);
