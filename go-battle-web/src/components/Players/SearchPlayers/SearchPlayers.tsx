@@ -1,10 +1,8 @@
 import styles from './SearchPlayers.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { PlayersResult } from '../../../models/PlayersResult';
-import { prettyDate } from '../../../utils/utils';
 import { useState } from 'react';
-import { Button } from 'react-bootstrap';
-import { FaCirclePlay, FaSpinner } from 'react-icons/fa6';
+import moment from 'moment';
 
 interface SearchPlayersProps {
     tableData: any[],
@@ -38,7 +36,7 @@ const columns: IColumnType<PlayersResult>[] = [
         title: "Created At",
         width: 200,
         render: (_, { CreatedAt }) => {
-            return prettyDate(CreatedAt.toString())
+            return moment(CreatedAt.toString()).fromNow();
         }
     },
 ];

@@ -2,9 +2,10 @@ import { useState } from 'react';
 import styles from './SearchGames.module.css';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
-import { pluck, prettyDate } from '../../../utils/utils';
+import { pluck } from '../../../utils/utils';
 import { Button } from 'react-bootstrap';
 import { FaTv } from 'react-icons/fa6';
+import moment from 'moment';
 
 interface SearchGamesProps {
     tableData: any[]
@@ -76,7 +77,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             title: "Created At",
             width: 200,
             render: (_, { CreatedAt }) => {
-                return prettyDate(CreatedAt.toString())
+                return moment(CreatedAt.toString()).fromNow();
             }
         },
         {

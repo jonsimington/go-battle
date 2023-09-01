@@ -3,9 +3,10 @@ import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaX } from 'react-icons/fa6';
 import { Badge, Button, Modal, Toast } from 'react-bootstrap';
-import { pluck, prettyDate, slugify } from '../../../utils/utils';
+import { pluck, slugify } from '../../../utils/utils';
 import { useState } from 'react';
 import { COLORS } from '../../../utils/colors';
+import moment from 'moment';
 
 interface SearchMatchesProps {
     tableData: any[]
@@ -133,7 +134,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             title: "Created At",
             width: 200,
             render: (_, { CreatedAt }) => {
-                return prettyDate(CreatedAt.toString())
+                return moment(CreatedAt.toString()).fromNow();
             }
         },
         {
