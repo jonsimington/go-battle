@@ -2,7 +2,7 @@ import styles from './SearchMatches.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaSpinner, FaX } from 'react-icons/fa6';
-import { Badge, Button, Modal, OverlayTrigger, Toast, Tooltip } from 'react-bootstrap';
+import { Badge, Button, Col, Container, Dropdown, Modal, OverlayTrigger, Row, Toast, Tooltip } from 'react-bootstrap';
 import { delay, pluck, prettyDate, slugify } from '../../../utils/utils';
 import { useState } from 'react';
 import { COLORS } from '../../../utils/colors';
@@ -274,6 +274,22 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         refreshData();
     }
 
+    const sortData = (eventKey: any, event: Object) => {
+        let sortedData = [...data] as MatchesResult[];
+
+        if(eventKey === "created") {
+            sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
+        } else if(eventKey === "updated") {
+            sortedData.sort((a, b) => a.UpdatedAt < b.UpdatedAt ? -1 : a.UpdatedAt > b.UpdatedAt ? 1 : 0)
+        } else if(eventKey === "numGames") {
+            sortedData.sort((a, b) => a.numGames < b.numGames ? -1 : a.numGames > b.numGames ? 1 : 0)
+        } else if(eventKey === "status") {
+            sortedData.sort((a, b) => a.status < b.status ? -1 : a.status > b.status ? 1 : 0)
+        }
+
+        setData(sortedData);
+    }
+
     const renderConfirmDeleteModal = (title: string, body: string) => {
         return (
             <Modal show={showConfirmDeleteModal} onHide={() => setShowConfirmDeleteModal(false)} style={modalStyles}>
@@ -311,21 +327,45 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
     return (
         <>
-        {renderConfirmDeleteModal(`Delete Match ${matchIdToDelete}?`, `Are you sure you want to delete Match ${matchIdToDelete}?  This is permanent.`)}
-        <h3>Matches</h3>
+            {renderConfirmDeleteModal(`Delete Match ${matchIdToDelete}?`, `Are you sure you want to delete Match ${matchIdToDelete}?  This is permanent.`)}
 
-        <Toast className="my-3"
-            bg={hasError ? "danger" : hasWarning ? "warning" : "success"}
-            onClose={() => setShowToast(false)}
-            show={showToast}
-            delay={5000}
-            animation={true}
-            style={toastStyles}
-            autohide>
-            <Toast.Body>{alertText}</Toast.Body>
-        </Toast>
+            <Container className="pb-3">
+                <Row className="text-center">
+                    <Col>
+                        <h3>Matches</h3>
+                    </Col>
+                </Row>
 
-        <DynamicTable data={data} columns={columns} />
+                <Row>
+                    <Col>
+                        <Dropdown autoClose={false} onSelect={sortData}>
+                            <Dropdown.Toggle variant="outline-info" id="dropdown-basic">
+                                Sort By
+                            </Dropdown.Toggle>
+
+                            <Dropdown.Menu>
+                                <Dropdown.Item eventKey="created">Created</Dropdown.Item>
+                                <Dropdown.Item eventKey="updated">Updated</Dropdown.Item>
+                                <Dropdown.Item eventKey="numGames"># Games</Dropdown.Item>
+                                <Dropdown.Item eventKey="status">Status</Dropdown.Item>
+                            </Dropdown.Menu>
+                        </Dropdown>
+                    </Col>
+                </Row>
+            </Container>
+
+            <Toast className="my-3"
+                bg={hasError ? "danger" : hasWarning ? "warning" : "success"}
+                onClose={() => setShowToast(false)}
+                show={showToast}
+                delay={5000}
+                animation={true}
+                style={toastStyles}
+                autohide>
+                <Toast.Body>{alertText}</Toast.Body>
+            </Toast>
+
+            <DynamicTable data={data} columns={columns} />
         </>
     );
 }
