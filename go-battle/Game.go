@@ -108,7 +108,7 @@ func setGamelogUrl(db *gorm.DB, game Game, gamelogUrl string) {
 	db.Save(&g)
 }
 
-func setWinner(db *gorm.DB, game Game, winnerName string) {
+func setGameWinner(db *gorm.DB, game Game, winner Player) {
 	gameLock.Lock()
 	defer gameLock.Unlock()
 
@@ -116,16 +116,12 @@ func setWinner(db *gorm.DB, game Game, winnerName string) {
 
 	db.Where("id = ?", game.ID).First(&g)
 
-	var p Player
-
-	db.Where("name = ?", winnerName).First(&p)
-
-	g.Winner = &p
+	g.Winner = &winner
 
 	db.Save(&g)
 }
 
-func setLoser(db *gorm.DB, game Game, loserName string) {
+func setGameLoser(db *gorm.DB, game Game, loser Player) {
 	gameLock.Lock()
 	defer gameLock.Unlock()
 
@@ -133,11 +129,7 @@ func setLoser(db *gorm.DB, game Game, loserName string) {
 
 	db.Where("id = ?", game.ID).First(&g)
 
-	var p Player
-
-	db.Where("name = ?", loserName).First(&p)
-
-	g.Loser = &p
+	g.Loser = &loser
 
 	db.Save(&g)
 }

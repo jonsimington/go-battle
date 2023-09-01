@@ -10,6 +10,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	elogo "github.com/kortemy/elo-go"
 	"github.com/sirupsen/logrus"
 
 	. "github.com/Nomon/gonfig"
@@ -22,6 +23,8 @@ var log = logrus.New()
 var conf = NewConfig(nil)
 var wg sync.WaitGroup
 var db *gorm.DB
+
+var elo = elogo.NewElo()
 
 func checkErr(err error) {
 	if err != nil {

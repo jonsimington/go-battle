@@ -216,13 +216,18 @@ func (m Match) StartMatch(db *gorm.DB) {
 		gameStatus := getGameStatus(players[0].Client.Game, game.SessionID)
 		insertGameStatus(db, gameStatus)
 
+		// refresh Player state
+		player1 = getPlayerByName(player1.Name)
+		player2 = getPlayerByName(player2.Name)
+
 		// no winners or losers means draw
 		if len(glog.Winners) == 0 {
 			log.Debugln("Draw!")
 			updateGameDraw(db, game, true)
+			handleEloChanges(player1, player2, nil, true)
 		} else {
-			winner := glog.Winners[0]
-			loser := glog.Losers[0]
+			winner := getPlayerByName(glog.Winners[0].Name)
+			loser := getPlayerByName(glog.Losers[0].Name)
 
 			if winner.Name == player1.Name {
 				player1Wins += 1
@@ -230,12 +235,14 @@ func (m Match) StartMatch(db *gorm.DB) {
 				player2Wins += 1
 			}
 
-			setWinner(db, game, winner.Name)
-			setLoser(db, game, loser.Name)
+			setGameWinner(db, game, winner)
+			setGameLoser(db, game, loser)
 
-			log.Debugf("Session ", game.SessionID, " Summary")
-			log.Debugf("\twinner: ", winner.Name)
-			log.Debugf("\tloser: ", loser.Name)
+			handleEloChanges(player1, player2, &winner, false)
+
+			log.Debugf("Session %d Summary", game.SessionID)
+			log.Debugf("\twinner: %s", winner.Name)
+			log.Debugf("\tloser: %s", loser.Name)
 		}
 	}
 
@@ -247,6 +254,13 @@ func (m Match) StartMatch(db *gorm.DB) {
 	updateMatchStatus(db, m, "Complete")
 	updateMatchEndTime(db, m, time.Now())
 	return
+}
+
+func handleEloChanges(player1 Player, player2 Player, winner *Player, draw bool) {
+	outcomeA, outcomeB := calculateEloOutcomes(player1, player2, winner, draw)
+
+	updatePlayerElo(db, player1, outcomeA.Rating)
+	updatePlayerElo(db, player2, outcomeB.Rating)
 }
 
 func compareMatches(matchOne Match, matchTwo Match) bool {

@@ -32,6 +32,7 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.16.3 // indirect
+	github.com/kortemy/elo-go v0.0.0-20190919090953-f9d3a99fd7b7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
