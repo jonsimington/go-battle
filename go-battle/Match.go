@@ -176,6 +176,9 @@ func (m Match) StartMatch(db *gorm.DB) {
 
 	matchWG.Wait()
 
+	player1Wins := 0
+	player2Wins := 0
+
 	// for each game played, set the game result
 	for _, game := range m.Games {
 		gamelogFilename := getGamelogFilename(players[0].Client.Game, game.SessionID)
@@ -192,10 +195,16 @@ func (m Match) StartMatch(db *gorm.DB) {
 		// no winners or losers means draw
 		if len(glog.Winners) == 0 {
 			log.Debugln("Draw!")
-			updateMatchDraw(db, m, true)
+			updateGameDraw(db, game, true)
 		} else {
 			winner := glog.Winners[0]
 			loser := glog.Losers[0]
+
+			if winner.Name == player1.Name {
+				player1Wins += 1
+			} else {
+				player2Wins += 1
+			}
 
 			setWinner(db, game, winner.Name)
 			setLoser(db, game, loser.Name)
@@ -204,6 +213,11 @@ func (m Match) StartMatch(db *gorm.DB) {
 			log.Debugf("\twinner: ", winner.Name)
 			log.Debugf("\tloser: ", loser.Name)
 		}
+	}
+
+	if player1Wins == player2Wins {
+		log.Debugf("It's a match draw!")
+		updateMatchDraw(db, m, true)
 	}
 
 	updateMatchStatus(db, m, "Complete")

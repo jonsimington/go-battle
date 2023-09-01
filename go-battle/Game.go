@@ -27,6 +27,7 @@ type Game struct {
 	Match      Match    `json:"match" gorm:"foreignKey:MatchID"`
 	SessionID  int      `json:"session_id"`
 	GamelogUrl string   `json:"gamelog_url"`
+	Draw       bool     `json:"draw"`
 }
 
 var _httpClient = &http.Client{
@@ -137,6 +138,16 @@ func setLoser(db *gorm.DB, game Game, loserName string) {
 	db.Where("name = ?", loserName).First(&p)
 
 	g.Loser = &p
+
+	db.Save(&g)
+}
+
+func updateGameDraw(db *gorm.DB, game Game, draw bool) {
+	var g Game
+
+	db.Where("id = ?", game.ID).First(&g)
+
+	g.Draw = draw
 
 	db.Save(&g)
 }
