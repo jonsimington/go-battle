@@ -111,11 +111,11 @@ const CreateMatch: FC<CreateMatchProps> = () => {
             <Form.Group className="mb-3" controlId="numGames">
                 <Form.Label className="h5">Number of Games</Form.Label>
                 <Form.Select value={numGamesValue} onChange={handleNumGamesValueChange}>
-                    <option value="1" key={`numGames-1`}>1</option>
-                    <option value="2" key={`numGames-2`}>2</option>
-                    <option value="3" key={`numGames-3`}>3</option>
-                    <option value="4" key={`numGames-4`}>4</option>
-                    <option value="5" key={`numGames-5`}>5</option>
+                    {Array.from(Array(10).keys()).map((n) => {
+                        return (
+                            <option value={n + 1} key={`numGames-${n + 1}`}>{n + 1}</option>
+                        )
+                    })}
                 </Form.Select>
             </Form.Group>
 
