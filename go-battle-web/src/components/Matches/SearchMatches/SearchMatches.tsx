@@ -62,6 +62,15 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
     const [data, setData] = useState(tableData);
     const [matchesPlaying, setMatchesPlaying] = useState<number[]>([]);
     const [matchStartTimes, setMatchStartTimes] = useState<MatchStartTime[]>([]);
+    const [matchIdToDelete, setMatchIdToDelete] = useState(-1);
+    const [lastSortSetting, setLastSortSetting] = useState('status');
+
+    const [hasError, setHasError] = useState(false);
+    const [hasWarning, setHasWarning] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+    const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
+    const [alertText, setAlertText] = useState('');
+
 
     const columns: IColumnType<MatchesResult>[] = [
         {
@@ -219,14 +228,6 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         },
     ];
 
-    const [hasError, setHasError] = useState(false);
-    const [hasWarning, setHasWarning] = useState(false);
-    const [showToast, setShowToast] = useState(false);
-    const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
-    const [alertText, setAlertText] = useState('');
-
-    const [matchIdToDelete, setMatchIdToDelete] = useState(-1);
-
     const handleFetchResponse = async (response: Response) => {
         setShowToast(true);
         const responseText = await response.text();
@@ -295,6 +296,8 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
     const sortData = (eventKey: any, event: Object) => {
         let sortedData = [...data] as MatchesResult[];
+
+        setLastSortSetting(eventKey);
 
         if(eventKey === "created") {
             sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
