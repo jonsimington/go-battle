@@ -85,7 +85,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
         },
         {
             key: "match",
-            title: "Match ID",
+            title: "Match",
             width: 100,
             render: (_, { match }) => {
                 return <a href={`${window.location.origin}/matches/search?ids=${encodeURI(match.ID.toString())}`}>{match.ID}</a>
