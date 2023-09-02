@@ -5,6 +5,7 @@ import { ClientsResult } from '../../../models/ClientsResult';
 import moment from 'moment';
 import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { prettyDate } from '../../../utils/utils';
+import { FaChessBishop } from 'react-icons/fa6';
 
 interface SearchClientsProps {
     tableData: any[]
@@ -44,6 +45,14 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
             key: "game",
             title: "Game",
             width: 100,
+            render: (_, { game }) => {
+
+                if (game === "chess") {
+                    return <FaChessBishop />
+                } else {
+                    return game
+                }
+            }
         },
         {
             key: "CreatedAt",
