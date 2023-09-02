@@ -2,9 +2,6 @@ import styles from './SearchPlayers.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { PlayersResult } from '../../../models/PlayersResult';
 import { useEffect, useState } from 'react';
-import moment from 'moment';
-import { OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { prettyDate } from '../../../utils/utils';
 
 interface SearchPlayersProps {
     tableData: any[],
@@ -59,28 +56,8 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                     </>
                 )
             }
-        },
-        {
-            key: "CreatedAt",
-            title: "Created At",
-            width: 200,
-            render: (_, { CreatedAt }) => {
-                return (
-                    <OverlayTrigger placement="top" overlay={renderDateTooltip(CreatedAt)}>
-                        <span>{moment(CreatedAt.toString()).fromNow()}</span>
-                    </OverlayTrigger>
-                )
-            }
-        },
+        }
     ];
-
-    const renderDateTooltip = (date: Date) => {
-        return (
-            <Tooltip id={`tooltip-date-${date}`} style={{position:"fixed"}}>
-                {prettyDate(date.toString())}
-            </Tooltip>
-        )
-    }
 
     return (
         <>
