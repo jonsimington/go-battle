@@ -70,10 +70,10 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             title: "Winner",
             width: 200,
             render: (_, { winner, draw, ID }) => {
-                if (winner === null || winner?.ID === 0) {
-                    return "Undetermined"
-                } else if (draw) {
+                if (draw) {
                     return "Draw"
+                } else if (winner === null || winner?.ID === 0) {
+                    return "Undetermined"
                 } else {
                     return (
                         <Button 
@@ -93,10 +93,10 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             title: "Loser",
             width: 200,
             render: (_, { loser, draw, ID }) => {
-                if (loser === null || loser?.ID === 0) {
-                    return "Undetermined"
-                } else if (draw) {
+                if (draw) {
                     return "Draw"
+                } else if (loser === null || loser?.ID === 0) {
+                    return "Undetermined"
                 } else {
                     return (
                             <Button 
