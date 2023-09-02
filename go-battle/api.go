@@ -244,10 +244,10 @@ func dbEmpty() bool {
 	db.Model(&Game{}).Count(&numGames)
 	db.Model(&Match{}).Count(&numMatches)
 
-	log.Debugf("# players: %d", numPlayers)
-	log.Debugf("# clients: %d", numClients)
-	log.Debugf("# games: %d", numGames)
-	log.Debugf("# matches: %d", numMatches)
+	log.Infof("# players: %d", numPlayers)
+	log.Infof("# clients: %d", numClients)
+	log.Infof("# games: %d", numGames)
+	log.Infof("# matches: %d", numMatches)
 
 	return numPlayers == 0 && numClients == 0 && numGames == 0 && numMatches == 0
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -251,9 +252,21 @@ func (m Match) StartMatch(db *gorm.DB) {
 		updateMatchDraw(db, m, true)
 	}
 
-	updateMatchStatus(db, m, "Complete")
-	updateMatchEndTime(db, m, time.Now())
+	defer cleanUpMatchDirectory(m)
+	defer updateMatchStatus(db, m, "Complete")
+	defer updateMatchEndTime(db, m, time.Now())
+
 	return
+}
+
+func cleanUpMatchDirectory(match Match) {
+	matchDir := filepath.FromSlash("tmp/" + strconv.Itoa(int(match.ID)))
+
+	err := os.RemoveAll(matchDir)
+
+	if err != nil {
+		log.Warningln(err)
+	}
 }
 
 func handleEloChanges(player1 Player, player2 Player, winner *Player, draw bool) {
