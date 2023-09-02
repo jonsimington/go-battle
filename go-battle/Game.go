@@ -203,6 +203,10 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 		}
 	}
 
+	if !checkIfCommandExistsOnHost(m[playerLanguage]) {
+		panic(fmt.Sprintf("`%s` does not exist on host!  Game %d cannot be played until `%s` is available.", m[playerLanguage], gameSession, m[playerLanguage]))
+	}
+
 	var gameserverURL = conf.Get("cerveauApiHost")
 	var port = conf.Get("cerveauApiPort")
 	var exePath = playerDir + "main." + playerLanguage
