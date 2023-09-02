@@ -222,7 +222,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 
 		// no winners or losers means draw
 		if len(glog.Winners) == 0 {
-			log.Debugln("Draw!")
+			log.Infoln("Draw!")
 			updateGameDraw(db, game, true)
 			handleEloChanges(player1, player2, nil, true)
 		} else {

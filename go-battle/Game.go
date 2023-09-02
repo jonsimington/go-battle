@@ -202,20 +202,12 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 			}
 		}
 	}
-	// 	npmInstallCommand := exec.Command("npm", "install", "--prefix", playerDir)
-
-	// 	// npmInstallCommand.Stdout = os.Stdout
-	// 	// npmInstallCommand.Stderr = os.Stderr
-
-	// 	npmInstallCommand.Start()
-	// 	npmInstallCommand.Wait()
-	// }
 
 	var gameserverURL = conf.Get("cerveauApiHost")
 	var port = conf.Get("cerveauApiPort")
 	var exePath = playerDir + "main." + playerLanguage
 
-	log.Debugln(fmt.Sprintf("Executing command: `%s %s %s %s %s %s %d`", m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession))
+	log.Infof("Executing command: `%s %s %s %s %s %s %d`", m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
 
 	if _, err := os.Stat(exePath); errors.Is(err, os.ErrNotExist) {
 		log.Warnf(fmt.Sprintf("`%s` doesn't exist!", exePath))
@@ -231,7 +223,6 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 
 	if runErr != nil {
 		log.Warningln(fmt.Sprintf("Play game command returned error: `%s`, trying again", runErr))
-		runGame(playerLanguage, playerDir, gameType, gameSession)
 	}
 
 	return
