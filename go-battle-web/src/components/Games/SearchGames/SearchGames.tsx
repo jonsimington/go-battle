@@ -15,6 +15,8 @@ interface SearchGamesProps {
 export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.Element {
     const [data, setData] = useState(tableData);
 
+    const visUrl = process.env.REACT_APP_VIS_URL;
+
     const columns: IColumnType<GamesResult>[] = [
         {
             key: "ID",
@@ -92,7 +94,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                 return (
                     <>
                         {gamelog_url !== undefined && gamelog_url !== "" &&
-                            <Button variant="outline-info" href={gamelog_url}>
+                            <Button variant="outline-info" href={`${visUrl}/?log=${encodeURI(gamelog_url)}`}>
                                 <h4><FaTv /></h4>
                             </Button>
                         }

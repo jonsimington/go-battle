@@ -10,6 +10,7 @@ interface NavigationProps {}
 
 const Navigation: FC<NavigationProps> = () => {
     const cerveauUrl = process.env.REACT_APP_CERVEAU_URL;
+    const visUrl = process.env.REACT_APP_VIS_URL;
 
     return (
         <div className={styles.Navigation} data-testid="Navigation">
@@ -35,6 +36,7 @@ const Navigation: FC<NavigationProps> = () => {
                       <NavDropdown.Item href="/games/create"><FaPlus></FaPlus> Create Game</NavDropdown.Item>
                   </NavDropdown>
                   <Nav.Link href={cerveauUrl}>Cerveau</Nav.Link>
+                  <Nav.Link href={visUrl}>Viseur</Nav.Link>
                   </Nav>
               </Container>
           </Navbar>
