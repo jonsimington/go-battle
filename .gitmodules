@@ -1,3 +1,6 @@
 [submodule "cerveau"]
 	path = cerveau
 	url = https://github.com/jonsimington/Cerveau.git
+[submodule "viseur"]
+	path = viseur
+	url = https://github.com/jonsimington/Viseur
