@@ -67,7 +67,12 @@ func init() {
 		&Player{},
 		&Match{},
 		&Session{},
+		&Tournament{},
 	)
+
+	if dbEmpty() {
+		FillDbWithTestData()
+	}
 
 	wg.Done()
 
@@ -99,34 +104,150 @@ func main() {
 	app.Listen(":3000")
 }
 
-func createGame() {
-	// p1 := Player{
-	// 	"jon",
-	// 	Client{
-	// 		"https://github.com/brianwgoldman/megaminerai-19-stumped",
-	// 		"py",
-	// 		"Stumped",
-	// 	},
-	// }
+func FillDbWithTestData() {
+	log.Infoln("Filling DB with test data")
 
-	// p2 := Player{
-	// 	"adam",
-	// 	Client{
-	// 		"https://github.com/brianwgoldman/megaminerai-19-stumped",
-	// 		"py",
-	// 		"Stumped",
-	// 	},
-	// }
+	cravenCataloupeClient := Client{
+		Repo:     "https://github.com/jonsimington/craven-cantaloupe",
+		Language: "py",
+		Game:     "chess",
+	}
+	madCherimoyaClient := Client{
+		Repo:     "https://github.com/jonsimington/mad-cherimoya",
+		Language: "py",
+		Game:     "chess",
+	}
+	roundDurianClient := Client{
+		Repo:     "https://github.com/jonsimington/round-durian",
+		Language: "py",
+		Game:     "chess",
+	}
+	gabbyMuskmelonClient := Client{
+		Repo:     "https://github.com/jonsimington/gabby-muskmelon",
+		Language: "py",
+		Game:     "chess",
+	}
+	scientificLemonClient := Client{
+		Repo:     "https://github.com/jonsimington/scientific-lemon",
+		Language: "py",
+		Game:     "chess",
+	}
+	animatedCoconutClient := Client{
+		Repo:     "https://github.com/jonsimington/animated-coconut",
+		Language: "py",
+		Game:     "chess",
+	}
+	chubbyStrawberryClient := Client{
+		Repo:     "https://github.com/jonsimington/chubby-strawberry",
+		Language: "py",
+		Game:     "chess",
+	}
+	expensiveGooseberryClient := Client{
+		Repo:     "https://github.com/jonsimington/expensive-gooseberry",
+		Language: "py",
+		Game:     "chess",
+	}
+	vanBurenBoysClient := Client{
+		Repo:     "https://github.com/jonsimington/the-van-buren-boys",
+		Language: "js",
+		Game:     "chess",
+	}
+	vanBurenBoyzClient := Client{
+		Repo:     "https://github.com/jonsimington/the-van-buren-boyz",
+		Language: "js",
+		Game:     "chess",
+	}
+	randomValidMovesClient := Client{
+		Repo:     "https://github.com/jonsimington/random-valid-moves",
+		Language: "js",
+		Game:     "chess",
+	}
 
-	// m := Match{
-	// 	getCurrentMatchID(db),
-	// 	7,
-	// 	[]Game{},
-	// 	[]Player{
-	// 		p1,
-	// 		p2,
-	// 	},
-	// }
+	insertClient(db, &cravenCataloupeClient)
+	insertClient(db, &madCherimoyaClient)
+	insertClient(db, &roundDurianClient)
+	insertClient(db, &gabbyMuskmelonClient)
+	insertClient(db, &scientificLemonClient)
+	insertClient(db, &animatedCoconutClient)
+	insertClient(db, &chubbyStrawberryClient)
+	insertClient(db, &expensiveGooseberryClient)
+	insertClient(db, &vanBurenBoysClient)
+	insertClient(db, &vanBurenBoyzClient)
+	insertClient(db, &randomValidMovesClient)
 
-	// m.StartMatch(db)
+	cravenCataloupePlayer := Player{
+		Name:   "Craven Cantaloupe",
+		Client: cravenCataloupeClient,
+	}
+	madCherimoyaPlayer := Player{
+		Name:   "Mad Cherimoya",
+		Client: madCherimoyaClient,
+	}
+	roundDurianPlayer := Player{
+		Name:   "Round Durian",
+		Client: roundDurianClient,
+	}
+	gabbyMuskmelonPlayer := Player{
+		Name:   "Gabby Muskmelon",
+		Client: gabbyMuskmelonClient,
+	}
+	scientificLemonPlayer := Player{
+		Name:   "Scientific Lemon",
+		Client: scientificLemonClient,
+	}
+	animatedCoconutPlayer := Player{
+		Name:   "Animated Coconut",
+		Client: animatedCoconutClient,
+	}
+	chubbyStrawberryPlayer := Player{
+		Name:   "Chubby Strawberry",
+		Client: chubbyStrawberryClient,
+	}
+	expensiveGooseberryPlayer := Player{
+		Name:   "Expensive Gooseberry",
+		Client: expensiveGooseberryClient,
+	}
+	vanBurenBoysPlayer := Player{
+		Name:   "The Van Buren Boys",
+		Client: vanBurenBoysClient,
+	}
+	vanBurenBoyzPlayer := Player{
+		Name:   "The Van Buren Boyz",
+		Client: vanBurenBoyzClient,
+	}
+	randomValidMovesPlayer := Player{
+		Name:   "Random Valid Moves",
+		Client: randomValidMovesClient,
+	}
+
+	insertPlayer(db, &cravenCataloupePlayer)
+	insertPlayer(db, &madCherimoyaPlayer)
+	insertPlayer(db, &roundDurianPlayer)
+	insertPlayer(db, &gabbyMuskmelonPlayer)
+	insertPlayer(db, &scientificLemonPlayer)
+	insertPlayer(db, &animatedCoconutPlayer)
+	insertPlayer(db, &chubbyStrawberryPlayer)
+	insertPlayer(db, &expensiveGooseberryPlayer)
+	insertPlayer(db, &vanBurenBoysPlayer)
+	insertPlayer(db, &vanBurenBoyzPlayer)
+	insertPlayer(db, &randomValidMovesPlayer)
+}
+
+func dbEmpty() bool {
+	var numPlayers int64 = 0
+	var numClients int64 = 0
+	var numGames int64 = 0
+	var numMatches int64 = 0
+
+	db.Model(&Player{}).Count(&numPlayers)
+	db.Model(&Client{}).Count(&numClients)
+	db.Model(&Game{}).Count(&numGames)
+	db.Model(&Match{}).Count(&numMatches)
+
+	log.Debugf("# players: %d", numPlayers)
+	log.Debugf("# clients: %d", numClients)
+	log.Debugf("# games: %d", numGames)
+	log.Debugf("# matches: %d", numMatches)
+
+	return numPlayers == 0 && numClients == 0 && numGames == 0 && numMatches == 0
 }
