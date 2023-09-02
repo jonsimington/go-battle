@@ -38,6 +38,8 @@ func init() {
 
 	conf.Use("local", NewJsonConfig("./config.json"))
 
+	log.Infof("Running with GOMAXPROCS = %d", runtime.NumCPU())
+
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	wg.Add(1)
