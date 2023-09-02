@@ -73,7 +73,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
     useEffect(() => {
         sortData("created-desc", {})
-    }, [])
+    }, []);
 
     const columns: IColumnType<MatchesResult>[] = [
         {
@@ -134,7 +134,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                     return (
                         <>
                             {playerScores.map((score) => {
-                                let badgeColor = allPlayersHaveSameScore(playerScores) ? "secondary" : playerScores[playerScores.length - 1]?.name === score.name ? "success" : "danger";
+                                let badgeColor = allPlayersHaveSameScore(playerScores) ? "outline-secondary" : playerScores[playerScores.length - 1]?.name === score.name ? "outline-success" : "outline-danger";
                                 let badgeKey = `player-score-badge-${slugify(score.name)}-${ID}`;
                                 let aKey = `player-score-a-${slugify(score.name)}-${ID}`;
                                 let playersLink = `${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`;
@@ -142,7 +142,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                                 return (
                                     <a href={playersLink} key={aKey}>
                                         <OverlayTrigger placement="top" overlay={renderPlayerRecordTooltip(score)}>
-                                            <Badge bg={badgeColor} className="mx-1" key={badgeKey}>{score.name}: {score.wins + score.draws}</Badge>
+                                            <Button variant={badgeColor} size="sm" className="mx-1 my-1" key={badgeKey}>{score.name}: {score.wins + score.draws}</Button>
                                         </OverlayTrigger>
                                     </a>
                                 )
@@ -219,9 +219,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                                 </Button>
                             </div>
                             <div className="row">
-                            
                                 <TimeAgo datetime={matchStartTimes.filter((m) => m.id == ID)[0]?.startTime ?? new Date()} opts={{minInterval: 1}} className="mt-1" />
-
                             </div>
                         </>
                     )
