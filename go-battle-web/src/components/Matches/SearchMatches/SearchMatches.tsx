@@ -90,12 +90,18 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             key: "games",
             title: "Games",
             width: 100,
-            render: (_, { games }) => {
+            render: (_, { games, ID }) => {
                 const gameIds = games.map(pluck('ID')).join(', ');
 
                 if(gameIds.length > 0) {
                     return (
-                        <a href={`${window.location.origin}/games/search?ids=${encodeURI(gameIds)}`}>{gameIds}</a>
+                        <Button 
+                            variant="outline-info" 
+                            size="sm" 
+                            key={`games-${ID}`}
+                            href={`${window.location.origin}/games/search?ids=${encodeURI(gameIds)}`}>
+                                {gameIds}
+                        </Button>
                     )
                 }
                 else {

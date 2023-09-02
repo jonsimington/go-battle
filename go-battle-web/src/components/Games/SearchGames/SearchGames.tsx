@@ -44,12 +44,18 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             key: "players",
             title: "Players",
             width: 100,
-            render: (_, { players }) => {
+            render: (_, { players, ID }) => {
                 const playerIds = players.map(pluck('ID')).join(', ');
     
                 if(playerIds.length > 0) {
                     return (
-                        <a href={`${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`}>{playerIds}</a>
+                        <Button 
+                            variant="outline-info" 
+                            size="sm" 
+                            key={`players-${ID}`}
+                            href={`${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`}>
+                                {playerIds}
+                        </Button>
                     )
                 }
                 else {
@@ -110,7 +116,15 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             title: "Match",
             width: 100,
             render: (_, { match }) => {
-                return <a href={`${window.location.origin}/matches/search?ids=${encodeURI(match.ID.toString())}`}>{match.ID}</a>
+                return (
+                    <Button 
+                        variant="outline-info" 
+                        size="sm" 
+                        key={`match-${match.ID}`}
+                        href={`${window.location.origin}/matches/search?ids=${encodeURI(match.ID.toString())}`}>
+                            {match.ID}
+                    </Button>
+                )
             }
         },
         {

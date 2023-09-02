@@ -2,6 +2,7 @@ import styles from './SearchPlayers.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { PlayersResult } from '../../../models/PlayersResult';
 import { useEffect, useState } from 'react';
+import { Button } from 'react-bootstrap';
 
 interface SearchPlayersProps {
     tableData: any[],
@@ -51,9 +52,13 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             width: 100,
             render: (_, { client }) => {
                 return (
-                    <>
-                        <a href={`${window.location.origin}/clients/search?ids=${client.ID}`}>{client.ID}</a>
-                    </>
+                    <Button 
+                        variant="outline-info" 
+                        size="sm" 
+                        key={`client-${client.ID}`}
+                        href={`${window.location.origin}/clients/search?ids=${client.ID}`}>
+                            {client.ID}
+                    </Button>
                 )
             }
         }

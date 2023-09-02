@@ -28,7 +28,6 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
                     <Button 
                         variant="outline-info" 
                         size="sm" 
-                        className="mx-1 my-1" 
                         key={`repo-${ID}`}
                         href={repo}>
                             {repo}
