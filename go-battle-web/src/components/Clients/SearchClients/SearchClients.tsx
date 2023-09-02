@@ -3,7 +3,7 @@ import styles from './SearchClients.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { ClientsResult } from '../../../models/ClientsResult';
 import moment from 'moment';
-import { OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { prettyDate } from '../../../utils/utils';
 
 interface SearchClientsProps {
@@ -23,11 +23,16 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
         {
             key: "repo",
             title: "Repo",
-            render: (_, { repo }) => {
+            render: (_, { repo, ID }) => {
                 return (
-                    <>
-                        <a href={repo}>{repo}</a>
-                    </>
+                    <Button 
+                        variant="outline-info" 
+                        size="sm" 
+                        className="mx-1 my-1" 
+                        key={`repo-${ID}`}
+                        href={repo}>
+                            {repo}
+                    </Button>
                 )
             }
         },
