@@ -45,6 +45,31 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
         {
             key: "elo",
             title: "ELO",
+            render: (_, { elo, ID }) => {
+                let buttonVariant = "danger";
+
+                if (elo >= 2200) {
+                    buttonVariant = "success";
+                }
+                else if (elo >= 1850 && elo <= 2199) {
+                    buttonVariant = "success"
+                }
+                else if (elo >= 1500 && elo <= 1849) {
+                    buttonVariant = "secondary"
+                }
+                else if (elo >= 1200 && elo <= 1499) {
+                    buttonVariant = "warning"
+                }
+
+                return (
+                    <Button 
+                        variant={`outline-${buttonVariant}`} 
+                        size="sm" 
+                        key={`elo-${ID}`}>
+                            {elo}
+                    </Button>
+                )
+            }
         },
         {
             key: "client",
