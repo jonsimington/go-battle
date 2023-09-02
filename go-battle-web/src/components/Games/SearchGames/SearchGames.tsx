@@ -63,13 +63,22 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             key: "winner",
             title: "Winner",
             width: 200,
-            render: (_, { winner, draw }) => {
+            render: (_, { winner, draw, ID }) => {
                 if (winner === null || winner?.ID === 0) {
                     return "Undetermined"
                 } else if (draw) {
                     return "Draw"
                 } else {
-                    return <a href={`${window.location.origin}/players/search?ids=${encodeURI(winner?.ID.toString())}`}>{winner?.name}</a>
+                    return (
+                        <Button 
+                            variant="outline-success" 
+                            size="sm" 
+                            className="mx-1 my-1" 
+                            key={`winner-${ID}`}
+                            href={`${window.location.origin}/players/search?ids=${encodeURI(winner?.ID.toString())}`}>
+                                {winner?.name}
+                        </Button>
+                    )
                 }
             }
         },
@@ -77,13 +86,22 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             key: "loser",
             title: "Loser",
             width: 200,
-            render: (_, { loser, draw }) => {
+            render: (_, { loser, draw, ID }) => {
                 if (loser === null || loser?.ID === 0) {
                     return "Undetermined"
                 } else if (draw) {
                     return "Draw"
                 } else {
-                    return <a href={`${window.location.origin}/players/search?ids=${encodeURI(loser?.ID.toString())}`}>{loser?.name}</a>
+                    return (
+                            <Button 
+                                variant="outline-danger" 
+                                size="sm" 
+                                className="mx-1 my-1" 
+                                key={`loser-${ID}`}
+                                href={`${window.location.origin}/players/search?ids=${encodeURI(loser?.ID.toString())}`}>
+                                    {loser?.name}
+                            </Button>
+                    )
                 }
             }
         },
