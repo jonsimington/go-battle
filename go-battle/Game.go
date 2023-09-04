@@ -1,25 +1,151 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
-	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
+
+	"github.com/lib/pq"
+	"gorm.io/gorm"
 )
+
+// Game represents a game between two Players in a Tournament
+type Game struct {
+	gorm.Model
+
+	Players    []Player `json:"players" gorm:"many2many:game_players"`
+	Winner     *Player  `json:"winner" gorm:"foreignKey:WinnerID"`
+	WinnerID   *int     `json:"winner_id" gorm:"default:null"`
+	Loser      *Player  `json:"loser" gorm:"foreignKey:LoserID"`
+	LoserID    *int     `json:"loser_id" gorm:"default:null"`
+	MatchID    int      `json:"match_id"`
+	Match      Match    `json:"match" gorm:"foreignKey:MatchID"`
+	SessionID  int      `json:"session_id"`
+	GamelogUrl string   `json:"gamelog_url"`
+	Draw       bool     `json:"draw"`
+}
 
 var _httpClient = &http.Client{
 	Timeout: time.Second * 10,
 }
 
-func (g Game) PlayGame(gameSession string) bool {
-	var matchID = strconv.Itoa(g.match)
+func getGamesWithPlayers(players []int) []Game {
+	var games []Game
+
+	if len(players) > 0 {
+		gamesWithPlayers := db.Table("game_players").Where("player_id = ANY(?)", pq.Array(players)).Select("game_id")
+
+		db.Preload("Match").
+			Preload("Match.Players").
+			Preload("Match.Players.Client").
+			Preload("Players").
+			Preload("Players.Client").
+			Where("id = ANY(?)", pq.Array(gamesWithPlayers)).
+			Find(&games)
+	} else {
+		db.Preload("Match").
+			Preload("Match.Players").
+			Preload("Match.Players.Client").
+			Preload("Players").
+			Preload("Players.Client").
+			Find(&games)
+	}
+
+	return games
+}
+
+func getGamesById(ids []int) []Game {
+	var games []Game
+
+	if len(ids) > 0 {
+		db.Preload("Match").
+			Preload("Match.Players").
+			Preload("Match.Players.Client").
+			Preload("Players").
+			Preload("Players.Client").
+			Preload("Winner").
+			Preload("Loser").
+			Where("id = ANY(?)", pq.Array(ids)).
+			Find(&games)
+	} else {
+		db.Preload("Match").
+			Preload("Match.Players").
+			Preload("Match.Players.Client").
+			Preload("Players").
+			Preload("Players.Client").
+			Preload("Winner").
+			Preload("Loser").
+			Find(&games)
+	}
+
+	return games
+}
+
+var gameLock = &sync.Mutex{}
+
+func insertGame(db *gorm.DB, game *Game) {
+	gameLock.Lock()
+	defer gameLock.Unlock()
+
+	db.Create(&game)
+}
+
+func setGamelogUrl(db *gorm.DB, game Game, gamelogUrl string) {
+	gameLock.Lock()
+	defer gameLock.Unlock()
+
+	var g Game
+
+	db.Where("id = ?", game.ID).First(&g)
+
+	g.GamelogUrl = gamelogUrl
+
+	db.Save(&g)
+}
+
+func setGameWinner(db *gorm.DB, game Game, winner Player) {
+	gameLock.Lock()
+	defer gameLock.Unlock()
+
+	var g Game
+
+	db.Where("id = ?", game.ID).First(&g)
+
+	g.Winner = &winner
+
+	db.Save(&g)
+}
+
+func setGameLoser(db *gorm.DB, game Game, loser Player) {
+	gameLock.Lock()
+	defer gameLock.Unlock()
+
+	var g Game
+
+	db.Where("id = ?", game.ID).First(&g)
+
+	g.Loser = &loser
+
+	db.Save(&g)
+}
+
+func updateGameDraw(db *gorm.DB, game Game, draw bool) {
+	var g Game
+
+	db.Where("id = ?", game.ID).First(&g)
+
+	g.Draw = draw
+
+	db.Save(&g)
+}
+
+func (g Game) PlayGame(gameSession int) bool {
+	var matchID = strconv.Itoa(int(g.Match.ID))
 	pwd, _ := os.Getwd()
 
 	var matchDir = pwd + "/tmp/" + matchID
@@ -29,10 +155,10 @@ func (g Game) PlayGame(gameSession string) bool {
 	gameplayWG.Add(2)
 
 	// play game for each player
-	for _, player := range g.players {
+	for _, player := range g.Players {
 
 		go func(player Player) {
-			playerDir := matchDir + "/" + player.name + "/"
+			playerDir := matchDir + "/" + player.Name + "/"
 
 			playGame(player, playerDir, &gameplayWG, gameSession)
 
@@ -47,57 +173,19 @@ func (g Game) PlayGame(gameSession string) bool {
 	return true
 }
 
-func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession string) {
+func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession int) {
 
 	makeClient(playerDir)
 
-	playerLanguage := player.client.language
-	gameType := player.client.game
+	playerLanguage := player.Client.Language
+	gameType := player.Client.Game
 
 	runGame(playerLanguage, playerDir, gameType, gameSession)
 
 	return
 }
 
-func checkIfCommandExistsOnHost(commandName string) bool {
-	cmd := exec.Command(commandName)
-
-	err := cmd.Run()
-
-	return err == nil
-}
-
-func checkPythonVersionOnHost(pythonCommandName string) int {
-	cmd := exec.Command(pythonCommandName, "--version")
-
-	// capture output of command
-	var outb, errb bytes.Buffer
-	cmd.Stdout = &outb
-	cmd.Stderr = &errb
-
-	err := cmd.Run()
-	checkErr(err)
-
-	// trim newline from stderr output
-	cmdOutput := strings.TrimRightFunc(errb.String(), func(c rune) bool {
-		return c == '\r' || c == '\n'
-	})
-
-	// Python version format is: `Python x.y.z` so capture those version numbers via regex
-	re := regexp.MustCompile("^Python (.*?)\\.(.*?)\\.(.*?)")
-
-	match := re.FindStringSubmatch(cmdOutput)
-
-	hostPythonVersionStr := match[1]
-
-	// try to convert parsed version into an int
-	hostPythonVersion, err := strconv.Atoi(hostPythonVersionStr)
-	checkErr(err)
-
-	return hostPythonVersion
-}
-
-func runGame(playerLanguage string, playerDir string, gameType string, gameSession string) {
+func runGame(playerLanguage string, playerDir string, gameType string, gameSession int) {
 	m := make(map[string]string)
 	m["js"] = "node"
 
@@ -115,15 +203,31 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 		}
 	}
 
-	var gameserverURL = conf.Get("gameserver")
-	var port = conf.Get("gameserverPlayPort")
+	if !checkIfCommandExistsOnHost(m[playerLanguage]) {
+		panic(fmt.Sprintf("`%s` does not exist on host!  Game %d cannot be played until `%s` is available.", m[playerLanguage], gameSession, m[playerLanguage]))
+	}
+
+	var gameserverURL = conf.Get("cerveauApiHost")
+	var port = conf.Get("cerveauApiPort")
+	var exePath = playerDir + "main." + playerLanguage
+
+	log.Infof("Executing command: `%s %s %s %s %s %s %d`", m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
+
+	if _, err := os.Stat(exePath); errors.Is(err, os.ErrNotExist) {
+		log.Warnf(fmt.Sprintf("`%s` doesn't exist!", exePath))
+	}
 
 	// run game
-	runCmd := exec.Command(m[playerLanguage], playerDir+"main."+playerLanguage, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
+	runCmd := exec.Command(m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
 
-	// wait for game to finish
-	runCmd.Start()
-	runCmd.Wait()
+	// runCmd.Stdout = os.Stdout
+	// runCmd.Stderr = os.Stderr
+
+	runErr := runCmd.Run()
+
+	if runErr != nil {
+		log.Warningln(fmt.Sprintf("Play game command returned error: `%s`, trying again", runErr))
+	}
 
 	return
 }
@@ -141,10 +245,7 @@ func makeClient(playerDir string) {
 }
 
 func getGamelog(gamelogFilename string) *Gamelog {
-	var cerveauURL = conf.Get("gameserver")
-	var port = conf.Get("gameserverStatusPort")
-
-	glogURL := "http://" + cerveauURL + ":" + port + "/gamelog/" + gamelogFilename
+	glogURL := getGamelogUrl(gamelogFilename)
 
 	glog := new(Gamelog)
 
@@ -153,25 +254,9 @@ func getGamelog(gamelogFilename string) *Gamelog {
 	return glog
 }
 
-func getJSON(url string, target interface{}) error {
-	r, err := _httpClient.Get(url)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-
-	var _json = json.NewDecoder(r.Body).Decode(target)
-	if _json != nil {
-		fmt.Println(_json)
-	}
-
-	return _json
-}
-
-func getGameStatus(gameType string, gameSession string) *GameStatus {
-	var cerveauURL = conf.Get("gameserver")
-	var port = conf.Get("gameserverStatusPort")
-	url := "http://" + cerveauURL + ":" + port + "/status/" + gameType + "/" + gameSession
+func getGameStatus(gameType string, gameSession int) *GameStatus {
+	var cerveauURL = conf.Get("cerveauWebHost")
+	url := "https://" + cerveauURL + "/status/" + gameType + "/" + strconv.Itoa(gameSession)
 
 	gameStatus := new(GameStatus)
 
@@ -180,10 +265,9 @@ func getGameStatus(gameType string, gameSession string) *GameStatus {
 	return gameStatus
 }
 
-func getGamelogFilename(gameType string, gameSession string) string {
-	var cerveauURL = conf.Get("gameserver")
-	var port = conf.Get("gameserverStatusPort")
-	url := "http://" + cerveauURL + ":" + port + "/status/" + gameType + "/" + gameSession
+func getGamelogFilename(gameType string, gameSession int) string {
+	var cerveauURL = conf.Get("cerveauWebHost")
+	url := "https://" + cerveauURL + "/status/" + gameType + "/" + strconv.Itoa(gameSession)
 
 	status := "running"
 
@@ -200,5 +284,11 @@ func getGamelogFilename(gameType string, gameSession string) string {
 	}
 
 	return getGamelogFilename(gameType, gameSession)
+}
 
+func getGamelogUrl(gamelogFilename string) string {
+	var cerveauURL = conf.Get("cerveauWebHost")
+	glogURL := "https://" + cerveauURL + "/gamelog/" + gamelogFilename
+
+	return glogURL
 }

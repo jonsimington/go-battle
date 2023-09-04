@@ -1,20 +1,55 @@
 package main
 
 import (
+	"sync"
+
 	"github.com/go-git/go-git/v5"
+	"github.com/lib/pq"
+	"gorm.io/gorm"
 )
 
 // Client represents the code which is executed for a Player in a Game
 type Client struct {
-	repo     string
-	language string
-	game     string
+	gorm.Model
+
+	Repo     string `json:"repo"`
+	Language string `json:"language"`
+	Game     string `json:"game"`
+}
+
+var clientLock = &sync.Mutex{}
+
+func insertClient(db *gorm.DB, client *Client) {
+	clientLock.Lock()
+	defer clientLock.Unlock()
+
+	db.Create(client)
+}
+
+func clientExists(db *gorm.DB, repo string) bool {
+	var clients []Client
+
+	db.Where("repo=?", repo).Find(&clients)
+
+	return len(clients) > 0
+}
+
+func getClients(ids []int) []Client {
+	var clients []Client
+
+	if len(ids) > 0 {
+		db.Where("id = ANY(?)", pq.Array(ids)).Find(&clients)
+	} else {
+		db.Find(&clients)
+	}
+
+	return clients
 }
 
 // CloneRepo clones a git repo and its submodules recursively
 func (c Client) CloneRepo(dir string) *git.Repository {
 	r, err := git.PlainClone(dir, false, &git.CloneOptions{
-		URL:               c.repo,
+		URL:               c.Repo,
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
 	})
 
