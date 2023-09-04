@@ -6,6 +6,7 @@ require (
 	github.com/Nomon/gonfig v0.0.0-20150921093313-1e0a775a3dc8
 	github.com/go-git/go-git/v5 v5.7.0
 	github.com/gofiber/fiber/v2 v2.47.0
+	github.com/kortemy/elo-go v0.0.0-20190919090953-f9d3a99fd7b7
 	github.com/lib/pq v1.10.9
 	github.com/sirupsen/logrus v1.9.3
 	gorm.io/driver/postgres v1.5.2
@@ -32,7 +33,6 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.16.3 // indirect
-	github.com/kortemy/elo-go v0.0.0-20190919090953-f9d3a99fd7b7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect

@@ -92,14 +92,20 @@ func main() {
 
 	app.Post("/clients", postClientsHandler)
 	app.Get("/clients", getClientsHandler)
+
 	app.Post("/players", postPlayersHandler)
 	app.Get("/players", getPlayersHandler)
+
 	app.Post("/games", postGamesHandler)
 	app.Get("/games", getGamesHandler)
+
 	app.Post("/matches", postMatchesHandler)
 	app.Delete("/matches", deleteMatchesHandler)
 	app.Post("/matches/start", startMatchHandler)
 	app.Get("/matches", getMatchesHandler)
+
+	app.Post("/tournaments", postTournamentsHandler)
+	app.Get("/tournaments", getTournamentsHandler)
 
 	app.Listen(":3000")
 }

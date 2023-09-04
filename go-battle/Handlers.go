@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -312,4 +313,66 @@ func startMatchHandler(c *fiber.Ctx) error {
 	} else {
 		return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Winner: %s", matchIdInt, winner.Name))
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////
+// TOURNAMENTS
+///////////////////////////////////////////////////////////////////////////
+func postTournamentsHandler(c *fiber.Ctx) error {
+	playersQuery := c.Query("players")
+	tournamentTypeQuery := c.Query("type")
+
+	var allowedTournamentTypes = []string{"swiss", "round-robin"}
+
+	if tournamentTypeQuery == "" {
+		return c.Status(400).SendString("The `type` query param value must be provided")
+	}
+
+	if playersQuery == "" {
+		return c.Status(400).SendString("The `players` query param value must be provided")
+	}
+
+	if !slices.Contains(allowedTournamentTypes, tournamentTypeQuery) {
+		return c.Status(400).SendString(fmt.Sprintf("The `type` query param value must be one of the following: %v", allowedTournamentTypes))
+	}
+
+	playersList, _ := sliceAtoi(map2(strings.Split(playersQuery, ","), func(s string) string {
+		return strings.ReplaceAll(s, " ", "")
+	}))
+
+	if len(playersList) != 8 {
+		return c.Status(400).SendString("The `players` query param value must be a comma-separated list of eight ints")
+	}
+
+	// TODO: check that all players passed are actual players
+
+	players := getPlayers(playersList)
+
+	tournament := Tournament{
+		Name:    "Chess Tournament (Swiss)",
+		Players: players,
+		Type:    "swiss",
+	}
+
+	insertTournament(db, &tournament)
+
+	return c.Status(200).SendString(fmt.Sprintf("Created tournament %d", tournament.ID))
+}
+
+func getTournamentsHandler(c *fiber.Ctx) error {
+	ids := c.Query("ids")
+
+	idList, err := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
+		return strings.ReplaceAll(s, " ", "")
+	}))
+
+	tournaments := getTournaments(idList)
+
+	jsonTournaments, err := json.Marshal(tournaments)
+
+	if err != nil {
+		log.Errorln(fmt.Sprintf("Error marshalling list of tournaments: %s", err))
+	}
+
+	return c.Status(200).SendString(string(jsonTournaments))
 }
