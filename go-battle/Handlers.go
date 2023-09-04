@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"slices"
 	"strconv"
 	"strings"
@@ -214,7 +215,7 @@ func postMatchesHandler(c *fiber.Ctx) error {
 		return c.Status(400).SendString(fmt.Sprintf("`num_games` query parameter must be an integer"))
 	}
 	if numGames == "" {
-		return c.Status(400).SendString("The `players` query param value must be a comma-separated list of two ints")
+		return c.Status(400).SendString("The `num_games` query param value must be provided")
 	}
 
 	playersList, _ := sliceAtoi(map2(strings.Split(playersQuery, ","), func(s string) string {
@@ -313,6 +314,50 @@ func startMatchHandler(c *fiber.Ctx) error {
 	} else {
 		return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Winner: %s", matchIdInt, winner.Name))
 	}
+}
+
+func randomMatchHandler(c *fiber.Ctx) error {
+	numGames := c.Query("num_games")
+	numGamesInt, numGamesIntErr := strconv.Atoi(numGames)
+
+	if numGames != "" && numGamesIntErr != nil {
+		return c.Status(400).SendString(fmt.Sprintf("`num_games` query parameter must be an integer"))
+	}
+
+	allPlayers := getPlayers([]int{})
+
+	var matchPlayerIds [2]int
+	matchPlayerIds[0] = -1
+	matchPlayerIds[1] = -1
+
+	for matchPlayerIds[0] == matchPlayerIds[1] {
+		matchPlayerIds[0] = int(allPlayers[rand.Intn(len(allPlayers))].ID)
+		matchPlayerIds[1] = int(allPlayers[rand.Intn(len(allPlayers))].ID)
+	}
+
+	log.Infof("Going to pair player %d against %d", matchPlayerIds[0], matchPlayerIds[1])
+
+	playersToInclude := getPlayers(matchPlayerIds[:])
+
+	var numGamesInMatch int
+
+	if numGames == "" {
+		numGamesInMatch = 1
+	} else {
+		numGamesInMatch = numGamesInt
+	}
+
+	match := Match{
+		NumGames: numGamesInMatch,
+		Players:  playersToInclude,
+		Status:   "Pending",
+	}
+
+	insertMatch(db, &match)
+
+	go match.StartMatch(db)
+
+	return c.Status(200).SendString(fmt.Sprintf("Started Random Match: ID %d, %d Games, Players %d & %d", match.ID, match.NumGames, match.Players[0].ID, match.Players[1].ID))
 }
 
 ///////////////////////////////////////////////////////////////////////////

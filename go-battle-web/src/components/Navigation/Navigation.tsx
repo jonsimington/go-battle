@@ -4,7 +4,7 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 import Navbar from 'react-bootstrap/Navbar';
-import { FaChessBishop, FaPlus, FaMagnifyingGlass } from "react-icons/fa6";
+import { FaChessBishop, FaPlus, FaMagnifyingGlass, FaShuffle } from "react-icons/fa6";
 
 interface NavigationProps {}
 
@@ -30,6 +30,7 @@ const Navigation: FC<NavigationProps> = () => {
                   <NavDropdown title="Matches" id="matches-dropdown">
                       <NavDropdown.Item href="/matches/search"><FaMagnifyingGlass></FaMagnifyingGlass> Search Matches</NavDropdown.Item>
                       <NavDropdown.Item href="/matches/create"><FaPlus></FaPlus> Create Match</NavDropdown.Item>
+                      <NavDropdown.Item href="/matches/random"><FaShuffle></FaShuffle> Create Random Match</NavDropdown.Item>
                   </NavDropdown>
                   <NavDropdown title="Games" id="games-dropdown">
                       <NavDropdown.Item href="/games/search"><FaMagnifyingGlass></FaMagnifyingGlass> Search Games</NavDropdown.Item>

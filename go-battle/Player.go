@@ -68,3 +68,7 @@ func updatePlayerElo(db *gorm.DB, player Player, elo int) {
 
 	db.Save(&p)
 }
+
+func RemoveIndex(s []Player, index int) []Player {
+	return append(s[:index], s[index+1:]...)
+}

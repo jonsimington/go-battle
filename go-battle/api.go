@@ -103,6 +103,7 @@ func main() {
 	app.Delete("/matches", deleteMatchesHandler)
 	app.Post("/matches/start", startMatchHandler)
 	app.Get("/matches", getMatchesHandler)
+	app.Post("/matches/random", randomMatchHandler)
 
 	app.Post("/tournaments", postTournamentsHandler)
 	app.Get("/tournaments", getTournamentsHandler)
