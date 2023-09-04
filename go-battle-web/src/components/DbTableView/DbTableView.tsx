@@ -7,6 +7,7 @@ import { SearchMatches } from '../Matches/SearchMatches/SearchMatches';
 import { SearchClients } from '../Clients/SearchClients/SearchClients';
 import { useSearchParams } from 'react-router-dom';
 import { ApiResult } from '../../models/ApiResult';
+import { SearchTournaments } from '../Tournaments/SearchTournaments/SearchTournaments';
 
 interface DbTableViewProps<T> {
     context: string;
@@ -50,16 +51,19 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
             ) : (
                 <>
                 {context == "players" &&
-                    <SearchPlayers tableData={data ?? []} refreshData={fetchFromApi}></SearchPlayers>
+                    <SearchPlayers tableData={data ?? []} refreshData={fetchFromApi} />
                 }
                 {context == "games" &&
-                    <SearchGames tableData={data ?? []} refreshData={fetchFromApi}></SearchGames>
+                    <SearchGames tableData={data ?? []} refreshData={fetchFromApi} />
                 }
                 {context == "matches" &&
-                    <SearchMatches tableData={data ?? []} refreshData={fetchFromApi}></SearchMatches>
+                    <SearchMatches tableData={data ?? []} refreshData={fetchFromApi} />
                 }
                 {context == "clients" &&
-                    <SearchClients tableData={data ?? []} refreshData={fetchFromApi}></SearchClients>
+                    <SearchClients tableData={data ?? []} refreshData={fetchFromApi} />
+                }
+                {context == "tournaments" &&
+                    <SearchTournaments tableData={data ?? []} refreshData={fetchFromApi} />
                 }
                 </>
             )

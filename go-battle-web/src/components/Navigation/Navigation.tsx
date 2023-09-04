@@ -35,6 +35,10 @@ const Navigation: FC<NavigationProps> = () => {
                       <NavDropdown.Item href="/games/search"><FaMagnifyingGlass></FaMagnifyingGlass> Search Games</NavDropdown.Item>
                       <NavDropdown.Item href="/games/create"><FaPlus></FaPlus> Create Game</NavDropdown.Item>
                   </NavDropdown>
+                  <NavDropdown title="Tournaments" id="tournaments-dropdown">
+                      <NavDropdown.Item href="/tournaments/search"><FaMagnifyingGlass></FaMagnifyingGlass> Search Tournaments</NavDropdown.Item>
+                      <NavDropdown.Item href="/tournaments/create"><FaPlus></FaPlus> Create Tournament</NavDropdown.Item>
+                  </NavDropdown>
                   <Nav.Link href={cerveauUrl}>Cerveau</Nav.Link>
                   <Nav.Link href={visUrl}>Viseur</Nav.Link>
                   </Nav>

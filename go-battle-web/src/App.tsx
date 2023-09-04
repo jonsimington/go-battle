@@ -9,6 +9,7 @@ import CreateMatch from './components/Matches/CreateMatch/CreateMatch'
 import Navigation from './components/Navigation/Navigation'
 
 import { DbTableView } from './components/DbTableView/DbTableView';
+import CreateTournament from './components/Tournaments/CreateTournament/CreateTournament';
 
 function App() {
   return (
@@ -28,6 +29,8 @@ function App() {
                         <Route path="matches/search" element={<DbTableView context="matches" />} />
                         <Route path="games/create" element={<CreateGame />} />
                         <Route path="games/search" element={<DbTableView context="games" />} />
+                        <Route path="tournaments/create" element={<CreateTournament />} />
+                        <Route path="tournaments/search" element={<DbTableView context="tournaments" />} />
                     </Routes>
                 </BrowserRouter>
             </div>
