@@ -351,7 +351,7 @@ func postTournamentsHandler(c *fiber.Ctx) error {
 	tournament := Tournament{
 		Name:    "Chess Tournament (Swiss)",
 		Players: players,
-		Type:    "swiss",
+		Type:    tournamentTypeQuery,
 	}
 
 	insertTournament(db, &tournament)
