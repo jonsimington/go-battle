@@ -2,25 +2,17 @@ import styles from './SearchMatches.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaSpinner, FaX } from 'react-icons/fa6';
-import { Badge, Button, Col, Container, Dropdown, Modal, OverlayTrigger, Row, Toast, Tooltip } from 'react-bootstrap';
-import { delay, elapsedTime, pluck, prettyDate, prettyTimeAgo, slugify } from '../../../utils/utils';
+import { Button, Col, Container, Dropdown, Modal, OverlayTrigger, Row, Toast, Tooltip } from 'react-bootstrap';
+import { allPlayersHaveSameScore, delay, elapsedTime, pluck, prettyDate, prettyTimeAgo, slugify } from '../../../utils/utils';
 import { useEffect, useState } from 'react';
 import { COLORS } from '../../../utils/colors';
 import moment from 'moment';
 import TimeAgo from 'timeago-react';
+import { PlayerScore } from '../../../models/PlayerScore';
 
 interface SearchMatchesProps {
     tableData: any[]
     refreshData: Function
-}
-
-interface PlayerScore {
-    name: string;
-    id: number;
-    wins: number;
-    losses: number;
-    draws: number;
-    elo: number;
 }
 
 interface MatchStartTime {
@@ -49,14 +41,6 @@ const modalStyles = {
 const toastStyles = {
     maxWidth: "95%",
     minWidth: "75%"
-}
-
-const allPlayersHaveSameScore = (players: PlayerScore[]) => {
-    if (players.length !== 2) {
-        throw("Assumed only two players per match");
-    } else {
-        return players[0].wins === players[1].wins;
-    }
 }
 
 export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): JSX.Element {

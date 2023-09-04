@@ -1,3 +1,5 @@
+import { PlayerScore } from "../models/PlayerScore"
+
 export const translateClientLanguage = (languageCode: string) => {
     switch(languageCode) {
         case "py":
@@ -59,5 +61,19 @@ export const prettyTimeAgo = (ms: number) => {
         return `${minutes}m, ${seconds}s`;
     } else {
         return `${seconds}s`;
+    }
+}
+
+export const allPlayersHaveSameScore = (players: PlayerScore[]) => {
+    if (players.length !== 2) {
+        let currentWins = players[0].wins;
+
+        players.forEach((p) => {
+            if(p.wins != currentWins) {
+                return false;
+            }
+        });
+    } else {
+        return players[0].wins === players[1].wins;
     }
 }
