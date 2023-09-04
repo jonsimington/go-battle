@@ -29,7 +29,7 @@ const CreateRandomMatch: FC<CreateRandomMatchProps> = () => {
 
         const numGames = encodeURI(numGamesValue);
 
-        fetch(`${apiUrl}/matches/random?numGames=${numGames}`, requestOptions)
+        fetch(`${apiUrl}/matches/random?num_games=${numGames}`, requestOptions)
             .then(async response => {
                 setHasApiResponse(true);
                 const responseText = await response.text();
