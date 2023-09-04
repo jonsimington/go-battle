@@ -244,16 +244,19 @@ func dbEmpty() bool {
 	var numClients int64 = 0
 	var numGames int64 = 0
 	var numMatches int64 = 0
+	var numTournaments int64 = 0
 
 	db.Model(&Player{}).Count(&numPlayers)
 	db.Model(&Client{}).Count(&numClients)
 	db.Model(&Game{}).Count(&numGames)
 	db.Model(&Match{}).Count(&numMatches)
+	db.Model(&Tournament{}).Count(&numTournaments)
 
 	log.Infof("# players: %d", numPlayers)
 	log.Infof("# clients: %d", numClients)
 	log.Infof("# games: %d", numGames)
 	log.Infof("# matches: %d", numMatches)
+	log.Infof("# tournaments: %d", numTournaments)
 
-	return numPlayers == 0 && numClients == 0 && numGames == 0 && numMatches == 0
+	return numPlayers == 0 && numClients == 0 && numGames == 0 && numMatches == 0 && numTournaments == 0
 }
