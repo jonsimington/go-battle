@@ -207,7 +207,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                     return (
                         <>
                             <div className="row d-inline-flex">
-                                <Button variant="outline-info" key={`matchPlayingIcon-${ID}`}>
+                                <Button variant="outline-info" key={`matchPlayingIcon-${ID}`} disabled={true}>
                                     <h3><FaSpinner  className="icon-spin" /></h3>
                                 </Button>
                             </div>

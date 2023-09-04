@@ -65,7 +65,8 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                     <Button 
                         variant={`outline-${buttonVariant}`} 
                         size="sm" 
-                        key={`elo-${ID}`}>
+                        key={`elo-${ID}`}
+                        disabled={true}>
                             {elo}
                     </Button>
                 )
