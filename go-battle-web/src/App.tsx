@@ -10,6 +10,7 @@ import Navigation from './components/Navigation/Navigation'
 
 import { DbTableView } from './components/DbTableView/DbTableView';
 import CreateTournament from './components/Tournaments/CreateTournament/CreateTournament';
+import CreateRandomMatch from './components/Matches/CreateRandomMatch/CreateRandomMatch';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
                         <Route path="clients/search" element={<DbTableView context="clients" />} />
                         <Route path="matches/create" element={<CreateMatch />} />
                         <Route path="matches/search" element={<DbTableView context="matches" />} />
+                        <Route path="matches/random" element={<CreateRandomMatch />} />
                         <Route path="games/create" element={<CreateGame />} />
                         <Route path="games/search" element={<DbTableView context="games" />} />
                         <Route path="tournaments/create" element={<CreateTournament />} />
