@@ -1,11 +1,14 @@
 module github.com/jonsimington/go-battle
 
-go 1.19
+go 1.21.0
+
+replace github.com/jonsimington/go-battle/matchmaker v0.0.0 => ./matchmaker
 
 require (
 	github.com/Nomon/gonfig v0.0.0-20150921093313-1e0a775a3dc8
 	github.com/go-git/go-git/v5 v5.7.0
 	github.com/gofiber/fiber/v2 v2.47.0
+	github.com/jonsimington/go-battle/matchmaker v0.0.0
 	github.com/kortemy/elo-go v0.0.0-20190919090953-f9d3a99fd7b7
 	github.com/lib/pq v1.10.9
 	github.com/sirupsen/logrus v1.9.3
@@ -36,8 +39,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
-	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.27.8 // indirect
+	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
@@ -53,7 +55,7 @@ require (
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.org/x/crypto v0.12.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/net v0.12.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect

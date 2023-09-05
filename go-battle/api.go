@@ -5,11 +5,13 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"time"
 
 	"sync"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/jonsimington/go-battle/matchmaker"
 	elogo "github.com/kortemy/elo-go"
 	"github.com/sirupsen/logrus"
 
@@ -108,6 +110,8 @@ func main() {
 
 	app.Post("/tournaments", postTournamentsHandler)
 	app.Get("/tournaments", getTournamentsHandler)
+
+	go matchmaker.StartRandomMatch(1 * time.Minute)
 
 	app.Listen(":3000")
 }
