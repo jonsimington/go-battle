@@ -148,12 +148,12 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                     <>
                         {gamelog_url !== undefined && gamelog_url !== "" &&
                             <Button variant="outline-info" href={`${visUrl}/?log=${encodeURI(gamelog_url)}`} target='_'>
-                                <h4><FaTv /></h4>
+                                <h5><FaTv /></h5>
                             </Button>
                         }
                         {(gamelog_url === undefined || gamelog_url === "") &&
                             <Button variant="outline-secondary" disabled={true}>
-                                <h4><FaTv /></h4>
+                                <h5><FaTv /></h5>
                             </Button>
                         }
                     </>
