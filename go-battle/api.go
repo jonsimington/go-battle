@@ -40,9 +40,9 @@ func init() {
 
 	conf.Use("local", NewJsonConfig("./config.json"))
 
-	log.Infof("Running with GOMAXPROCS = %d", runtime.NumCPU())
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	processorsToUse := runtime.NumCPU() - 1
+	log.Infof("Running with GOMAXPROCS = %d", processorsToUse)
+	runtime.GOMAXPROCS(processorsToUse)
 
 	wg.Add(1)
 
