@@ -59,7 +59,7 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
         },
         {
             key: "CreatedAt",
-            title: "Created At",
+            title: "Created",
             width: 200,
             render: (_, { CreatedAt }) => {
                 return (

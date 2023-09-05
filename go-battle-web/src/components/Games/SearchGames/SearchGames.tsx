@@ -129,7 +129,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
         },
         {
             key: "CreatedAt",
-            title: "Created At",
+            title: "Created",
             width: 200,
             render: (_, { CreatedAt }) => {
                 return (
