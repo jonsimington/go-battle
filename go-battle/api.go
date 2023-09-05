@@ -68,6 +68,7 @@ func init() {
 		&Match{},
 		&Session{},
 		&Tournament{},
+		&HistoricalElo{},
 	)
 
 	if dbEmpty() {

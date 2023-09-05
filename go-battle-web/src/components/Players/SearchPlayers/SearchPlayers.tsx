@@ -3,6 +3,8 @@ import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { PlayersResult } from '../../../models/PlayersResult';
 import { useEffect, useState } from 'react';
 import { Button } from 'react-bootstrap';
+import { pluck } from '../../../utils/utils';
+import { Sparklines, SparklinesLine, SparklinesSpots } from 'react-sparklines';
 
 interface SearchPlayersProps {
     tableData: any[],
@@ -45,6 +47,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
         {
             key: "elo",
             title: "ELO",
+            width: 100,
             render: (_, { elo, ID }) => {
                 let buttonVariant = "danger";
 
@@ -70,6 +73,39 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                             {elo}
                     </Button>
                 )
+            }
+        },
+        {
+            key: "elo_history",
+            title: "ELO History",
+            render: (_, { elo_history }) => {
+                if (elo_history.length === 0) {
+                    return "No History Yet";
+                }
+                else if (elo_history.length < 3) {
+                    return "Not Enough History"
+                }
+                else {
+                    let sortedHistory = elo_history.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 0 : 1);
+                    let sortedElos = sortedHistory.map(pluck('elo'));
+
+                    let sparklineColor = "#dc3545"; // danger
+
+                    let firstElo = sortedElos[0];
+                    let lastElo = sortedElos[sortedElos.length - 1];
+    
+                    if (firstElo < lastElo) {
+                        sparklineColor = "#28a745"; // success
+                    }
+
+                    return (
+                        <Sparklines data={sortedElos} width={100} height={25} margin={5}>
+                            <SparklinesLine color={sparklineColor} style={{ strokeWidth: 0.5 }} />
+                            <SparklinesSpots style={{ fill: sparklineColor }} />
+                        </Sparklines>
+                    )
+                }
+
             }
         },
         {

@@ -1,8 +1,18 @@
 package main
 
 import (
+	"time"
+
 	elogo "github.com/kortemy/elo-go"
+	"gorm.io/gorm"
 )
+
+type HistoricalElo struct {
+	gorm.Model
+
+	Elo       int       `json:"elo"`
+	Timestamp time.Time `json:"timestamp"`
+}
 
 func calculateEloOutcomes(player1 Player, player2 Player, winner *Player, draw bool) (elogo.Outcome, elogo.Outcome) {
 	rankA := player1.Elo
