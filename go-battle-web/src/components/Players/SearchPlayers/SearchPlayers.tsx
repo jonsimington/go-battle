@@ -101,7 +101,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                     return (
                         <Sparklines data={sortedElos} width={100} height={25} margin={5}>
                             <SparklinesLine color={sparklineColor} style={{ strokeWidth: 0.5 }} />
-                            <SparklinesSpots style={{ fill: sparklineColor }} />
+                            <SparklinesSpots size={1} style={{ fill: sparklineColor }} />
                         </Sparklines>
                     )
                 }
