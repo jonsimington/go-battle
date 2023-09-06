@@ -111,7 +111,7 @@ func main() {
 	app.Post("/tournaments", postTournamentsHandler)
 	app.Get("/tournaments", getTournamentsHandler)
 
-	matchmakerPeriod := 1 * time.Minute
+	matchmakerPeriod := 5 * time.Minute
 	log.Infof("Starting matchmaker with random games every %v", matchmakerPeriod)
 	go matchmaker.StartRandomMatch(matchmakerPeriod)
 
