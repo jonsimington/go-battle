@@ -268,12 +268,24 @@ func deleteMatchesHandler(c *fiber.Ctx) error {
 
 func getMatchesHandler(c *fiber.Ctx) error {
 	ids := c.Query("ids")
+	players := c.Query("players")
 
+	playersList, err := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
+		return strings.ReplaceAll(s, " ", "")
+	}))
 	idList, err := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
 	}))
 
-	matches := getMatches(idList)
+	var matches []Match
+
+	if len(playersList) > 0 {
+		matches = getMatchesWithPlayers(playersList)
+	} else if len(idList) > 0 {
+		matches = getMatches(idList)
+	} else {
+		matches = getMatches([]int{})
+	}
 
 	jsonMatches, err := json.Marshal(matches)
 

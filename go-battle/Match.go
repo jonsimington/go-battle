@@ -124,6 +124,35 @@ func getMatches(ids []int) []Match {
 	return matches
 }
 
+func getMatchesWithPlayers(players []int) []Match {
+	var matches []Match
+
+	if len(players) > 0 {
+		var matchesWithPlayers []int
+
+		db.Table("match_players").Where("player_id = ANY(?)", pq.Array(players)).Select("match_id").Find(&matchesWithPlayers)
+
+		db.Preload("Games").
+			Preload("Games.Winner").
+			Preload("Games.Loser").
+			Preload("Players").
+			Preload("Players.Client").
+			Preload("Players.EloHistory").
+			Where("id = ANY(?)", pq.Array(matchesWithPlayers)).
+			Find(&matches)
+	} else {
+		db.Preload("Games").
+			Preload("Games.Winner").
+			Preload("Games.Loser").
+			Preload("Players").
+			Preload("Players.Client").
+			Preload("Players.EloHistory").
+			Find(&matches)
+	}
+
+	return matches
+}
+
 func getMatch(id int) Match {
 	var match Match
 
