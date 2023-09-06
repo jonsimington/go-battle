@@ -135,7 +135,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                                 return (
                                     <a href={playersLink} key={aKey}>
                                         <OverlayTrigger placement="top" overlay={renderPlayerRecordTooltip(score)}>
-                                            <Button variant={badgeColor} size="sm" className="mx-1 my-1" key={badgeKey}>{score.name} ({score.elo}): {score.wins + score.draws}</Button>
+                                            <Button variant={badgeColor} size="sm" className="mx-1 my-1 w-100" key={badgeKey}>{score.name} ({score.elo}): {score.wins + score.draws}</Button>
                                         </OverlayTrigger>
                                     </a>
                                 )

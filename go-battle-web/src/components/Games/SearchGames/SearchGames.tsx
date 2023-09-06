@@ -79,7 +79,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                         <Button 
                             variant="outline-success" 
                             size="sm" 
-                            className="mx-1 my-1" 
+                            className="mx-1 my-1 w-100" 
                             key={`winner-${ID}`}
                             href={`${window.location.origin}/players/search?ids=${encodeURI(winner?.ID.toString())}`}>
                                 {winner?.name}
@@ -102,7 +102,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                             <Button 
                                 variant="outline-danger" 
                                 size="sm" 
-                                className="mx-1 my-1" 
+                                className="mx-1 my-1 w-100" 
                                 key={`loser-${ID}`}
                                 href={`${window.location.origin}/players/search?ids=${encodeURI(loser?.ID.toString())}`}>
                                     {loser?.name}

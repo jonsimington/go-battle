@@ -57,7 +57,6 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
             title: "Game",
             width: 100,
             render: (_, { game }) => {
-
                 if (game === "chess") {
                     return <FaChessBishop />
                 } else {
