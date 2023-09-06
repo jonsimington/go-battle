@@ -43,6 +43,37 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
         {
             key: "name",
             title: "Name",
+            render: (_, { name, ID }) => {
+                return (
+                    <div className="d-flex-inline">
+                        <Button 
+                            className="text-light"
+                            variant={`outline-secondary`} 
+                            size="sm" 
+                            key={`player-games-link-${ID}`}
+                            disabled>
+                                {name}
+                        </Button>
+                        <div className="float-end">
+                            <Button 
+                                href={`${window.location.origin}/games/search?players=${ID}`} 
+                                variant={`outline-info`} 
+                                size="sm" 
+                                key={`player-games-link-${ID}`}>
+                                    Games
+                            </Button>
+                            <Button 
+                                className="ms-2"
+                                href={`${window.location.origin}/matches/search?players=${ID}`} 
+                                variant={`outline-info`} 
+                                size="sm" 
+                                key={`player-matches-link-${ID}`}>
+                                    Matches
+                            </Button>
+                        </div>
+                    </div>
+                )
+            }
         },
         {
             key: "elo",

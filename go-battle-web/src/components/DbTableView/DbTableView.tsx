@@ -24,9 +24,13 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
         setLoading(true);
         let url = `${apiUrl}/${context}`;
         let ids = searchParams.get("ids");
+        let players = searchParams.get("players");
 
         if (ids != null) {
             url += `?ids=${encodeURI(ids)}`;
+        }
+        if (players != null) {
+            url += `?players=${encodeURI(players)}`;
         }
 
         fetch(url, {mode:'cors'})
