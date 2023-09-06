@@ -38,25 +38,29 @@ func getGamesWithPlayers(players []int) []Game {
 	var games []Game
 
 	if len(players) > 0 {
-		gamesWithPlayers := db.Table("game_players").Where("player_id = ANY(?)", pq.Array(players)).Select("game_id")
+		var gamesWithPlayers []int
+
+		db.Table("game_players").Where("player_id = ANY(?)", pq.Array(players)).Select("game_id").Find(&gamesWithPlayers)
 
 		db.Preload("Match").
 			Preload("Match.Players").
 			Preload("Match.Players.Client").
-			Preload("Match.Players.EloHistory").
 			Preload("Players").
 			Preload("Players.Client").
 			Preload("Players.EloHistory").
+			Preload("Winner").
+			Preload("Loser").
 			Where("id = ANY(?)", pq.Array(gamesWithPlayers)).
 			Find(&games)
 	} else {
 		db.Preload("Match").
 			Preload("Match.Players").
 			Preload("Match.Players.Client").
-			Preload("Match.Players.EloHistory").
 			Preload("Players").
 			Preload("Players.Client").
 			Preload("Players.EloHistory").
+			Preload("Winner").
+			Preload("Loser").
 			Find(&games)
 	}
 
