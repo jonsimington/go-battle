@@ -7,7 +7,7 @@ RUN go install github.com/cosmtrek/air@latest
 # install node so we can run js clients
 ENV NODE_VERSION=10.24.1
 RUN apt update
-RUN apt install -y curl
+RUN apt install -y curl cmake 
 RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
 ENV NVM_DIR=/root/.nvm
 RUN . "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION}

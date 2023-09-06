@@ -181,7 +181,7 @@ func (g Game) PlayGame(gameSession int) bool {
 
 func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession int) {
 
-	makeClient(playerDir)
+	makeClient(playerDir, player.Client.Language)
 
 	playerLanguage := player.Client.Language
 	gameType := player.Client.Game
@@ -194,6 +194,7 @@ func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession i
 func runGame(playerLanguage string, playerDir string, gameType string, gameSession int) {
 	m := make(map[string]string)
 	m["js"] = "node"
+	m["cpp"] = "./build/cpp-client"
 
 	// check if host uses python vs python3 command, and if it's python, make sure the version is 3.x.x
 	if playerLanguage == "py" {
@@ -215,16 +216,29 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 
 	var gameserverURL = conf.Get("cerveauApiHost")
 	var port = conf.Get("cerveauApiPort")
-	var exePath = playerDir + "main." + playerLanguage
 
-	log.Infof("Executing command: `%s %s %s %s %s %s %d`", m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
+	var exePath string
+
+	if playerLanguage == "cpp" {
+		exePath = m[playerLanguage]
+	} else {
+		exePath = playerDir + "main." + playerLanguage
+	}
 
 	if _, err := os.Stat(exePath); errors.Is(err, os.ErrNotExist) {
 		log.Warnf(fmt.Sprintf("`%s` doesn't exist!", exePath))
 	}
 
-	// run game
-	runCmd := exec.Command(m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
+	var runCmd *exec.Cmd
+
+	if playerLanguage == "cpp" {
+		log.Infof("Executing command: `%s %s %s %s %s %d`", exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
+		runCmd = exec.Command(exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
+		runCmd.Dir = playerDir
+	} else {
+		log.Infof("Executing command: `%s %s %s %s %s %s %d`", m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
+		runCmd = exec.Command(m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
+	}
 
 	// runCmd.Stdout = os.Stdout
 	// runCmd.Stderr = os.Stderr
@@ -238,14 +252,24 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 	return
 }
 
-func makeClient(playerDir string) {
-	// run make to grab client deps, build, etc.
-	makeCmd := exec.Command("make")
-	makeCmd.Dir = playerDir
+func makeClient(playerDir string, playerLanguage string) {
+	var makeCmd *exec.Cmd
 
-	// wait for make to finish
-	makeCmd.Start()
-	makeCmd.Wait()
+	// run make to grab client deps, build, etc.
+	if playerLanguage == "cpp" {
+		makeCmd = exec.Command("make clean")
+		makeCmd.Dir = playerDir
+		makeCmd.Run()
+
+		makeCmd = exec.Command("make")
+		makeCmd.Dir = playerDir
+		makeCmd.Run()
+	} else {
+		makeCmd = exec.Command("make")
+		makeCmd.Dir = playerDir
+
+		makeCmd.Run()
+	}
 
 	return
 }
