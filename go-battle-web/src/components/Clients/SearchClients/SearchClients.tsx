@@ -6,6 +6,7 @@ import moment from 'moment';
 import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { prettyDate } from '../../../utils/utils';
 import { FaChessBishop, FaPython, FaJs } from 'react-icons/fa6';
+import { SiCplusplus } from 'react-icons/si'
 
 interface SearchClientsProps {
     tableData: any[]
@@ -47,6 +48,8 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
                         return (<FaPython></FaPython>)
                     case "js":
                         return (<FaJs></FaJs>)
+                    case "cpp":
+                        return (<SiCplusplus></SiCplusplus>)
                     default:
                         return "Unknown Language"
                 }
