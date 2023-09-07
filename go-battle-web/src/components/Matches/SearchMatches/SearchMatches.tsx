@@ -56,10 +56,6 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
     const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
     const [alertText, setAlertText] = useState('');
 
-    useEffect(() => {
-        sortData("created-desc", {})
-    }, []);
-
     const columns: IColumnType<MatchesResult>[] = [
         {
             key: "ID",
@@ -408,7 +404,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                 <Toast.Body>{alertText}</Toast.Body>
             </Toast>
 
-            <DynamicTable data={data} columns={columns} />
+            <DynamicTable data={tableData} columns={columns} />
         </>
     );
 }
