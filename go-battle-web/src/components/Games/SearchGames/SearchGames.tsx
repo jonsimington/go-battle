@@ -173,7 +173,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
     return (
         <>
         <h3>Games</h3>
-        <DynamicTable data={data} columns={columns} />
+        <DynamicTable data={tableData} columns={columns} />
         </>
     );
 }

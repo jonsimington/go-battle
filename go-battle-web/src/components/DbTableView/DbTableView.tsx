@@ -9,7 +9,7 @@ import { useSearchParams } from 'react-router-dom';
 import { ApiResult } from '../../models/ApiResult';
 import { SearchTournaments } from '../Tournaments/SearchTournaments/SearchTournaments';
 import { Pagination } from 'react-bootstrap';
-import { delay } from '../../utils/utils';
+import { range } from 'lodash';
 
 interface DbTableViewProps<T> {
     context: string;
@@ -24,6 +24,9 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
     const [numPages, setNumPages] = useState(1);
     const [resultsPerPage, setResultsPerPage] = useState(10);
     const [selectedPage, setSelectedPage] = useState(1);
+    const [showElipsesBeforeSelectedPage, setShowElipsesBeforeSelectedPage] = useState(false);
+    const [showElipsesAfterSelectedPage, setShowElipsesAfterSelectedPage] = useState(false);
+    const [displayedPages, setDisplayedPages] = useState<number[]>([]);
 
 
     const apiUrl = process.env.REACT_APP_API_URL;
@@ -36,7 +39,19 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
     // update number of pages any time data changes
     useEffect(() => {
         if(data !== undefined && data?.length > 0) {
-            setNumPages(Math.ceil(data.length / resultsPerPage))
+            let num_pages = Math.ceil(data.length / resultsPerPage);
+            setNumPages(num_pages);
+
+            if(numPages > 10) {
+                setShowElipsesBeforeSelectedPage(true);
+                setDisplayedPages(getPagesToDisplay());
+            }
+            else {
+                setShowElipsesBeforeSelectedPage(false);
+                setShowElipsesAfterSelectedPage(false);
+                setDisplayedPages(getPagesToDisplay());
+            }
+
         }
     }, [data]);
 
@@ -45,9 +60,16 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
         if(data !== undefined) {
             let pagedData = getPagedData(selectedPage, data ?? []);
 
+            setDisplayedPages(getPagesToDisplay());
             setDisplayedData(pagedData);
         }
     }, [selectedPage]);
+
+    // update elipses visibility when displayedPages changes
+    useEffect(() => {
+        setShowElipsesBeforeSelectedPage(shouldShowElipses("before"));
+        setShowElipsesAfterSelectedPage(shouldShowElipses("after"));
+    }, [displayedPages])
 
     const fetchFromApi = () => {
         setLoading(true);
@@ -77,7 +99,6 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
     }
 
     const getPagedData = (pageNumber: number, results: ApiResult[]): ApiResult[] => {
-        
         if (results !== undefined) {
             let pagedData = results;
             let numberOfPages = Math.ceil(results.length / resultsPerPage);
@@ -90,7 +111,6 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
             }
     
             return pagedData;
-    
         }
         else {
             return [];
@@ -100,6 +120,44 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
     const handlePageChange = (pageNumber: number) => {
         setSelectedPage(pageNumber);
     };
+
+    const getPagesToDisplay = (): number[] => {
+        if (numPages < 10) {
+            return range(1, numPages + 1, 1);
+        }
+        else if (selectedPage > 2 && selectedPage < numPages - 2) {
+            return [selectedPage - 2, selectedPage - 1, selectedPage, selectedPage + 1, selectedPage + 2];
+        }
+        else if (selectedPage == 2) {
+            return [selectedPage - 1, selectedPage, selectedPage + 1, selectedPage + 2, selectedPage + 3];
+        }
+        else if (selectedPage == 1) {
+            return [selectedPage, selectedPage + 1, selectedPage + 2, selectedPage + 3, selectedPage + 4];
+        }
+        else if (selectedPage == numPages - 1) {
+            return [selectedPage - 3, selectedPage - 2, selectedPage - 1, selectedPage, numPages];
+        }
+        else if (selectedPage == numPages - 2) {
+            return [selectedPage - 2, selectedPage - 1, selectedPage, numPages - 1, numPages];
+        }
+        else if (selectedPage == numPages) {
+            return [selectedPage - 4, selectedPage - 3, selectedPage - 2, selectedPage - 1, selectedPage];
+        }
+        return [];
+    }
+
+    const shouldShowElipses = (context: string): boolean => {
+        if(numPages < 10) {
+            return false;
+        }
+        else if (context === "before") {
+            return !range(1, selectedPage, 1).every((v) => displayedPages?.includes(v))
+        }
+        else if (context === "after") {
+            return !range(selectedPage, numPages+1, 1).every((v) => displayedPages?.includes(v))
+        }
+        return false;
+    }
 
     return (
         <>
@@ -111,7 +169,7 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
                         <SearchPlayers tableData={data ?? []} refreshData={fetchFromApi} />
                     }
                     {context === "games" &&
-                        <SearchGames tableData={data ?? []} refreshData={fetchFromApi} />
+                        <SearchGames tableData={displayedData ?? []} refreshData={fetchFromApi} />
                     }
                     {context === "matches" &&
                         <SearchMatches tableData={displayedData ?? []} refreshData={fetchFromApi} />
@@ -126,24 +184,21 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
                         <Pagination className="mt-2">
                             <Pagination.First onClick={() => handlePageChange(1)} disabled={selectedPage === 1} />
                             <Pagination.Prev onClick={() => handlePageChange(selectedPage - 1)} disabled={selectedPage === 1} />
-                            
-                            {Array.from(Array(numPages).keys()).map((n) => {
+                            <Pagination.Ellipsis hidden={!showElipsesBeforeSelectedPage} disabled />
+                            {displayedPages.map((n) => {
                                 return (
                                     <Pagination.Item
-                                        onClick={() => handlePageChange(n + 1)}
+                                        onClick={() => handlePageChange(n)}
                                         key={`pagination-page-${n}`}    
-                                        active={n + 1 === selectedPage}
+                                        active={n === selectedPage}
                                         >
-                                            {n + 1}
+                                            {n}
                                     </Pagination.Item>
                                 )
                             })}
-                            
+                            <Pagination.Ellipsis hidden={!showElipsesAfterSelectedPage} disabled />
                             <Pagination.Next onClick={() => handlePageChange(selectedPage + 1)} disabled={selectedPage === numPages} />
                             <Pagination.Last onClick={() => handlePageChange(numPages)} disabled={selectedPage === numPages} />
-                            
-                            {/* <Pagination.Ellipsis /> */}
-
                         </Pagination>
                     }
                 </>
