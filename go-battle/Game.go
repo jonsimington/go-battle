@@ -338,7 +338,6 @@ func getGamelogFilename(gameType string, gameSession int) string {
 	status := "running"
 
 	for status != "over" {
-		log.Debugf("Querying cerveau until game is done...")
 		status = getGameStatus(gameType, gameSession).Status
 	}
 
