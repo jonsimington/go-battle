@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -233,24 +234,36 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 		log.Warnf(fmt.Sprintf("`%s` doesn't exist!", exePath))
 	}
 
+	gameTimeoutContext, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
 	var runCmd *exec.Cmd
 
 	if playerLanguage == "cpp" {
 		log.Infof("Executing command: `%s %s %s %s %s %d`", exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
-		runCmd = exec.Command(exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
+		runCmd = exec.CommandContext(gameTimeoutContext, exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
 		runCmd.Dir = playerDir
 	} else {
 		log.Infof("Executing command: `%s %s %s %s %s %s %d`", m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
-		runCmd = exec.Command(m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
+		runCmd = exec.CommandContext(gameTimeoutContext, m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
 	}
 
 	// runCmd.Stdout = os.Stdout
 	// runCmd.Stderr = os.Stderr
 
-	runErr := runCmd.Run()
+	_, runErr := runCmd.CombinedOutput()
 
+	if gameTimeoutContext.Err() != context.DeadlineExceeded {
+		// Command was killed
+		log.Debugf("Command was killed due to timeout")
+	}
 	if runErr != nil {
-		log.Warningln(fmt.Sprintf("Play game command returned error: `%s`, trying again", runErr))
+		// If the command was killed, err will be "signal: killed"
+		if runErr.Error() == "signal: killed" {
+			log.Debugf("signal: killed")
+		} else {
+			log.Warningln(fmt.Sprintf("Play game command returned error: `%s`, trying again", runErr))
+		}
 	}
 
 	return
@@ -306,6 +319,7 @@ func getGamelogFilename(gameType string, gameSession int) string {
 	status := "running"
 
 	for status != "over" {
+		log.Debugf("Querying cerveau until game is done...")
 		status = getGameStatus(gameType, gameSession).Status
 	}
 
