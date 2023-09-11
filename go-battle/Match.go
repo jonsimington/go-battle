@@ -236,46 +236,52 @@ func (m Match) StartMatch(db *gorm.DB) {
 	player1Wins := 0
 	player2Wins := 0
 
+	// THIS IS A HACK TO REFRESH THE STATE OF THE GAMES STATUSES...
+	// I don't like this
+	games := getMatch(int(m.ID)).Games
+
 	// for each game played, set the game result
-	for _, game := range m.Games {
-		gamelogFilename := getGamelogFilename(players[0].Client.Game, game.SessionID)
-		gamelogUrl := getGamelogUrl(gamelogFilename)
+	for _, game := range games {
+		if game.Status != "Canceled" && game.Status != "" {
+			gamelogFilename := getGamelogFilename(players[0].Client.Game, game.SessionID)
+			gamelogUrl := getGamelogUrl(gamelogFilename)
 
-		setGamelogUrl(db, game, gamelogUrl)
+			setGamelogUrl(db, game, gamelogUrl)
 
-		glog := getGamelog(gamelogFilename)
+			glog := getGamelog(gamelogFilename)
 
-		// once the game is finished, get the status and insert into DB
-		gameStatus := getGameStatus(players[0].Client.Game, game.SessionID)
-		insertGameStatus(db, gameStatus)
+			// once the game is finished, get the status and insert into DB
+			gameStatus := getGameStatus(players[0].Client.Game, game.SessionID)
+			insertGameStatus(db, gameStatus)
 
-		// refresh Player state
-		player1 = getPlayerByName(player1.Name)
-		player2 = getPlayerByName(player2.Name)
+			// refresh Player state
+			player1 = getPlayerByName(player1.Name)
+			player2 = getPlayerByName(player2.Name)
 
-		// no winners or losers means draw
-		if len(glog.Winners) == 0 {
-			log.Infoln("Draw!")
-			updateGameDraw(db, game, true)
-			handleEloChanges(player1, player2, nil, true)
-		} else {
-			winner := getPlayerByName(glog.Winners[0].Name)
-			loser := getPlayerByName(glog.Losers[0].Name)
-
-			if winner.Name == player1.Name {
-				player1Wins += 1
+			// no winners or losers means draw
+			if len(glog.Winners) == 0 {
+				log.Infoln("Draw!")
+				updateGameDraw(db, game, true)
+				handleEloChanges(player1, player2, nil, true)
 			} else {
-				player2Wins += 1
+				winner := getPlayerByName(glog.Winners[0].Name)
+				loser := getPlayerByName(glog.Losers[0].Name)
+
+				if winner.Name == player1.Name {
+					player1Wins += 1
+				} else {
+					player2Wins += 1
+				}
+
+				setGameWinner(db, game, winner)
+				setGameLoser(db, game, loser)
+
+				handleEloChanges(player1, player2, &winner, false)
+
+				log.Infof("Session %d Summary", game.SessionID)
+				log.Infof("\twinner: %s", winner.Name)
+				log.Infof("\tloser: %s", loser.Name)
 			}
-
-			setGameWinner(db, game, winner)
-			setGameLoser(db, game, loser)
-
-			handleEloChanges(player1, player2, &winner, false)
-
-			log.Infof("Session %d Summary", game.SessionID)
-			log.Infof("\twinner: %s", winner.Name)
-			log.Infof("\tloser: %s", loser.Name)
 		}
 	}
 

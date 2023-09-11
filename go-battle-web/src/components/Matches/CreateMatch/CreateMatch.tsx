@@ -9,8 +9,8 @@ interface CreateMatchProps {}
 const CreateMatch: FC<CreateMatchProps> = () => {
     const [numGamesValue, setNumGames] = useState('1');
     const [playerOneValue, setPlayerOneValue] = useState('1');
-    const [playerTwoValue, setPlayerTwoValue] = useState('1');
-    const [playersValue, setPlayersValue] = useState('1,1');
+    const [playerTwoValue, setPlayerTwoValue] = useState('2');
+    const [playersValue, setPlayersValue] = useState('1,2');
 
     const [players, setPlayers] = useState<PlayersResult[]>();
 

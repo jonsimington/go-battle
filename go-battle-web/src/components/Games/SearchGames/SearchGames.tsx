@@ -128,6 +128,16 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             }
         },
         {
+            key: "status",
+            title: "Status",
+            width: 100,
+            render: (_, { status }) => {
+                return (
+                    status
+                )
+            }
+        },
+        {
             key: "CreatedAt",
             title: "Created",
             width: 200,

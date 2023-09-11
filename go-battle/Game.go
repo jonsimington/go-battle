@@ -29,6 +29,7 @@ type Game struct {
 	SessionID  int      `json:"session_id"`
 	GamelogUrl string   `json:"gamelog_url"`
 	Draw       bool     `json:"draw"`
+	Status     string   `json:"status"`
 }
 
 var _httpClient = &http.Client{
@@ -155,7 +156,23 @@ func updateGameDraw(db *gorm.DB, game Game, draw bool) {
 	db.Save(&g)
 }
 
+func updateGameStatus(db *gorm.DB, game Game, status string) {
+	var g Game
+
+	gameLock.Lock()
+	defer gameLock.Unlock()
+
+	db.Where("id = ?", game.ID).First(&g)
+
+	g.Status = status
+
+	db.Save(&g)
+}
+
 func (g Game) PlayGame(gameSession int) bool {
+	updateGameStatus(db, g, "In Progress")
+	g.Status = "In Progress"
+
 	var matchID = strconv.Itoa(int(g.Match.ID))
 	pwd, _ := os.Getwd()
 
@@ -171,7 +188,7 @@ func (g Game) PlayGame(gameSession int) bool {
 		go func(player Player) {
 			playerDir := matchDir + "/" + player.Name + "/"
 
-			playGame(player, playerDir, &gameplayWG, gameSession)
+			g.playGame(player, playerDir, &gameplayWG, gameSession)
 
 			gameplayWG.Done()
 			return
@@ -184,19 +201,19 @@ func (g Game) PlayGame(gameSession int) bool {
 	return true
 }
 
-func playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession int) {
+func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession int) {
 
 	makeClient(playerDir, player.Client.Language)
 
 	playerLanguage := player.Client.Language
 	gameType := player.Client.Game
 
-	runGame(playerLanguage, playerDir, gameType, gameSession)
+	g.runGame(playerLanguage, playerDir, gameType, gameSession)
 
 	return
 }
 
-func runGame(playerLanguage string, playerDir string, gameType string, gameSession int) {
+func (g Game) runGame(playerLanguage string, playerDir string, gameType string, gameSession int) {
 	m := make(map[string]string)
 	m["js"] = "node"
 	m["cpp"] = "./build/cpp-client"
@@ -234,7 +251,7 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 		log.Warnf(fmt.Sprintf("`%s` doesn't exist!", exePath))
 	}
 
-	gameTimeoutContext, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	gameTimeoutContext, cancel := context.WithTimeout(context.Background(), 45*time.Minute)
 	defer cancel()
 
 	var runCmd *exec.Cmd
@@ -254,16 +271,18 @@ func runGame(playerLanguage string, playerDir string, gameType string, gameSessi
 	_, runErr := runCmd.CombinedOutput()
 
 	if gameTimeoutContext.Err() != context.DeadlineExceeded {
-		// Command was killed
-		log.Debugf("Command was killed due to timeout")
+		log.Debugf("Run Game context returned error, but not timeout: %s", gameTimeoutContext.Err())
 	}
 	if runErr != nil {
-		// If the command was killed, err will be "signal: killed"
 		if runErr.Error() == "signal: killed" {
-			log.Debugf("signal: killed")
+			updateGameStatus(db, g, "Canceled")
+			g.Status = "Canceled"
 		} else {
 			log.Warningln(fmt.Sprintf("Play game command returned error: `%s`, trying again", runErr))
 		}
+	} else {
+		updateGameStatus(db, g, "Complete")
+		g.Status = "Complete"
 	}
 
 	return

@@ -10,4 +10,5 @@ export interface GamesResult extends ApiResult {
     session_id: number;
 	gamelog_url: string;
     draw: boolean;
+    status: string;
 }
