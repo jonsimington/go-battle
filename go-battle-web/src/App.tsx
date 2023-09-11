@@ -11,6 +11,7 @@ import Navigation from './components/Navigation/Navigation'
 import { DbTableView } from './components/DbTableView/DbTableView';
 import CreateTournament from './components/Tournaments/CreateTournament/CreateTournament';
 import CreateRandomMatch from './components/Matches/CreateRandomMatch/CreateRandomMatch';
+import Dashboard from './components/Dashboard/Dashboard';
 
 function App() {
   return (
@@ -21,7 +22,7 @@ function App() {
             <div className="body" data-bs-theme="dark">
                 <BrowserRouter>
                     <Routes>
-                        <Route path="/" />
+                        <Route path="/" element={<Dashboard />} />
                         <Route path="players/create" element={<CreatePlayer />} />
                         <Route path="players/search" element={<DbTableView context="players" />} />
                         <Route path="clients/create" element={<CreateClient />} />
