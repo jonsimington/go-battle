@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { SyntheticEvent, useEffect, useState } from 'react';
 import styles from './DbTableView.module.css';
 import { FaSpinner } from "react-icons/fa6";
 import { SearchPlayers } from '../Players/SearchPlayers/SearchPlayers';
@@ -8,7 +8,7 @@ import { SearchClients } from '../Clients/SearchClients/SearchClients';
 import { useSearchParams } from 'react-router-dom';
 import { ApiResult } from '../../models/ApiResult';
 import { SearchTournaments } from '../Tournaments/SearchTournaments/SearchTournaments';
-import { Pagination } from 'react-bootstrap';
+import { Col, Container, Dropdown, Pagination, Row } from 'react-bootstrap';
 import { range } from 'lodash';
 
 interface DbTableViewProps<T> {
@@ -28,8 +28,9 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
     const [showElipsesAfterSelectedPage, setShowElipsesAfterSelectedPage] = useState(false);
     const [displayedPages, setDisplayedPages] = useState<number[]>([]);
 
-
     const apiUrl = process.env.REACT_APP_API_URL;
+
+    const resultsPerPageOptions = [5, 10, 15, 20];
     
     // fetch data from api
     useEffect(() => {
@@ -53,7 +54,7 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
             }
 
         }
-    }, [data]);
+    }, [data, resultsPerPage]);
 
     // update displayedData anytime the selectedPage changes
     useEffect(() => {
@@ -63,13 +64,13 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
             setDisplayedPages(getPagesToDisplay());
             setDisplayedData(pagedData);
         }
-    }, [selectedPage]);
+    }, [selectedPage, resultsPerPage]);
 
     // update elipses visibility when displayedPages changes
     useEffect(() => {
         setShowElipsesBeforeSelectedPage(shouldShowElipses("before"));
         setShowElipsesAfterSelectedPage(shouldShowElipses("after"));
-    }, [displayedPages])
+    }, [displayedPages, resultsPerPage])
 
     const fetchFromApi = () => {
         setLoading(true);
@@ -159,6 +160,12 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
         return false;
     }
 
+    function handleResultsPerPageChange(eventKey: string | null, e: SyntheticEvent<unknown, Event>): void {
+        if(eventKey !== null) {
+            setResultsPerPage(+eventKey);
+        }
+    }
+
     return (
         <>
             {loading ? (
@@ -181,25 +188,44 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
                         <SearchTournaments tableData={data ?? []} refreshData={fetchFromApi} />
                     }
                     {data !== undefined && data.length > 0 &&
-                        <Pagination className="mt-2">
-                            <Pagination.First onClick={() => handlePageChange(1)} disabled={selectedPage === 1} />
-                            <Pagination.Prev onClick={() => handlePageChange(selectedPage - 1)} disabled={selectedPage === 1} />
-                            <Pagination.Ellipsis hidden={!showElipsesBeforeSelectedPage} disabled />
-                            {displayedPages.map((n) => {
-                                return (
-                                    <Pagination.Item
-                                        onClick={() => handlePageChange(n)}
-                                        key={`pagination-page-${n}`}    
-                                        active={n === selectedPage}
-                                        >
-                                            {n}
-                                    </Pagination.Item>
-                                )
-                            })}
-                            <Pagination.Ellipsis hidden={!showElipsesAfterSelectedPage} disabled />
-                            <Pagination.Next onClick={() => handlePageChange(selectedPage + 1)} disabled={selectedPage === numPages} />
-                            <Pagination.Last onClick={() => handlePageChange(numPages)} disabled={selectedPage === numPages} />
-                        </Pagination>
+
+                        <Container>
+                            <Row className="my-2">
+                                <Col>
+                                    <Pagination>
+                                        <Pagination.First onClick={() => handlePageChange(1)} disabled={selectedPage === 1} />
+                                        <Pagination.Prev onClick={() => handlePageChange(selectedPage - 1)} disabled={selectedPage === 1} />
+                                        <Pagination.Ellipsis hidden={!showElipsesBeforeSelectedPage} disabled />
+                                        {displayedPages.map((n) => {
+                                            return (
+                                                <Pagination.Item
+                                                    onClick={() => handlePageChange(n)}
+                                                    key={`pagination-page-${n}`}    
+                                                    active={n === selectedPage}
+                                                    >
+                                                        {n}
+                                                </Pagination.Item>
+                                            )
+                                        })}
+                                        <Pagination.Ellipsis hidden={!showElipsesAfterSelectedPage} disabled />
+                                        <Pagination.Next onClick={() => handlePageChange(selectedPage + 1)} disabled={selectedPage === numPages} />
+                                        <Pagination.Last onClick={() => handlePageChange(numPages)} disabled={selectedPage === numPages} />
+                                    </Pagination>
+                                </Col>
+                                <Col lg="2">
+                                    <Dropdown autoClose={true} onSelect={handleResultsPerPageChange}>
+                                        <Dropdown.Toggle variant="outline-info" id="dropdown-basic">
+                                            Results Per Page
+                                        </Dropdown.Toggle>
+                                        <Dropdown.Menu>
+                                            {resultsPerPageOptions.map((o) => {
+                                                return <Dropdown.Item eventKey={o} active={resultsPerPage === o}>{o}</Dropdown.Item>
+                                            })}
+                                        </Dropdown.Menu>
+                                    </Dropdown>
+                                </Col>
+                            </Row>
+                        </Container>
                     }
                 </>
             )
