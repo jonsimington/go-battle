@@ -77,3 +77,5 @@ export const allPlayersHaveSameScore = (players: PlayerScore[]) => {
         return players[0].wins === players[1].wins;
     }
 }
+
+export const average = (array: any[]) => array.reduce((a, b) => a + b) / array.length;

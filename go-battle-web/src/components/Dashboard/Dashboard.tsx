@@ -5,6 +5,7 @@ import { ApiResult } from '../../models/ApiResult';
 import { PlayersResult } from '../../models/PlayersResult';
 import { MatchesResult } from '../../models/MatchesResult';
 import { GamesResult } from '../../models/GamesResult';
+import { average, elapsedTime, prettyTimeAgo } from '../../utils/utils';
 
 interface DashboardProps {}
 
@@ -13,6 +14,7 @@ const Dashboard: FC<DashboardProps> = () => {
     let [topFivePlayers, setTopFivePlayers] = useState<PlayersResult[]>([]);
     let [matches, setMatches] = useState<MatchesResult[]>([]);
     let [games, setGames] = useState<GamesResult[]>([]);
+    let [avgMatchLength, setAvgMatchLength] = useState<number>(0);
 
     const apiUrl = process.env.REACT_APP_API_URL;
 
@@ -28,6 +30,19 @@ const Dashboard: FC<DashboardProps> = () => {
         setTopFivePlayers(sortedPlayers.slice(0, 5));
     }, [players]);
 
+    // update match stats when matches changes
+    useEffect(() => {
+        if (matches.length > 0) {
+            let matchElapsedTimes = matches.filter((m) => elapsedTime(m.start_time, m.end_time) > 0).map((m) => {
+                return  elapsedTime(m.start_time, m.end_time);
+            });
+    
+            setAvgMatchLength(average(matchElapsedTimes));
+        }
+
+
+    }, [matches]);
+
     const fetchFromApi = (path: string) => {
         let url = `${apiUrl}${path}`;
 
@@ -35,13 +50,13 @@ const Dashboard: FC<DashboardProps> = () => {
           .then(response => response.json())
           .then((json: ApiResult[]) => {
             if(path.includes("players")) {
-                setPlayers(json as PlayersResult[])
+                setPlayers(json as PlayersResult[]);
             }
             else if(path.includes("games")) {
-                setGames(json as GamesResult[])
+                setGames(json as GamesResult[]);
             }
             else if(path.includes("matches")) {
-                setMatches(json as MatchesResult[])
+                setMatches(json as MatchesResult[]);
             }
           })
           .catch(error => console.error(error))
@@ -50,7 +65,7 @@ const Dashboard: FC<DashboardProps> = () => {
     return (
         <Container>
             <Row>
-                <Col>
+                <Col lg="5">
                     <Card>
                         <Card.Header className="text-center">
                             <h3>Top 5 Players</h3>
@@ -113,7 +128,7 @@ const Dashboard: FC<DashboardProps> = () => {
                         </Col>
                     </Row>
                     <Row className="mt-4">
-                        <Col>
+                    <Col>
                             <Card>
                                 <Card.Header className="text-center">
                                     <h3># Games</h3>
@@ -121,6 +136,18 @@ const Dashboard: FC<DashboardProps> = () => {
                                 <Card.Body>
                                     <Card.Text className="text-center" as="div">
                                         <h1>{games.length}</h1>
+                                    </Card.Text>
+                                </Card.Body>
+                            </Card>
+                        </Col>
+                        <Col>
+                            <Card>
+                                <Card.Header className="text-center">
+                                    <h3>Avg Match Length</h3>
+                                </Card.Header>
+                                <Card.Body>
+                                    <Card.Text className="text-center" as="div">
+                                        <h1>{prettyTimeAgo(avgMatchLength)}</h1>
                                     </Card.Text>
                                 </Card.Body>
                             </Card>
