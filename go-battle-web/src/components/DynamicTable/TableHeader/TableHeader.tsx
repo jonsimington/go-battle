@@ -20,6 +20,9 @@ const TableHeaderCell = styled("th", {
     "&:last-child": {
         borderTopRightRadius: 12,
     },
+    position: "sticky",
+    top: 0,
+    zIndex: 1000000
 });
 
 export function TableHeader<T>({ columns }: TableHeaderProps<T>): JSX.Element {
