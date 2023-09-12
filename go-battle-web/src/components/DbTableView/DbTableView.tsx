@@ -89,8 +89,8 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
           .then(response => response.json())
           .then((json: ApiResult[]) => {
             // created desc
-            json.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0);
             
+            json.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0);
             let pagedData = getPagedData(selectedPage, json);
             setDisplayedData(pagedData);
             setData(json);
@@ -219,7 +219,7 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
                                         </Dropdown.Toggle>
                                         <Dropdown.Menu>
                                             {resultsPerPageOptions.map((o) => {
-                                                return <Dropdown.Item eventKey={o} active={resultsPerPage === o}>{o}</Dropdown.Item>
+                                                return <Dropdown.Item eventKey={o} active={resultsPerPage === o} key={`results-dropdown-${o}`}>{o}</Dropdown.Item>
                                             })}
                                         </Dropdown.Menu>
                                     </Dropdown>
