@@ -107,8 +107,6 @@ func getMatches(ids []int) []Match {
 			Preload("Games.Winner").
 			Preload("Games.Loser").
 			Preload("Players").
-			Preload("Players.Client").
-			Preload("Players.EloHistory").
 			Where("id = ANY(?)", pq.Array(ids)).
 			Find(&matches)
 	} else {
@@ -116,8 +114,6 @@ func getMatches(ids []int) []Match {
 			Preload("Games.Winner").
 			Preload("Games.Loser").
 			Preload("Players").
-			Preload("Players.Client").
-			Preload("Players.EloHistory").
 			Find(&matches)
 	}
 
@@ -136,8 +132,6 @@ func getMatchesWithPlayers(players []int) []Match {
 			Preload("Games.Winner").
 			Preload("Games.Loser").
 			Preload("Players").
-			Preload("Players.Client").
-			Preload("Players.EloHistory").
 			Where("id = ANY(?)", pq.Array(matchesWithPlayers)).
 			Find(&matches)
 	} else {
@@ -145,8 +139,6 @@ func getMatchesWithPlayers(players []int) []Match {
 			Preload("Games.Winner").
 			Preload("Games.Loser").
 			Preload("Players").
-			Preload("Players.Client").
-			Preload("Players.EloHistory").
 			Find(&matches)
 	}
 

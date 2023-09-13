@@ -46,10 +46,7 @@ func getGamesWithPlayers(players []int) []Game {
 
 		db.Preload("Match").
 			Preload("Match.Players").
-			Preload("Match.Players.Client").
 			Preload("Players").
-			Preload("Players.Client").
-			Preload("Players.EloHistory").
 			Preload("Winner").
 			Preload("Loser").
 			Where("id = ANY(?)", pq.Array(gamesWithPlayers)).
@@ -57,10 +54,7 @@ func getGamesWithPlayers(players []int) []Game {
 	} else {
 		db.Preload("Match").
 			Preload("Match.Players").
-			Preload("Match.Players.Client").
 			Preload("Players").
-			Preload("Players.Client").
-			Preload("Players.EloHistory").
 			Preload("Winner").
 			Preload("Loser").
 			Find(&games)
@@ -75,10 +69,7 @@ func getGamesById(ids []int) []Game {
 	if len(ids) > 0 {
 		db.Preload("Match").
 			Preload("Match.Players").
-			Preload("Match.Players.Client").
 			Preload("Players").
-			Preload("Players.Client").
-			Preload("Players.EloHistory").
 			Preload("Winner").
 			Preload("Loser").
 			Where("id = ANY(?)", pq.Array(ids)).
@@ -86,10 +77,7 @@ func getGamesById(ids []int) []Game {
 	} else {
 		db.Preload("Match").
 			Preload("Match.Players").
-			Preload("Match.Players.Client").
 			Preload("Players").
-			Preload("Players.Client").
-			Preload("Players.EloHistory").
 			Preload("Winner").
 			Preload("Loser").
 			Find(&games)
