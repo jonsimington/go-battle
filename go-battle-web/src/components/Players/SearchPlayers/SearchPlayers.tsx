@@ -79,15 +79,16 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
         },
         {
             key: "wins",
-            title: "Wins / Losses",
+            title: "W / L / D",
             width: 100,
             render: (_, { games, ID }) => {
                 const wins = games.filter((g) => g.winner?.ID === ID).length;
                 const losses = games.filter((g) => g.loser?.ID === ID).length;
+                const draws = games.filter((g) => g.draw).length;
 
                 return (
                     <>
-                        <span className="text-success">{wins}</span> {"-"} <span className="text-danger">{losses}</span>
+                        <span className="text-success">{wins}</span> {"/"} <span className="text-danger">{losses}</span> {"/"} <span className="text-secondary">{draws}</span>
                     </>
                 )
             }
@@ -148,8 +149,9 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             width: 100,
             render: (_, { games, ID }) => {
                 const wins = games.filter((g) => g.winner?.ID === ID).length;
-                const losses = games.filter((g) => g.loser?.ID === ID).length;
-                const winPercent = (wins / losses) * 100;
+                const draws = games.filter((g) => g.draw).length;
+                const numGames = games.filter((g) => g.status === "Complete").length;
+                const winPercent = Math.round(((2 * wins + draws) / (2 * numGames) * 100) * 100) / 100;
 
                 if (!Number.isNaN(winPercent) && isFinite(winPercent)) {
                     return `${winPercent}%`;
