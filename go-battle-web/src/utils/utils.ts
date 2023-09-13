@@ -1,4 +1,5 @@
 import { PlayerScore } from "../models/PlayerScore"
+import { range } from 'lodash';
 
 export const translateClientLanguage = (languageCode: string) => {
     switch(languageCode) {
@@ -79,3 +80,28 @@ export const allPlayersHaveSameScore = (players: PlayerScore[]) => {
 }
 
 export const average = (array: any[]) => array.reduce((a, b) => a + b) / array.length;
+
+export const getPagesToDisplay = (numPages: number, selectedPage: number): number[] => {
+    if (numPages < 10) {
+        return range(1, numPages + 1, 1);
+    }
+    else if (selectedPage > 2 && selectedPage < numPages - 2) {
+        return [selectedPage - 2, selectedPage - 1, selectedPage, selectedPage + 1, selectedPage + 2];
+    }
+    else if (selectedPage === 2) {
+        return [selectedPage - 1, selectedPage, selectedPage + 1, selectedPage + 2, selectedPage + 3];
+    }
+    else if (selectedPage === 1) {
+        return [selectedPage, selectedPage + 1, selectedPage + 2, selectedPage + 3, selectedPage + 4];
+    }
+    else if (selectedPage === numPages - 1) {
+        return [selectedPage - 3, selectedPage - 2, selectedPage - 1, selectedPage, numPages];
+    }
+    else if (selectedPage === numPages - 2) {
+        return [selectedPage - 2, selectedPage - 1, selectedPage, numPages - 1, numPages];
+    }
+    else if (selectedPage === numPages) {
+        return [selectedPage - 4, selectedPage - 3, selectedPage - 2, selectedPage - 1, selectedPage];
+    }
+    return [];
+}

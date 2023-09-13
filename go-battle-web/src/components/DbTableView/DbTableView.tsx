@@ -9,6 +9,7 @@ import { ApiResult } from '../../models/ApiResult';
 import { SearchTournaments } from '../Tournaments/SearchTournaments/SearchTournaments';
 import { Col, Container, Dropdown, Pagination, Row } from 'react-bootstrap';
 import { range } from 'lodash';
+import { getPagesToDisplay } from '../../utils/utils';
 
 interface DbTableViewProps {
     context: string;
@@ -48,17 +49,15 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
         if(data !== undefined && data?.length > 0) {
             let num_pages = Math.ceil(data.length / resultsPerPage);
             setNumPages(num_pages);
+            setDisplayedPages(getPagesToDisplay(num_pages, selectedPage));
 
             if(numPages > 10) {
                 setShowElipsesBeforeSelectedPage(true);
-                setDisplayedPages(getPagesToDisplay());
             }
             else {
                 setShowElipsesBeforeSelectedPage(false);
                 setShowElipsesAfterSelectedPage(false);
-                setDisplayedPages(getPagesToDisplay());
             }
-
         }
     }, [data, resultsPerPage]);
 
@@ -67,7 +66,7 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
         if(data !== undefined) {
             let pagedData = getPagedData(selectedPage, data ?? []);
 
-            setDisplayedPages(getPagesToDisplay());
+            setDisplayedPages(getPagesToDisplay(numPages, selectedPage));
             setDisplayedData(pagedData);
         }
     }, [selectedPage, resultsPerPage, data]);
@@ -107,12 +106,14 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
         fetch(url, {mode:'cors'})
           .then(response => response.json())
           .then((json: ApiResult[]) => {
-            // created desc
-            
             json.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0);
+
             let pagedData = getPagedData(selectedPage, json);
+            let num_pages = Math.ceil(json.length / resultsPerPage);
+
             setDisplayedData(pagedData);
             setData(json);
+            setNumPages(num_pages);
           })
           .catch(error => console.error(error))
           .finally(() => setLoading(false));
@@ -140,31 +141,6 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
     const handlePageChange = (pageNumber: number) => {
         setSelectedPage(pageNumber);
     };
-
-    const getPagesToDisplay = (): number[] => {
-        if (numPages < 10) {
-            return range(1, numPages + 1, 1);
-        }
-        else if (selectedPage > 2 && selectedPage < numPages - 2) {
-            return [selectedPage - 2, selectedPage - 1, selectedPage, selectedPage + 1, selectedPage + 2];
-        }
-        else if (selectedPage === 2) {
-            return [selectedPage - 1, selectedPage, selectedPage + 1, selectedPage + 2, selectedPage + 3];
-        }
-        else if (selectedPage === 1) {
-            return [selectedPage, selectedPage + 1, selectedPage + 2, selectedPage + 3, selectedPage + 4];
-        }
-        else if (selectedPage === numPages - 1) {
-            return [selectedPage - 3, selectedPage - 2, selectedPage - 1, selectedPage, numPages];
-        }
-        else if (selectedPage === numPages - 2) {
-            return [selectedPage - 2, selectedPage - 1, selectedPage, numPages - 1, numPages];
-        }
-        else if (selectedPage === numPages) {
-            return [selectedPage - 4, selectedPage - 3, selectedPage - 2, selectedPage - 1, selectedPage];
-        }
-        return [];
-    }
 
     function handleResultsPerPageChange(eventKey: string | null, e: SyntheticEvent<unknown, Event>): void {
         if(eventKey !== null) {
