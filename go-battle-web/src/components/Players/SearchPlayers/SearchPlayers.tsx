@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Button } from 'react-bootstrap';
 import { pluck } from '../../../utils/utils';
 import { Sparklines, SparklinesLine, SparklinesSpots } from 'react-sparklines';
+import { FaInfinity } from 'react-icons/fa6';
 
 interface SearchPlayersProps {
     tableData: any[],
@@ -73,6 +74,90 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                         </div>
                     </div>
                 )
+            }
+        },
+        {
+            key: "wins",
+            title: "Wins / Losses",
+            width: 100,
+            render: (_, { games, ID }) => {
+                const wins = games.filter((g) => g.winner?.ID === ID).length;
+                const losses = games.filter((g) => g.loser?.ID === ID).length;
+
+                return (
+                    <>
+                        <span className="text-success">{wins}</span> {"-"} <span className="text-danger">{losses}</span>
+                    </>
+                )
+            }
+        },
+        {
+            key: "streak",
+            title: "Streak",
+            width: 100,
+            render: (_, { games, ID }) => {
+                let sortedGames = games.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0);
+
+                let winStreak = 0;
+                let lossStreak = 0;
+                let lastGameResult: string = "";
+
+                sortedGames.forEach(game => {
+                    let won = game.winner?.ID === ID;
+                    let lost = game.loser?.ID === ID;
+
+                    if(won) {
+                        if(lastGameResult !== "won" && lastGameResult !== "") {
+                            return;
+                        }
+
+                        lastGameResult = "won";
+                        winStreak += 1;
+                    } 
+                    else if (lost) {
+                        if(lastGameResult !== "lost" && lastGameResult !== "") {
+                            return;
+                        }
+
+                        lastGameResult = "lost";
+                        lossStreak += 1;
+                    }
+                });
+
+                let streak = "";
+                let textColor = "secondary";
+
+                if (winStreak > lossStreak) {
+                    streak = `${winStreak}W`;
+                    textColor = "success";
+                }
+                else if (lossStreak > winStreak) {
+                    streak = `${lossStreak}L`;
+                    textColor = "danger";
+                }
+
+                return (
+                    <span className={`text-${textColor}`}>{streak}</span>
+                )
+            }
+        },
+        {
+            key: "win_percent",
+            title: "Win %",
+            width: 100,
+            render: (_, { games, ID }) => {
+                const wins = games.filter((g) => g.winner?.ID === ID).length;
+                const losses = games.filter((g) => g.loser?.ID === ID).length;
+                const winPercent = (wins / losses) * 100;
+
+                if (!Number.isNaN(winPercent) && isFinite(winPercent)) {
+                    return `${winPercent}%`;
+                }
+                else if (!Number.isNaN(winPercent) && !isFinite(winPercent)) {
+                    return <FaInfinity></FaInfinity>
+                }
+
+                return "";
             }
         },
         {
