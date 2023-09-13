@@ -221,7 +221,7 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
                                 <Col lg="2">
                                     <Dropdown autoClose={true} onSelect={handleResultsPerPageChange}>
                                         <Dropdown.Toggle variant="outline-info" id="dropdown-basic">
-                                            Results Per Page
+                                            Results Per Page ({resultsPerPage})
                                         </Dropdown.Toggle>
                                         <Dropdown.Menu>
                                             {resultsPerPageOptions.map((o) => {
