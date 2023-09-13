@@ -168,13 +168,13 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             render: (_, { elo, ID }) => {
                 let buttonVariant = "danger";
 
-                if (elo >= 2200) {
-                    buttonVariant = "success";
+                if (elo >= 1800) {
+                    buttonVariant = "primary";
                 }
-                else if (elo >= 1850 && elo <= 2199) {
+                else if (elo >= 1650 && elo <= 1799) {
                     buttonVariant = "success"
                 }
-                else if (elo >= 1500 && elo <= 1849) {
+                else if (elo >= 1500 && elo <= 1649) {
                     buttonVariant = "secondary"
                 }
                 else if (elo >= 1200 && elo <= 1499) {
