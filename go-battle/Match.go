@@ -212,6 +212,8 @@ func (m Match) StartMatch(db *gorm.DB) {
 
 			insertGame(db, &g)
 			addGameToMatch(db, m, g)
+			addGameToPlayer(db, player1, g)
+			addGameToPlayer(db, player2, g)
 
 			// add Game to the match in memory
 			m.Games = append(m.Games, g)

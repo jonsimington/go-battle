@@ -1,5 +1,6 @@
 import { ApiResult } from "./ApiResult";
 import { ClientsResult } from "./ClientsResult";
+import { GamesResult } from "./GamesResult";
 import { HistoricalElo } from "./HistoricalElo";
 
 export interface PlayersResult extends ApiResult {
@@ -7,4 +8,5 @@ export interface PlayersResult extends ApiResult {
     client: ClientsResult;
     elo: number;
     elo_history: HistoricalElo[];
+    games: GamesResult[];
 }

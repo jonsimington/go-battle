@@ -17,6 +17,7 @@ type Player struct {
 	Client     Client          `json:"client" gorm:"foreignKey:ClientID"`
 	Elo        int             `json:"elo" gorm:"default:1500"`
 	EloHistory []HistoricalElo `json:"elo_history" gorm:"many2many:player_historical_elos"`
+	Games      []Game          `json:"games" gorm:"many2many:player_games"`
 }
 
 func getPlayers(ids []int) []Player {
@@ -25,11 +26,17 @@ func getPlayers(ids []int) []Player {
 	if len(ids) > 0 {
 		db.Preload("Client").
 			Preload("EloHistory").
+			Preload("Games").
+			Preload("Games.Winner").
+			Preload("Games.Loser").
 			Where("id = ANY(?)", pq.Array(ids)).
 			Find(&players)
 	} else {
 		db.Preload("Client").
 			Preload("EloHistory").
+			Preload("Games").
+			Preload("Games.Winner").
+			Preload("Games.Loser").
 			Find(&players)
 	}
 
@@ -40,6 +47,10 @@ func getPlayerByName(name string) Player {
 	var player Player
 
 	db.Preload("Client").
+		Preload("EloHistory").
+		Preload("Games").
+		Preload("Games.Winner").
+		Preload("Games.Loser").
 		Where("name = ?", name).
 		Find(&player)
 
@@ -76,6 +87,16 @@ func updatePlayerElo(db *gorm.DB, player Player, elo int) {
 	}
 
 	p.EloHistory = append(p.EloHistory, newEloHistory)
+
+	db.Save(&p)
+}
+
+func addGameToPlayer(db *gorm.DB, player Player, game Game) {
+	var p Player
+
+	db.Where("id = ?", player.ID).First(&p)
+
+	p.Games = append(p.Games, game)
 
 	db.Save(&p)
 }
