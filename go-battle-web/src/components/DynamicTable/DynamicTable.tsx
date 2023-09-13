@@ -19,7 +19,8 @@ const TableWrapper = styled("table", {
     borderCollapse: "collapse",
     border: "none",
     maxWidth: "95%",
-    minWidth: "75%"
+    minWidth: "75%",
+    marginBottom: "1em"
 });
 
 export function DynamicTable<T>({ data, columns }: DynamicTableProps<T>): JSX.Element {

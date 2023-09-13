@@ -28,13 +28,20 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
     const [showElipsesAfterSelectedPage, setShowElipsesAfterSelectedPage] = useState(false);
     const [displayedPages, setDisplayedPages] = useState<number[]>([]);
 
+    const [shouldShowPagination, setShouldShowPagination] = useState(false);
+
     const apiUrl = process.env.REACT_APP_API_URL;
 
     const resultsPerPageOptions = [5, 10, 15, 20];
+    const pagesWithPagination = ["matches", "games"];
     
     // fetch data from api
     useEffect(() => {
         fetchFromApi();
+
+        if(pagesWithPagination.includes(context)) {
+            setShouldShowPagination(true);
+        }
     }, []);
 
     // update number of pages any time data changes
@@ -187,8 +194,7 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
                     {context === "tournaments" &&
                         <SearchTournaments tableData={data ?? []} refreshData={fetchFromApi} />
                     }
-                    {data !== undefined && data.length > 0 &&
-
+                    {data !== undefined && data.length > 0 && shouldShowPagination &&
                         <Container>
                             <Row className="my-2">
                                 <Col>
