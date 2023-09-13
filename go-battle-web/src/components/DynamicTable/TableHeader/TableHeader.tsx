@@ -22,7 +22,7 @@ const TableHeaderCell = styled("th", {
     },
     position: "sticky",
     top: 0,
-    zIndex: 1000000
+    zIndex: 100
 });
 
 export function TableHeader<T>({ columns }: TableHeaderProps<T>): JSX.Element {
