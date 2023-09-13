@@ -45,11 +45,11 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
 
                 switch(language) {
                     case "py":
-                        return (<FaPython></FaPython>)
+                        return (<h4><FaPython></FaPython></h4>)
                     case "js":
-                        return (<FaJs></FaJs>)
+                        return (<h4><FaJs></FaJs></h4>)
                     case "cpp":
-                        return (<SiCplusplus></SiCplusplus>)
+                        return (<h4><SiCplusplus></SiCplusplus></h4>)
                     default:
                         return "Unknown Language"
                 }
@@ -61,7 +61,7 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
             width: 100,
             render: (_, { game }) => {
                 if (game === "chess") {
-                    return <FaChessBishop />
+                    return <h4><FaChessBishop /></h4>
                 } else {
                     return game
                 }
