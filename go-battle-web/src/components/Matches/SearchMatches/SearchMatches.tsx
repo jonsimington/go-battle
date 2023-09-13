@@ -1,10 +1,9 @@
-import styles from './SearchMatches.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaSpinner, FaX } from 'react-icons/fa6';
 import { Button, Col, Container, Dropdown, Modal, OverlayTrigger, Row, Toast, Tooltip } from 'react-bootstrap';
 import { allPlayersHaveSameScore, delay, elapsedTime, pluck, prettyDate, prettyTimeAgo, slugify } from '../../../utils/utils';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { COLORS } from '../../../utils/colors';
 import moment from 'moment';
 import TimeAgo from 'timeago-react';
@@ -48,7 +47,6 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
     const [matchesPlaying, setMatchesPlaying] = useState<number[]>([]);
     const [matchStartTimes, setMatchStartTimes] = useState<MatchStartTime[]>([]);
     const [matchIdToDelete, setMatchIdToDelete] = useState(-1);
-    const [lastSortSetting, setLastSortSetting] = useState('status');
 
     const [hasError, setHasError] = useState(false);
     const [hasWarning, setHasWarning] = useState(false);
@@ -199,7 +197,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                             <h3><FaCirclePlay /></h3>
                         </Button>
                     )
-                } else if(status == "In Progress" || matchesPlaying.includes(ID)) {
+                } else if(status === "In Progress" || matchesPlaying.includes(ID)) {
                     return (
                         <>
                             <div className="row d-inline-flex">
@@ -269,7 +267,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             })
             .then(() => {
                 refreshData();
-                setMatchesPlaying(matchesPlaying.filter((mID) => mID != matchID));
+                setMatchesPlaying(matchesPlaying.filter((mID) => mID !== matchID));
             });
     }
 
@@ -293,14 +291,12 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
     }
 
     const removeMatchFromTable = (matchID: number) => {
-        setData(data.filter((m: MatchesResult) => m.ID != matchID));
+        setData(data.filter((m: MatchesResult) => m.ID !== matchID));
         refreshData();
     }
 
     const sortData = (eventKey: any, event: Object) => {
         let sortedData = [...data] as MatchesResult[];
-
-        setLastSortSetting(eventKey);
 
         if(eventKey === "created") {
             sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)

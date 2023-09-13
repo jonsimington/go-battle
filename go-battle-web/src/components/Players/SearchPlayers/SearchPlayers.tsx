@@ -1,4 +1,3 @@
-import styles from './SearchPlayers.module.css';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { PlayersResult } from '../../../models/PlayersResult';
 import { useEffect, useState } from 'react';
@@ -16,24 +15,26 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
     const [data, setData] = useState(tableData);
 
     useEffect(() => {
+        const sortData = (sortType: any) => {
+            let sortedData = [...data] as PlayersResult[];
+    
+            if(sortType === "created") {
+                sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
+            }
+            else if(sortType === "created-desc") {
+                sortedData.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
+            }
+            else if(sortType === "elo-desc") {
+                sortedData.sort((a, b) => a.elo > b.elo ? -1 : a.elo < b.elo ? 1 : 0)
+            }
+    
+            setData(sortedData);
+        }
+
         sortData("elo-desc")
-    }, []);
+    }, [data]);
 
-    const sortData = (sortType: any) => {
-        let sortedData = [...data] as PlayersResult[];
-
-        if(sortType === "created") {
-            sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
-        }
-        else if(sortType === "created-desc") {
-            sortedData.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
-        }
-        else if(sortType === "elo-desc") {
-            sortedData.sort((a, b) => a.elo > b.elo ? -1 : a.elo < b.elo ? 1 : 0)
-        }
-
-        setData(sortedData);
-    }
+    
 
     const columns: IColumnType<PlayersResult>[] = [
         {

@@ -1,5 +1,4 @@
 import React, { FC, useEffect, useState } from 'react';
-import styles from './CreateMatch.module.css';
 import { PlayersResult } from '../../../models/PlayersResult';
 import { Alert, Button, Col, Form, Row } from 'react-bootstrap';
 import { FaUserPlus } from 'react-icons/fa6';
@@ -35,10 +34,11 @@ const CreateMatch: FC<CreateMatchProps> = () => {
         setPlayersValue(`${player1},${player2}`);
     }
 
-    const apiUrl = process.env.REACT_APP_API_URL;
-
+    
     // fetch list of clients to populate dropdown
     useEffect(() => {
+        const apiUrl = process.env.REACT_APP_API_URL;
+
         fetch(`${apiUrl}/players`, {mode:'cors'})
           .then(response => response.json())
           .then(json => {
@@ -61,6 +61,8 @@ const CreateMatch: FC<CreateMatchProps> = () => {
 
         const numGamesQuery = encodeURI(numGamesValue);
         const playersQuery = encodeURI(playersValue);
+
+        const apiUrl = process.env.REACT_APP_API_URL;
 
         fetch(`${apiUrl}/matches?num_games=${numGamesQuery}&players=${playersQuery}`, requestOptions)
             .then(async response => {

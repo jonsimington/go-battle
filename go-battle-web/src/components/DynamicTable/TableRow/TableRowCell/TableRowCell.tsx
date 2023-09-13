@@ -1,5 +1,3 @@
-import React, { FC } from 'react';
-import styles from './TableRowCell.module.css';
 import { styled } from "@stitches/react";
 import get from "lodash.get";
 

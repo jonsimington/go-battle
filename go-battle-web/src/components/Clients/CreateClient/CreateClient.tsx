@@ -1,7 +1,7 @@
 import React, { FC, useState } from 'react';
 import './CreateClient.css';
 import { Alert, Button, Form } from 'react-bootstrap';
-import { FaPlus, FaSpinner, FaUserPlus } from 'react-icons/fa6';
+import { FaUserPlus } from 'react-icons/fa6';
 
 interface CreateClientProps {}
 

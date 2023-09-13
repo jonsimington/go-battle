@@ -1,5 +1,4 @@
 import { SyntheticEvent, useEffect, useState } from 'react';
-import styles from './DbTableView.module.css';
 import { FaSpinner } from "react-icons/fa6";
 import { SearchPlayers } from '../Players/SearchPlayers/SearchPlayers';
 import { SearchGames } from '../Games/SearchGames/SearchGames';
@@ -11,11 +10,11 @@ import { SearchTournaments } from '../Tournaments/SearchTournaments/SearchTourna
 import { Col, Container, Dropdown, Pagination, Row } from 'react-bootstrap';
 import { range } from 'lodash';
 
-interface DbTableViewProps<T> {
+interface DbTableViewProps {
     context: string;
 }
 
-export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
+export function DbTableView({ context }: DbTableViewProps): JSX.Element {
     const [data, setData] = useState<ApiResult[]>();
     const [displayedData, setDisplayedData] = useState<ApiResult[]>();
     const [loading, setLoading] = useState(true);
@@ -71,13 +70,26 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
             setDisplayedPages(getPagesToDisplay());
             setDisplayedData(pagedData);
         }
-    }, [selectedPage, resultsPerPage]);
+    }, [selectedPage, resultsPerPage, data]);
 
     // update elipses visibility when displayedPages changes
     useEffect(() => {
+        const shouldShowElipses = (context: string): boolean => {
+            if(numPages < 10) {
+                return false;
+            }
+            else if (context === "before") {
+                return !range(1, selectedPage, 1).every((v) => displayedPages?.includes(v))
+            }
+            else if (context === "after") {
+                return !range(selectedPage, numPages+1, 1).every((v) => displayedPages?.includes(v))
+            }
+            return false;
+        }
+
         setShowElipsesBeforeSelectedPage(shouldShowElipses("before"));
         setShowElipsesAfterSelectedPage(shouldShowElipses("after"));
-    }, [displayedPages, resultsPerPage])
+    }, [displayedPages, resultsPerPage, numPages, selectedPage])
 
     const fetchFromApi = () => {
         setLoading(true);
@@ -113,7 +125,7 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
     
             if (pageNumber != null && pageNumber > 0 && pageNumber <= numPages) {
                 let start = ((pageNumber-1) * resultsPerPage);
-                let end = pageNumber == numberOfPages ? results.length : start + resultsPerPage;
+                let end = pageNumber === numberOfPages ? results.length : start + resultsPerPage;
 
                 pagedData = pagedData.slice(start, end);
             }
@@ -136,35 +148,22 @@ export function DbTableView<T>({ context }: DbTableViewProps<T>): JSX.Element {
         else if (selectedPage > 2 && selectedPage < numPages - 2) {
             return [selectedPage - 2, selectedPage - 1, selectedPage, selectedPage + 1, selectedPage + 2];
         }
-        else if (selectedPage == 2) {
+        else if (selectedPage === 2) {
             return [selectedPage - 1, selectedPage, selectedPage + 1, selectedPage + 2, selectedPage + 3];
         }
-        else if (selectedPage == 1) {
+        else if (selectedPage === 1) {
             return [selectedPage, selectedPage + 1, selectedPage + 2, selectedPage + 3, selectedPage + 4];
         }
-        else if (selectedPage == numPages - 1) {
+        else if (selectedPage === numPages - 1) {
             return [selectedPage - 3, selectedPage - 2, selectedPage - 1, selectedPage, numPages];
         }
-        else if (selectedPage == numPages - 2) {
+        else if (selectedPage === numPages - 2) {
             return [selectedPage - 2, selectedPage - 1, selectedPage, numPages - 1, numPages];
         }
-        else if (selectedPage == numPages) {
+        else if (selectedPage === numPages) {
             return [selectedPage - 4, selectedPage - 3, selectedPage - 2, selectedPage - 1, selectedPage];
         }
         return [];
-    }
-
-    const shouldShowElipses = (context: string): boolean => {
-        if(numPages < 10) {
-            return false;
-        }
-        else if (context === "before") {
-            return !range(1, selectedPage, 1).every((v) => displayedPages?.includes(v))
-        }
-        else if (context === "after") {
-            return !range(selectedPage, numPages+1, 1).every((v) => displayedPages?.includes(v))
-        }
-        return false;
     }
 
     function handleResultsPerPageChange(eventKey: string | null, e: SyntheticEvent<unknown, Event>): void {

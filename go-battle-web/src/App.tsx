@@ -1,7 +1,7 @@
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import { Outlet, BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import CreateClient from './components/Clients/CreateClient/CreateClient'
 import CreatePlayer from './components/Players/CreatePlayer/CreatePlayer'
 import CreateGame from './components/Games/CreateGame/CreateGame'

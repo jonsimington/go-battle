@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import styles from './SearchGames.module.css';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
 import { pluck, prettyDate } from '../../../utils/utils';
@@ -18,21 +17,21 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
     const visUrl = process.env.REACT_APP_VIS_URL;
 
     useEffect(() => {
+        const sortData = (sortType: any) => {
+            let sortedData = [...data] as GamesResult[];
+    
+            if(sortType === "created") {
+                sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
+            }
+            else if(sortType === "created-desc") {
+                sortedData.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
+            }
+    
+            setData(sortedData);
+        }
+
         sortData("created-desc")
-    }, []);
-
-    const sortData = (sortType: any) => {
-        let sortedData = [...data] as GamesResult[];
-
-        if(sortType === "created") {
-            sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
-        }
-        else if(sortType === "created-desc") {
-            sortedData.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
-        }
-
-        setData(sortedData);
-    }
+    }, [data]);
 
     const columns: IColumnType<GamesResult>[] = [
         {

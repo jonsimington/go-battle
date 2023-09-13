@@ -1,5 +1,4 @@
 import React, { FC, useEffect, useState } from 'react';
-import styles from './CreatePlayer.module.css';
 import { Alert, Button, Form } from 'react-bootstrap';
 import { FaUserPlus } from 'react-icons/fa6';
 import { ClientsResult } from '../../../models/ClientsResult';
@@ -26,10 +25,11 @@ const CreatePlayer: FC<CreatePlayerProps> = () => {
         setClientIdValue(event.target.value);
     }
     
-    const apiUrl = process.env.REACT_APP_API_URL;
-
+    
     // fetch list of clients to populate dropdown
     useEffect(() => {
+        const apiUrl = process.env.REACT_APP_API_URL;
+
         fetch(`${apiUrl}/clients`, {mode:'cors'})
           .then(response => response.json())
           .then(json => {
@@ -52,6 +52,8 @@ const CreatePlayer: FC<CreatePlayerProps> = () => {
 
         const name = encodeURI(nameValue);
         const clientId = encodeURI(clientIdValue);
+
+        const apiUrl = process.env.REACT_APP_API_URL;
 
         fetch(`${apiUrl}/players?name=${name}&client_id=${clientId}`, requestOptions)
             .then(async response => {

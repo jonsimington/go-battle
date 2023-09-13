@@ -69,7 +69,7 @@ export const allPlayersHaveSameScore = (players: PlayerScore[]) => {
         let currentWins = players[0].wins;
 
         players.forEach((p) => {
-            if(p.wins != currentWins) {
+            if(p.wins !== currentWins) {
                 return false;
             }
         });

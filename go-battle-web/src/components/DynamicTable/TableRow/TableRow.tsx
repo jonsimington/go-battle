@@ -1,6 +1,4 @@
-import styles from './TableRow.module.css';
 import { styled } from "@stitches/react";
-
 import { IColumnType } from "../DynamicTable";
 import { TableRowCell } from './TableRowCell/TableRowCell';
 import { COLORS } from '../../../utils/colors';

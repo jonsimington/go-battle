@@ -1,4 +1,3 @@
-import styles from './TableHeader.module.css';
 import { styled } from "@stitches/react";
 import { IColumnType } from "../DynamicTable";
 import { COLORS } from '../../../utils/colors';

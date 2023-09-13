@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import styles from './SearchTournaments.module.css';
+import { useEffect, useState } from 'react';
 import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
-import { allPlayersHaveSameScore, pluck, prettyDate, slugify } from '../../../utils/utils';
+import { allPlayersHaveSameScore, pluck, slugify } from '../../../utils/utils';
 import { TournamentsResult } from '../../../models/TournamentsResult';
 import { PlayerScore } from '../../../models/PlayerScore';
 
@@ -13,6 +12,23 @@ interface SearchTournamentsProps {
 
 export function SearchTournaments({ tableData, refreshData }: SearchTournamentsProps): JSX.Element {
     const [data, setData] = useState(tableData);
+
+    useEffect(() => {
+        const sortData = (sortType: any) => {
+            let sortedData = [...data] as TournamentsResult[];
+    
+            if(sortType === "created") {
+                sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
+            }
+            else if(sortType === "created-desc") {
+                sortedData.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
+            }
+    
+            setData(sortedData);
+        }
+
+        sortData("created-desc")
+    }, [data]);
 
     const columns: IColumnType<TournamentsResult>[] = [
         {

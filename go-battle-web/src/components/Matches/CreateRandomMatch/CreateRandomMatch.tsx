@@ -1,5 +1,4 @@
 import React, { FC, useState } from 'react';
-import styles from './CreatePlayer.module.css';
 import { Alert, Button, Form } from 'react-bootstrap';
 import { FaUserPlus } from 'react-icons/fa6';
 

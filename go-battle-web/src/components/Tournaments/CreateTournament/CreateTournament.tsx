@@ -1,5 +1,4 @@
 import React, { FC, useEffect, useState } from 'react';
-import styles from './CreateMatch.module.css';
 import { Alert, Button, Col, Form, Row } from 'react-bootstrap';
 import { FaUserPlus } from 'react-icons/fa6';
 import { PlayersResult } from '../../../models/PlayersResult';
@@ -26,10 +25,7 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
     const [alertText, setAlertText] = useState('');
 
     const handleTypeValueChange = (event: { target: { value: React.SetStateAction<string>; }; }) => {
-        console.log(`setting type from ${typeValue} to ${event.target.value}`);
         setTypeValue(event.target.value);
-        console.log('tyype', typeValue);
-
     }
     const handlePlayerOneValueChange = (event: { target: { value: React.SetStateAction<string>; }; }) => {
         setPlayerOneValue(event.target.value);
@@ -79,10 +75,10 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
         }
     ]
 
-    const apiUrl = process.env.REACT_APP_API_URL;
-
     // fetch list of clients to populate dropdown
     useEffect(() => {
+        const apiUrl = process.env.REACT_APP_API_URL;
+
         fetch(`${apiUrl}/players`, {mode:'cors'})
           .then(response => response.json())
           .then(json => {
@@ -105,6 +101,8 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
 
         const typeQuery = encodeURI(typeValue);
         const playersQuery = encodeURI(playersValue);
+
+        const apiUrl = process.env.REACT_APP_API_URL;
 
         fetch(`${apiUrl}/tournaments?type=${typeQuery}&players=${playersQuery}`, requestOptions)
             .then(async response => {

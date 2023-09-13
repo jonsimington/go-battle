@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import styles from './SearchClients.module.css';
+import { useEffect, useState } from 'react';
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { ClientsResult } from '../../../models/ClientsResult';
 import moment from 'moment';
@@ -15,6 +14,23 @@ interface SearchClientsProps {
 
 export function SearchClients({ tableData, refreshData }: SearchClientsProps): JSX.Element {
     const [data, setData] = useState(tableData);
+
+    useEffect(() => {
+        const sortData = (sortType: any) => {
+            let sortedData = [...data] as ClientsResult[];
+    
+            if(sortType === "created") {
+                sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
+            }
+            else if(sortType === "created-desc") {
+                sortedData.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
+            }
+    
+            setData(sortedData);
+        }
+
+        sortData("created")
+    }, [data]);
 
     const columns: IColumnType<ClientsResult>[] = [
         {

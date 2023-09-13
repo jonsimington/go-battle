@@ -1,5 +1,4 @@
 import { FC, useEffect, useState } from 'react';
-import styles from './Dashboard.module.css';
 import { Button, Card, Col, Container, ListGroup, Row } from 'react-bootstrap';
 import { ApiResult } from '../../models/ApiResult';
 import { PlayersResult } from '../../models/PlayersResult';
