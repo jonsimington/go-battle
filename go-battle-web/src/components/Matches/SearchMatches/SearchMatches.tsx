@@ -373,10 +373,10 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
                 <Row>
                     <Col>
-                        <Dropdown autoClose={false} onSelect={sortData}>
-                            <Dropdown.Toggle variant="outline-info" id="dropdown-basic">
+                        <Dropdown onSelect={sortData}>
+                            {/* <Dropdown.Toggle variant="outline-info" id="dropdown-basic">
                                 Sort By
-                            </Dropdown.Toggle>
+                            </Dropdown.Toggle> */}
 
                             <Dropdown.Menu>
                                 <Dropdown.Item eventKey="created">Created</Dropdown.Item>

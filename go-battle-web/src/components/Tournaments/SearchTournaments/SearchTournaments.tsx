@@ -1,17 +1,37 @@
 import { useEffect, useState } from 'react';
-import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Button, OverlayTrigger, Toast, Tooltip } from 'react-bootstrap';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
-import { allPlayersHaveSameScore, pluck, slugify } from '../../../utils/utils';
+import { allPlayersHaveSameScore, delay, pluck, slugify } from '../../../utils/utils';
 import { TournamentsResult } from '../../../models/TournamentsResult';
 import { PlayerScore } from '../../../models/PlayerScore';
+import { FaCirclePlay, FaSpinner } from 'react-icons/fa6';
+import TimeAgo from 'timeago-react';
 
 interface SearchTournamentsProps {
     tableData: any[]
     refreshData: Function
 }
 
+interface TournamentStartTime {
+    id: number;
+    startTime: Date;
+}
+
+const toastStyles = {
+    maxWidth: "95%",
+    minWidth: "75%"
+}
+
 export function SearchTournaments({ tableData, refreshData }: SearchTournamentsProps): JSX.Element {
     const [data, setData] = useState(tableData);
+    const [tournamentsPlaying, setTournamentsPlaying] = useState<number[]>([]);
+    const [tournamentStartTimes, setTournamentStartTimes] = useState<TournamentStartTime[]>([]);
+
+    const [hasError, setHasError] = useState(false);
+    const [hasWarning, setHasWarning] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+    const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
+    const [alertText, setAlertText] = useState('');
 
     useEffect(() => {
         const sortData = (sortType: any) => {
@@ -173,7 +193,76 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             title: "Type",
             width: 150,
         },
+        {
+            key: "startTournament",
+            title: "Start Tournament",
+            width: 125,
+            render: (_, { ID, status, start_time }) => {
+                if(status === "Pending" && !tournamentsPlaying.includes(ID)) {
+                    return (
+                        <Button variant="outline-success" onClick={() => startTournament(ID)} key={`startTournamentButton-${ID}`}>
+                            <h3><FaCirclePlay /></h3>
+                        </Button>
+                    )
+                } else if(status === "In Progress" || tournamentsPlaying.includes(ID)) {
+                    return (
+                        <>
+                            <div className="row d-inline-flex">
+                                <Button variant="outline-info" key={`matchPlayingIcon-${ID}`} disabled={true}>
+                                    <h3><FaSpinner  className="icon-spin" /></h3>
+                                </Button>
+                            </div>
+                            <div className="row">
+                                <TimeAgo datetime={start_time ?? new Date()} opts={{minInterval: 1}} className="mt-1" />
+                            </div>
+                        </>
+                    )
+                }
+            }
+        },
     ];
+
+    const handleFetchResponse = async (response: Response) => {
+        setShowToast(true);
+        const responseText = await response.text();
+        setAlertText(`HTTP ${response.status}: ${responseText}`);
+
+        if (response.ok) {
+            setHasWarning(false);
+            setHasError(false);
+        } else if (response.status === 400) {
+            setHasWarning(true);
+        } else if (response.status === 500) {
+            console.error(response.text);
+            setHasError(true);
+            return Promise.reject()
+        }
+    }
+
+    const startTournament = (tournamentID: number) =>  {
+        setTournamentsPlaying([...tournamentsPlaying, tournamentID]);
+        setTournamentStartTimes([...tournamentStartTimes, {
+            id: tournamentID,
+            startTime: new Date(),
+        }]);
+
+        const requestOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        };
+
+        const apiUrl = process.env.REACT_APP_API_URL;
+
+        fetch(`${apiUrl}/tournaments/start?match_id=${tournamentID}`, requestOptions)
+            .then(async response => handleFetchResponse(response))
+            .then(async () => {
+                await delay(1000);
+            })
+            .then(() => {
+                refreshData();
+                setTournamentsPlaying(tournamentsPlaying.filter((mID) => mID !== tournamentID));
+            });
+    }
 
     const renderPlayerRecordTooltip = (player: PlayerScore) => {
         return (
@@ -185,8 +274,20 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
 
     return (
         <>
-        <h3>Tournaments</h3>
-        <DynamicTable data={data} columns={columns} />
+            <h3>Tournaments</h3>
+
+            <Toast className="my-3"
+                bg={hasError ? "danger" : hasWarning ? "warning" : "success"}
+                onClose={() => setShowToast(false)}
+                show={showToast}
+                delay={5000}
+                animation={true}
+                style={toastStyles}
+                autohide>
+                <Toast.Body>{alertText}</Toast.Body>
+            </Toast>
+
+            <DynamicTable data={data} columns={columns} />
         </>
     );
 }

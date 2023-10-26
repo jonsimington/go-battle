@@ -10,4 +10,7 @@ export interface TournamentsResult extends ApiResult {
     matches: MatchesResult[];
     winner: PlayersResult;
     type: string;
+    start_time: Date;
+    end_time: Date;
+    status: string;
 }
