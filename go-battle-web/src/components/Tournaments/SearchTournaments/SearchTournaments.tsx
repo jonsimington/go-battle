@@ -253,7 +253,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
 
         const apiUrl = process.env.REACT_APP_API_URL;
 
-        fetch(`${apiUrl}/tournaments/start?match_id=${tournamentID}`, requestOptions)
+        fetch(`${apiUrl}/tournaments/start?tournament_id=${tournamentID}`, requestOptions)
             .then(async response => handleFetchResponse(response))
             .then(async () => {
                 await delay(1000);

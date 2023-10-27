@@ -11,9 +11,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-///////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
 // CLIENTS
-///////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
 func postClientsHandler(c *fiber.Ctx) error {
 	clientRepoUrl := c.Query("repo_url")
 	clientLanguage := c.Query("language")
@@ -62,9 +62,9 @@ func getClientsHandler(c *fiber.Ctx) error {
 	return c.Status(200).SendString(string(jsonClients))
 }
 
-///////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
 // PLAYERS
-///////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
 func postPlayersHandler(c *fiber.Ctx) error {
 	name := c.Query("name")
 	clientId := c.Query("client_id")
@@ -122,9 +122,9 @@ func getPlayersHandler(c *fiber.Ctx) error {
 	return c.Status(200).SendString(string(jsonPlayers))
 }
 
-///////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
 // GAMES
-///////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
 func postGamesHandler(c *fiber.Ctx) error {
 	// gameId := c.Query("game_id")
 	numGames := c.Query("num_games")
@@ -203,9 +203,9 @@ func getGamesHandler(c *fiber.Ctx) error {
 	return c.Status(200).SendString(string(jsonGames))
 }
 
-///////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
 // MATCHES
-///////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
 func postMatchesHandler(c *fiber.Ctx) error {
 	numGames := c.Query("num_games")
 	numGamesInt, numGamesIntErr := strconv.Atoi(numGames)
@@ -372,9 +372,9 @@ func randomMatchHandler(c *fiber.Ctx) error {
 	return c.Status(200).SendString(fmt.Sprintf("Started Random Match: ID %d, %d Games, Players %d & %d", match.ID, match.NumGames, match.Players[0].ID, match.Players[1].ID))
 }
 
-///////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
 // TOURNAMENTS
-///////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////
 func postTournamentsHandler(c *fiber.Ctx) error {
 	playersQuery := c.Query("players")
 	tournamentTypeQuery := c.Query("type")
@@ -409,6 +409,7 @@ func postTournamentsHandler(c *fiber.Ctx) error {
 		Name:    "Chess Tournament (Swiss)",
 		Players: players,
 		Type:    tournamentTypeQuery,
+		Status:  "Pending",
 	}
 
 	insertTournament(db, &tournament)
@@ -432,4 +433,37 @@ func getTournamentsHandler(c *fiber.Ctx) error {
 	}
 
 	return c.Status(200).SendString(string(jsonTournaments))
+}
+
+func startTournamentsHandler(c *fiber.Ctx) error {
+	tournamentId := c.Query("tournament_id")
+	tournamentIdInt, tournamentIdIntErr := strconv.Atoi(tournamentId)
+
+	if tournamentId == "" {
+		return c.Status(400).SendString("The `tournament_id` query param value must be provided")
+	}
+
+	if tournamentIdIntErr != nil {
+		return c.Status(400).SendString(fmt.Sprintf("`tournament_id` query parameter must be an integer"))
+	}
+
+	var emptyTournament Tournament
+
+	tournament := getTournament(db, tournamentIdInt)
+
+	if compareTournaments(tournament, emptyTournament) {
+		return c.Status(400).SendString(fmt.Sprintf("`tournament_id` query parameter must point to an existing Tournament"))
+	}
+
+	tournament.StartTournament(tournamentIdInt)
+
+	tournament = getTournament(db, tournamentIdInt)
+
+	// if draw {
+	// 	return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Draw!", matchIdInt))
+	// } else {
+	// 	return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Winner: %s", matchIdInt, winner.Name))
+	// }
+
+	return c.Status(200).SendString(fmt.Sprintf("Tournament %d finished, Winner: %s", tournamentIdInt, "TODO WINNER NAME"))
 }

@@ -310,7 +310,6 @@ func handleEloChanges(player1 Player, player2 Player, winner *Player, draw bool)
 
 func compareMatches(matchOne Match, matchTwo Match) bool {
 	return matchOne.ID == matchTwo.ID &&
-		matchOne.ID == matchTwo.ID &&
 		matchOne.CreatedAt == matchTwo.CreatedAt &&
 		matchOne.UpdatedAt == matchTwo.UpdatedAt &&
 		matchOne.DeletedAt == matchTwo.DeletedAt
