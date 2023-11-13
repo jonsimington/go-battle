@@ -15,6 +15,10 @@ type HistoricalElo struct {
 }
 
 func calculateEloOutcomes(player1 Player, player2 Player, winner *Player, draw bool) (elogo.Outcome, elogo.Outcome) {
+	if winner.ID != player1.ID && winner.ID != player2.ID {
+		log.Errorf("Attempted to calculate Elo outcome between %s and %s with winner %s...", player1.Name, player2.Name, winner.Name)
+	}
+
 	rankA := player1.Elo
 	rankB := player2.Elo
 

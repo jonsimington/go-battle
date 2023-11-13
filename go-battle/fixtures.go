@@ -259,4 +259,22 @@ func FillDbWithTestData() {
 	insertPlayer(db, &littleLycheePlayer)
 	insertPlayer(db, &tallTangerinePlayer)
 	insertPlayer(db, &puzzledPearPlayer)
+
+	sampleTournament := Tournament{
+		Name:   "A test Tournament",
+		Type:   "swiss",
+		Status: "Pending",
+		Players: []Player{
+			vanBurenBoysPlayer,
+			braveBoysenberryPlayer,
+			godlyGrapefruitPlayer,
+			protectivePrunePlayer,
+			madCherimoyaPlayer,
+			fragileFigPlayer,
+			expensiveGooseberryPlayer,
+			animatedCoconutPlayer,
+		},
+	}
+
+	insertTournament(db, &sampleTournament)
 }

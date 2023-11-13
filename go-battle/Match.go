@@ -171,7 +171,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 	player1 := m.Players[0]
 	player2 := m.Players[1]
 
-	log.Infof("Starting match %d (%d games) between %s and %s", m.ID, m.NumGames, player1.Name, player2.Name)
+	log.Infof("Starting match %d (%d games) between %s (%d) and %s (%d) ", m.ID, m.NumGames, player1.Name, player1.Elo, player2.Name, player2.Elo)
 
 	// init players slice
 	players := []Player{

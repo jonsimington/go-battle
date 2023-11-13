@@ -258,15 +258,15 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 
 	_, runErr := runCmd.CombinedOutput()
 
-	if gameTimeoutContext.Err() != context.DeadlineExceeded {
-		log.Debugf("Run Game context returned error, but not timeout: %s", gameTimeoutContext.Err())
+	if gameTimeoutContext.Err() != context.DeadlineExceeded && gameTimeoutContext.Err() != nil {
+		log.Debugf("Run Game context returned error, but not timeout: %v", gameTimeoutContext.Err())
 	}
 	if runErr != nil {
 		if runErr.Error() == "signal: killed" {
 			updateGameStatus(db, g, "Canceled")
 			g.Status = "Canceled"
 		} else {
-			log.Warningln(fmt.Sprintf("Play game command returned error: `%s`, trying again", runErr))
+			log.Warningln(fmt.Sprintf("Play game command returned error: `%v`, trying again", runErr))
 		}
 	} else {
 		updateGameStatus(db, g, "Complete")

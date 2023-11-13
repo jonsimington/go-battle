@@ -75,6 +75,9 @@ func playerExists(db *gorm.DB, name string) bool {
 }
 
 func updatePlayerElo(db *gorm.DB, player Player, elo int) {
+	playerLock.Lock()
+	defer playerLock.Unlock()
+
 	var p Player
 
 	db.Where("id = ?", player.ID).First(&p)
@@ -92,6 +95,9 @@ func updatePlayerElo(db *gorm.DB, player Player, elo int) {
 }
 
 func addGameToPlayer(db *gorm.DB, player Player, game Game) {
+	playerLock.Lock()
+	defer playerLock.Unlock()
+
 	var p Player
 
 	db.Where("id = ?", player.ID).First(&p)

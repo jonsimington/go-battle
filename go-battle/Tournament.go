@@ -100,6 +100,19 @@ func getTournament(db *gorm.DB, id int) Tournament {
 	return t
 }
 
+func addMatchToTournament(db *gorm.DB, match Match, tournament Tournament) {
+	tournamentLock.Lock()
+	defer tournamentLock.Unlock()
+
+	var t Tournament
+
+	db.Where("id = ?", tournament.ID).First(&t)
+
+	t.Matches = append(t.Matches, match)
+
+	db.Save(&t)
+}
+
 func BuildTournamentPlayers(players []Player) []*TournamentPlayer {
 	var tournamentPlayers []*TournamentPlayer
 
@@ -128,6 +141,7 @@ func (t Tournament) StartTournament(id int) {
 	log.Debugf("TournamentPlayers: %v", tournamentPlayers)
 
 	currentRound := 1
+	maxRounds := 2
 	var _ *Player
 
 	// round 1 - ranked by ELO
@@ -135,33 +149,63 @@ func (t Tournament) StartTournament(id int) {
 		return tournamentPlayers[i].Player.Elo > tournamentPlayers[j].Player.Elo
 	})
 
-	log.Infof("Starting Tournament %d, Round %d", id, currentRound)
+	for i := 1; i < maxRounds; i++ {
+		log.Infof("Starting Tournament %d, Round %d", id, currentRound)
 
-	roundPairings := SwissPairing(tournamentPlayers, currentRound)
+		roundPairings := SwissPairing(tournamentPlayers, currentRound)
 
-	for i := range roundPairings {
-		pairing := roundPairings[i]
+		// wait for all round matches to be complete before iterating
+		var roundWG sync.WaitGroup
 
-		if pairing.Player1.Name == "" || pairing.Player2.Name == "" {
-			continue
+		log.Debugf("Going to play %d matches", len(roundPairings))
+
+		for i := range roundPairings {
+			roundWG.Add(1)
+
+			go func(roundPairing int) {
+				pairing := roundPairings[roundPairing]
+
+				player1 := pairing.Player1
+				player2 := pairing.Player2
+
+				// TODO:
+				// for some reason the pairings coming out of SwissPairing() contain double
+				// the expected pairings, with half of them being what looks like empty Player objects :\
+				if player1.Name == "" || player2.Name == "" {
+					return
+				}
+
+				log.Debugf("Starting match between %s and %s (round %d)", player1.Name, player2.Name, currentRound)
+
+				match := Match{
+					NumGames: 5,
+					Players: []Player{
+						player1,
+						player2,
+					},
+					Status: "Pending",
+				}
+
+				insertMatch(db, &match)
+				addMatchToTournament(db, match, tournament)
+				// do we need to add the games to the tournament as well (during match runtime?)
+
+				// add Match to the Tournament in memory
+				tournament.Matches = append(tournament.Matches, match)
+
+				match.StartMatch(db)
+
+				roundWG.Done()
+				return
+			}(i)
 		}
 
-		log.Debugf("Starting match between %s (%d) and %s (%d)", pairing.Player1.Name, pairing.Player1.Elo, pairing.Player2.Name, pairing.Player2.Elo)
+		roundWG.Wait()
+
+		log.Debugf("Round %d complete!", currentRound)
+
+		currentRound += 1
 	}
-
-	// for i := 1; i < 5; i++ {
-	// 	log.Infof("Starting Tournament %d, Round %d", id, currentRound)
-
-	// 	roundPairings := SwissPairing(tournamentPlayers, currentRound)
-
-	// 	for i := range roundPairings {
-	// 		pairing := roundPairings[i]
-
-	// 		log.Debugf("Starting match between %s (%d) and %s (%d)", pairing.Player1.Name, pairing.Player1.Elo, pairing.Player2.Name, pairing.Player2.Elo)
-	// 	}
-
-	// 	currentRound += 1
-	// }
 
 	// for tournamentWinner == nil {
 	// }
