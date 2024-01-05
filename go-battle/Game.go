@@ -253,9 +253,6 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 		runCmd = exec.CommandContext(gameTimeoutContext, m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
 	}
 
-	// runCmd.Stdout = os.Stdout
-	// runCmd.Stderr = os.Stderr
-
 	_, runErr := runCmd.CombinedOutput()
 
 	if gameTimeoutContext.Err() != context.DeadlineExceeded && gameTimeoutContext.Err() != nil {
@@ -266,7 +263,9 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 			updateGameStatus(db, g, "Canceled")
 			g.Status = "Canceled"
 		} else {
-			log.Warningln(fmt.Sprintf("Play game command returned error: `%v`, trying again", runErr))
+			var gameErrorCode, _ = GetGameErrorCode(runErr.Error())
+
+			log.Warningln(fmt.Sprintf("Play game command returned error: `%v` (%s), trying again", runErr, gameErrorCode.String()))
 		}
 	} else {
 		updateGameStatus(db, g, "Complete")
