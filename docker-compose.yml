@@ -1,6 +1,8 @@
 version: '3.8'
 services:
   db:
+    networks:
+        - localnet
     image: postgres:15.3-alpine
     restart: always
     environment:
@@ -13,6 +15,8 @@ services:
       - '5432:5432'
 
   api:
+    networks:
+        - localnet
     depends_on:
       - db
     build:
@@ -25,6 +29,8 @@ services:
     command: air -c .air.toml
 
   cerveau:
+    networks:
+        - localnet
     build:
       context: ./cerveau
       dockerfile: Dockerfile
@@ -35,6 +41,8 @@ services:
       - "3080:3080"
 
   viseur:
+    networks:
+        - localnet
     build:
       context: ./viseur
       dockerfile: Dockerfile
@@ -44,6 +52,8 @@ services:
       - "8080:8080"
 
   web:
+    networks:
+        - localnet
     build:
       dockerfile: ./go-battle-web/Dockerfile
     ports:
@@ -57,3 +67,6 @@ services:
 volumes:
   db:
     driver: local
+    
+networks:
+  localnet:

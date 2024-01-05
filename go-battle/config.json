@@ -1,8 +1,9 @@
 {
-    "cerveauApiHost": "cerveau.simington.io",
-    "cerveauWebHost": "web.cerveau.simington.io",
+    "cerveauApiHost": "cerveau",
+    "cerveauWebHost": "cerveau",
     "cerveauApiPort": "3000",
     "cerveauWebPort": "3080",
+    "cerveauURLScheme": "http",
     "DB_USER": "postgres",
     "DB_PASS": "postgres",
     "DB_NAME": "go-battle",

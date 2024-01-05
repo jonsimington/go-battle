@@ -309,8 +309,11 @@ func getGamelog(gamelogFilename string) *Gamelog {
 }
 
 func getGameStatus(gameType string, gameSession int) *GameStatus {
-	var cerveauURL = conf.Get("cerveauWebHost")
-	url := "https://" + cerveauURL + "/status/" + gameType + "/" + strconv.Itoa(gameSession)
+	var cerveauHost = conf.Get("cerveauWebHost")
+	var cerveauPort = conf.Get("cerveauWebPort")
+	var cerveauURLScheme = conf.Get("cerveauURLScheme")
+	var cerveauURL = cerveauURLScheme + "://" + cerveauHost + ":" + cerveauPort
+	url := cerveauURL + "/status/" + gameType + "/" + strconv.Itoa(gameSession)
 
 	gameStatus := new(GameStatus)
 
@@ -320,8 +323,13 @@ func getGameStatus(gameType string, gameSession int) *GameStatus {
 }
 
 func getGamelogFilename(gameType string, gameSession int) string {
-	var cerveauURL = conf.Get("cerveauWebHost")
-	url := "https://" + cerveauURL + "/status/" + gameType + "/" + strconv.Itoa(gameSession)
+	var cerveauHost = conf.Get("cerveauWebHost")
+	var cerveauPort = conf.Get("cerveauWebPort")
+	var cerveauURLScheme = conf.Get("cerveauURLScheme")
+	var cerveauURL = cerveauURLScheme + "://" + cerveauHost + ":" + cerveauPort
+	url := cerveauURL + "/status/" + gameType + "/" + strconv.Itoa(gameSession)
+
+	log.Debugf("glog url: %s", url)
 
 	status := "running"
 
@@ -341,8 +349,11 @@ func getGamelogFilename(gameType string, gameSession int) string {
 }
 
 func getGamelogUrl(gamelogFilename string) string {
-	var cerveauURL = conf.Get("cerveauWebHost")
-	glogURL := "https://" + cerveauURL + "/gamelog/" + gamelogFilename
+	var cerveauHost = conf.Get("cerveauWebHost")
+	var cerveauPort = conf.Get("cerveauWebPort")
+	var cerveauURLScheme = conf.Get("cerveauURLScheme")
+	var cerveauURL = cerveauURLScheme + "://" + cerveauHost + ":" + cerveauPort
+	glogURL := cerveauURL + "/gamelog/" + gamelogFilename
 
 	return glogURL
 }
