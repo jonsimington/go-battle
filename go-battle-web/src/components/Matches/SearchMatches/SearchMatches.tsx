@@ -191,6 +191,8 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             title: "Play Match",
             width: 125,
             render: (_, { ID, status, start_time }) => {
+                start_time = start_time.toString() == "0001-01-01T00:00:00Z" ? new Date() : start_time
+
                 if(status === "Pending" && !matchesPlaying.includes(ID)) {
                     return (
                         <Button variant="outline-success" onClick={() => startMatch(ID)} key={`startMatchButton-${ID}`}>
@@ -206,7 +208,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                                 </Button>
                             </div>
                             <div className="row">
-                                <TimeAgo datetime={start_time ?? new Date()} opts={{minInterval: 1}} className="mt-1" />
+                                <TimeAgo datetime={start_time} opts={{minInterval: 1}} className="mt-1" />
                             </div>
                         </>
                     )
