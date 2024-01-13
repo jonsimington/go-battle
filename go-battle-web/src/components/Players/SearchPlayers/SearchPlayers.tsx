@@ -2,7 +2,7 @@ import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { PlayersResult } from '../../../models/PlayersResult';
 import { useEffect, useState } from 'react';
 import { Button } from 'react-bootstrap';
-import { pluck } from '../../../utils/utils';
+import { calculateGameResult, calculateStreak, pluck } from '../../../utils/utils';
 import { Sparklines, SparklinesLine, SparklinesSpots } from 'react-sparklines';
 import { FaInfinity } from 'react-icons/fa6';
 
@@ -82,9 +82,10 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             title: "W / L / D",
             width: 100,
             render: (_, { games, ID }) => {
-                const wins = games.filter((g) => g.winner?.ID === ID).length;
-                const losses = games.filter((g) => g.loser?.ID === ID).length;
-                const draws = games.filter((g) => g.draw).length;
+                const completeGames = games.filter((g) => g.status === "Complete")
+                const wins = completeGames.filter((g) => g.winner?.ID === ID).length;
+                const losses = completeGames.filter((g) => g.loser?.ID === ID).length;
+                const draws = completeGames.filter((g) => g.draw).length;
 
                 return (
                     <>
@@ -98,46 +99,25 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             title: "Streak",
             width: 100,
             render: (_, { games, ID }) => {
-                let sortedGames = games.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0);
-
-                let winStreak = 0;
-                let lossStreak = 0;
-                let lastGameResult: string = "";
-
-                sortedGames.forEach(game => {
-                    let won = game.winner?.ID === ID;
-                    let lost = game.loser?.ID === ID;
-
-                    if(won) {
-                        if(lastGameResult !== "won" && lastGameResult !== "") {
-                            return;
-                        }
-
-                        lastGameResult = "won";
-                        winStreak += 1;
-                    } 
-                    else if (lost) {
-                        if(lastGameResult !== "lost" && lastGameResult !== "") {
-                            return;
-                        }
-
-                        lastGameResult = "lost";
-                        lossStreak += 1;
-                    }
-                });
-
+                let sortedGames = games.filter(g => g.status === "Complete").sort((a, b) => a.UpdatedAt > b.UpdatedAt ? -1 : a.UpdatedAt < b.UpdatedAt ? 1 : 0);
+                let streakResult = calculateStreak(sortedGames, ID);
+                let streakType = streakResult.streakType;
+                let streakCount = streakResult.streakCount;
                 let streak = "";
                 let textColor = "secondary";
-
-                if (winStreak > lossStreak) {
-                    streak = `${winStreak}W`;
+                
+                if (streakType === "win" && streakCount > 0) {
+                    streak = `${streakCount}W`;
                     textColor = "success";
                 }
-                else if (lossStreak > winStreak) {
-                    streak = `${lossStreak}L`;
+                else if (streakType === "lose" && streakCount > 0) {
+                    streak = `${streakCount}L`;
                     textColor = "danger";
                 }
-
+                else if (streakType === "draw" && streakCount > 0) {
+                    streak = `${streakCount}D`;
+                }
+                
                 return (
                     <span className={`text-${textColor}`}>{streak}</span>
                 )
@@ -148,9 +128,10 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             title: "Win %",
             width: 100,
             render: (_, { games, ID }) => {
-                const wins = games.filter((g) => g.winner?.ID === ID).length;
-                const draws = games.filter((g) => g.draw).length;
-                const numGames = games.filter((g) => g.status === "Complete").length;
+                const completeGames = games.filter((g) => g.status === "Complete")
+                const wins = completeGames.filter((g) => g.winner?.ID === ID).length;
+                const draws = completeGames.filter((g) => g.draw).length;
+                const numGames = completeGames.length;
                 const winPercent = Math.round(((2 * wins + draws) / (2 * numGames) * 100) * 100) / 100;
 
                 if (!Number.isNaN(winPercent) && isFinite(winPercent)) {

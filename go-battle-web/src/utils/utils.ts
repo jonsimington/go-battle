@@ -1,3 +1,4 @@
+import { GamesResult } from "../models/GamesResult";
 import { PlayerScore } from "../models/PlayerScore"
 import { range } from 'lodash';
 
@@ -104,4 +105,40 @@ export const getPagesToDisplay = (numPages: number, selectedPage: number): numbe
         return [selectedPage - 4, selectedPage - 3, selectedPage - 2, selectedPage - 1, selectedPage];
     }
     return [];
+}
+
+export const calculateStreak = (gameHistory: GamesResult[], playerID: number): { streakType: string, streakCount: number } => {
+    if (gameHistory.length === 0) {
+        return { streakType: 'none', streakCount: 0 }
+    }
+
+    let streakCount = 1;
+
+    let streakType = calculateGameResult(gameHistory[0], playerID);
+
+    for (let i = 1; i < gameHistory.length; i++) {
+        if (calculateGameResult(gameHistory[i], playerID) === streakType) {
+            streakCount++;
+        } else {
+            break;
+        }
+    }
+
+    return { streakType, streakCount };
+}
+
+export const calculateGameResult = (game: GamesResult, playerID: number): string => {
+    if (game.draw) {
+        return "draw";
+    }
+
+    if (game.winner?.ID === playerID) {
+        return "win";
+    }
+
+    if (game.loser?.ID === playerID) {
+        return "lose";
+    }
+
+    return "unknown";
 }
