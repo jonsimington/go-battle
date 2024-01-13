@@ -13,6 +13,7 @@ interface SearchPlayersProps {
 
 export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): JSX.Element {
     const [data, setData] = useState(tableData);
+    const [sortType, setSortType] = useState("elo-desc");
 
     useEffect(() => {
         const sortData = (sortType: any) => {
@@ -31,10 +32,8 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             setData(sortedData);
         }
 
-        sortData("elo-desc")
-    }, [data]);
-
-    
+        sortData("elo-desc");
+    }, [sortType]);
 
     const columns: IColumnType<PlayersResult>[] = [
         {

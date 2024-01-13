@@ -14,6 +14,7 @@ interface SearchClientsProps {
 
 export function SearchClients({ tableData, refreshData }: SearchClientsProps): JSX.Element {
     const [data, setData] = useState(tableData);
+    const [sortType, setSortType] = useState("created");
 
     useEffect(() => {
         const sortData = (sortType: any) => {
@@ -29,8 +30,8 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
             setData(sortedData);
         }
 
-        sortData("created")
-    }, [data]);
+        sortData("created");
+    }, [sortType]);
 
     const columns: IColumnType<ClientsResult>[] = [
         {

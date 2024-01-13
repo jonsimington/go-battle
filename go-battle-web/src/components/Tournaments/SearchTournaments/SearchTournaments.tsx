@@ -24,6 +24,7 @@ const toastStyles = {
 
 export function SearchTournaments({ tableData, refreshData }: SearchTournamentsProps): JSX.Element {
     const [data, setData] = useState(tableData);
+    const [sortType, setSortType] = useState("created-desc");
     const [tournamentsPlaying, setTournamentsPlaying] = useState<number[]>([]);
     const [tournamentStartTimes, setTournamentStartTimes] = useState<TournamentStartTime[]>([]);
 
@@ -47,8 +48,8 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             setData(sortedData);
         }
 
-        sortData("created-desc")
-    }, [data]);
+        sortData("created-desc");
+    }, [sortType]);
 
     const columns: IColumnType<TournamentsResult>[] = [
         {

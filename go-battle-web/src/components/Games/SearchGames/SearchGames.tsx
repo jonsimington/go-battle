@@ -13,6 +13,7 @@ interface SearchGamesProps {
 
 export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.Element {
     const [data, setData] = useState(tableData);
+    const [sortType, setSortType] = useState("created-desc");
 
     const visUrl = process.env.REACT_APP_VIS_URL;
 
@@ -31,7 +32,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
         }
 
         sortData("created-desc")
-    }, [data]);
+    }, [sortType]);
 
     const columns: IColumnType<GamesResult>[] = [
         {
