@@ -170,7 +170,7 @@ func postGamesHandler(c *fiber.Ctx) error {
 
 	// then call func (m Match) StartMatch(db *gorm.DB)
 
-	return c.SendString(fmt.Sprintf("Created game with id %s!", 1))
+	return c.SendString(fmt.Sprintf("Created game with id %d!", 1))
 }
 
 func getGamesHandler(c *fiber.Ctx) error {

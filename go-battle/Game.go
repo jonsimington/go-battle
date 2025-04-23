@@ -239,7 +239,7 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 		log.Warnf(fmt.Sprintf("`%s` doesn't exist!", exePath))
 	}
 
-	gameTimeoutContext, cancel := context.WithTimeout(context.Background(), 45*time.Minute)
+	gameTimeoutContext, cancel := context.WithTimeout(context.Background(), 90*time.Minute)
 	defer cancel()
 
 	var runCmd *exec.Cmd
@@ -259,6 +259,22 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 		log.Debugf("Run Game context returned error, but not timeout: %v", gameTimeoutContext.Err())
 	}
 	if runErr != nil {
+		var numErrs = 0
+
+		// continually retry to run the game
+		for runErr == nil {
+			handleRunErr(runErr, numErrs, g)
+		}
+	} else {
+		updateGameStatus(db, g, "Complete")
+		g.Status = "Complete"
+	}
+
+	return
+}
+
+func handleRunErr(runErr error, depth int, g Game) {
+	if runErr != nil {
 		if runErr.Error() == "signal: killed" {
 			updateGameStatus(db, g, "Canceled")
 			g.Status = "Canceled"
@@ -271,8 +287,6 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 		updateGameStatus(db, g, "Complete")
 		g.Status = "Complete"
 	}
-
-	return
 }
 
 func makeClient(playerDir string, playerLanguage string) {
@@ -327,8 +341,6 @@ func getGamelogFilename(gameType string, gameSession int) string {
 	var cerveauURLScheme = conf.Get("cerveauURLScheme")
 	var cerveauURL = cerveauURLScheme + "://" + cerveauHost + ":" + cerveauPort
 	url := cerveauURL + "/status/" + gameType + "/" + strconv.Itoa(gameSession)
-
-	log.Debugf("glog url: %s", url)
 
 	status := "running"
 

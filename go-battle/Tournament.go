@@ -142,14 +142,13 @@ func (t Tournament) StartTournament(id int) {
 
 	currentRound := 1
 	maxRounds := 2
-	var _ *Player
 
 	// round 1 - ranked by ELO
 	sort.SliceStable(tournamentPlayers[:], func(i, j int) bool {
 		return tournamentPlayers[i].Player.Elo > tournamentPlayers[j].Player.Elo
 	})
 
-	for i := 1; i < maxRounds; i++ {
+	for currentRound <= maxRounds {
 		log.Infof("Starting Tournament %d, Round %d", id, currentRound)
 
 		roundPairings := SwissPairing(tournamentPlayers, currentRound)
@@ -163,15 +162,16 @@ func (t Tournament) StartTournament(id int) {
 			roundWG.Add(1)
 
 			go func(roundPairing int) {
+				defer roundWG.Done()
+
 				pairing := roundPairings[roundPairing]
 
 				player1 := pairing.Player1
 				player2 := pairing.Player2
 
-				// TODO:
-				// for some reason the pairings coming out of SwissPairing() contain double
-				// the expected pairings, with half of them being what looks like empty Player objects :\
+				// Skip invalid pairings
 				if player1.Name == "" || player2.Name == "" {
+					log.Warnf("Skipping invalid pairing in round %d", currentRound)
 					return
 				}
 
@@ -188,15 +188,11 @@ func (t Tournament) StartTournament(id int) {
 
 				insertMatch(db, &match)
 				addMatchToTournament(db, match, tournament)
-				// do we need to add the games to the tournament as well (during match runtime?)
 
-				// add Match to the Tournament in memory
+				// Add Match to the Tournament in memory
 				tournament.Matches = append(tournament.Matches, match)
 
 				match.StartMatch(db)
-
-				roundWG.Done()
-				return
 			}(i)
 		}
 
@@ -204,12 +200,59 @@ func (t Tournament) StartTournament(id int) {
 
 		log.Debugf("Round %d complete!", currentRound)
 
-		currentRound += 1
+		// Update scores and past opponents
+		for _, pairing := range roundPairings {
+			updateTournamentPlayerScores(pairing, tournamentPlayers)
+		}
+
+		currentRound++
 	}
 
-	// for tournamentWinner == nil {
-	// }
+	// Determine the winner based on scores
+	sort.SliceStable(tournamentPlayers[:], func(i, j int) bool {
+		return tournamentPlayers[i].Score > tournamentPlayers[j].Score
+	})
 
+	tournament.Winner = tournamentPlayers[0].Player
+	winnerID := int(tournamentPlayers[0].Player.ID)
+	tournament.WinnerID = &winnerID
+	tournament.Status = "Completed"
+	tournament.EndTime = time.Now()
+
+	db.Save(&tournament)
+
+	log.Infof("Tournament %d completed! Winner: %s", id, tournament.Winner.Name)
+}
+
+func updateTournamentPlayerScores(pairing MatchPairing, tournamentPlayers []*TournamentPlayer) {
+	var tp1, tp2 *TournamentPlayer
+
+	// Find the TournamentPlayer records for both players in the pairing
+	for _, tp := range tournamentPlayers {
+		if tp.Player.ID == pairing.Player1.ID {
+			tp1 = tp
+		} else if tp.Player.ID == pairing.Player2.ID {
+			tp2 = tp
+		}
+	}
+
+	// Update scores only if we found both tournament players
+	if tp1 != nil && tp2 != nil {
+		// Compare TournamentPlayer scores instead of Player scores
+		if tp1.Score > tp2.Score {
+			tp1.Score += 1.0
+			tp1.LastGameResult = GameResultWin
+			tp2.LastGameResult = GameResultLoss
+		} else {
+			tp2.Score += 1.0
+			tp2.LastGameResult = GameResultWin
+			tp1.LastGameResult = GameResultLoss
+		}
+
+		// Update past opponents for both players
+		tp1.PastOpponents = append(tp1.PastOpponents, tp2.Player)
+		tp2.PastOpponents = append(tp2.PastOpponents, tp1.Player)
+	}
 }
 
 func compareTournaments(tournamentOne Tournament, tournamentTwo Tournament) bool {

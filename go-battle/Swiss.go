@@ -52,8 +52,7 @@ func removeMatchedPlayer(players []*TournamentPlayer, i int) []*TournamentPlayer
 }
 
 func SwissPairing(tournamentPlayers []*TournamentPlayer, round int) []MatchPairing {
-	numGroups := len(tournamentPlayers) / 2
-	matchedPlayers := make([]MatchPairing, numGroups)
+	matchedPlayers := make([]MatchPairing, 0) // Initialize as empty slice to avoid nil issues
 	var pairs = [][]*TournamentPlayer{}
 
 	// assumption: players is sorted in Elo desc
@@ -80,11 +79,11 @@ func SwissPairing(tournamentPlayers []*TournamentPlayer, round int) []MatchPairi
 			// handle trying to prevent playing previous opponents
 
 			pairs = append(pairs, []*TournamentPlayer{players[0], players[1]})
-			players = append([]*TournamentPlayer{}, players[2:]...)
+			players = players[2:] // Simplified slice manipulation
 		}
 		if len(players) > 0 {
 			log.Infof("Assigning bye to player %s for round %d", players[0].Player.Name, round)
-			players[0].ByeGames = append(playersToPair[0].ByeGames, round)
+			players[0].ByeGames = append(players[0].ByeGames, round)
 		}
 
 		log.Debugf("pairs: %v", pairs)
@@ -100,104 +99,69 @@ func SwissPairing(tournamentPlayers []*TournamentPlayer, round int) []MatchPairi
 			matchedPlayers = append(matchedPlayers, m)
 		}
 	} else {
-		// if len(winnersLastRound)+len(losersLastRound) != len(playersToPair) {
-		// 	log.Warnf("Did not split all playersToPair into winners, losers...")
-		// }
+		// Match winners against winners
+		for len(winnersLastRound) > 1 {
+			p1 := winnersLastRound[0]
+			p2 := winnersLastRound[1]
 
-		// unevenNumWinners := len(winnersLastRound)%2 != 0
-		// unevenWinnersOffset := 0
-		// unevenNumLosers := len(losersLastRound)%2 != 0
-		// unevenLosersOffset := 0
+			if !hasPlayedBefore(p1, p2) {
+				setPlayersColorPreferences(*p1, *p2)
 
-		// if unevenNumWinners {
-		// 	unevenWinnersOffset = 1
-		// }
-		// if unevenNumLosers {
-		// 	unevenLosersOffset = 1
-		// }
+				matchPairing := MatchPairing{
+					*p1.Player,
+					*p2.Player,
+				}
 
-		// // match winners against winners
-		// for len(winnersLastRound) != (0 + unevenWinnersOffset) {
-		// 	for i := range winnersLastRound {
-		// 		// don't pair players that have been paired
-		// 		// if slices.Contains(playersToPair, players[i]) {
-		// 		// 	continue
-		// 		// }
+				matchedPlayers = append(matchedPlayers, matchPairing)
 
-		// 		p1 := winnersLastRound[i]
-		// 		p2 := winnersLastRound[i+1]
+				winnersLastRound = winnersLastRound[2:] // Remove matched players
+			} else {
+				// Handle case where players have already played
+				winnersLastRound = append(winnersLastRound[1:], winnersLastRound[0])
+			}
+		}
 
-		// 		// No player is paired against an opponent twice!
-		// 		if slices.Contains(p1.PastOpponents, p2.Player) {
-		// 			continue
-		// 		}
+		if len(winnersLastRound) == 1 {
+			winnersLastRound[0].ByeGames = append(winnersLastRound[0].ByeGames, round)
+		}
 
-		// 		// _try_ to ensure that every player plays an equal number of games as white and black (alternate colors per player per round)
-		// 		// never repeat a player's color three rounds in a row
-		// 		setPlayersColorPreferences(*p1, *p2)
+		// Match losers against losers
+		for len(losersLastRound) > 1 {
+			p1 := losersLastRound[0]
+			p2 := losersLastRound[1]
 
-		// 		matchPairing := MatchPairing{
-		// 			*p1.Player,
-		// 			*p2.Player,
-		// 		}
+			if !hasPlayedBefore(p1, p2) {
+				setPlayersColorPreferences(*p1, *p2)
 
-		// 		matchedPlayers = append(matchedPlayers, matchPairing)
+				matchPairing := MatchPairing{
+					*p1.Player,
+					*p2.Player,
+				}
 
-		// 		// remove both players (i, i+1) from playersToPair
-		// 		// assumption: after the first removal, the next player to remove will be at i+1,
-		// 		// but since i was removed, i+1 is now at index i
-		// 		winnersLastRound = removeMatchedPlayer(winnersLastRound, i)
-		// 		winnersLastRound = removeMatchedPlayer(winnersLastRound, i)
-		// 	}
-		// }
+				matchedPlayers = append(matchedPlayers, matchPairing)
 
-		// // assign bye to leftover winners
-		// if len(winnersLastRound) == 1 {
-		// 	winnersLastRound[0].ByeGames = append(winnersLastRound[0].ByeGames, round)
-		// }
+				losersLastRound = losersLastRound[2:] // Remove matched players
+			} else {
+				// Handle case where players have already played
+				losersLastRound = append(losersLastRound[1:], losersLastRound[0])
+			}
+		}
 
-		// // match losers against losers
-		// for len(losersLastRound) != (0 + unevenLosersOffset) {
-		// 	for i := range losersLastRound {
-		// 		// don't pair players that have been paired
-		// 		// if slices.Contains(playersToPair, players[i]) {
-		// 		// 	continue
-		// 		// }
-
-		// 		p1 := losersLastRound[i]
-		// 		p2 := losersLastRound[i+1]
-
-		// 		// No player is paired against an opponent twice!
-		// 		if slices.Contains(p1.PastOpponents, p2.Player) {
-		// 			continue
-		// 		}
-
-		// 		// _try_ to ensure that every player plays an equal number of games as white and black (alternate colors per player per round)
-		// 		// never repeat a player's color three rounds in a row
-		// 		setPlayersColorPreferences(*p1, *p2)
-
-		// 		matchPairing := MatchPairing{
-		// 			*p1.Player,
-		// 			*p2.Player,
-		// 		}
-
-		// 		matchedPlayers = append(matchedPlayers, matchPairing)
-
-		// 		// remove both players (i, i+1) from playersToPair
-		// 		// assumption: after the first removal, the next player to remove will be at i+1,
-		// 		// but since i was removed, i+1 is now at index i
-		// 		losersLastRound = removeMatchedPlayer(losersLastRound, i)
-		// 		losersLastRound = removeMatchedPlayer(losersLastRound, i)
-		// 	}
-		// }
-
-		// // assign bye to leftover losers
-		// if len(losersLastRound) == 1 {
-		// 	losersLastRound[0].ByeGames = append(losersLastRound[0].ByeGames, round)
-		// }
+		if len(losersLastRound) == 1 {
+			losersLastRound[0].ByeGames = append(losersLastRound[0].ByeGames, round)
+		}
 	}
 
 	return matchedPlayers
+}
+
+func hasPlayedBefore(p1, p2 *TournamentPlayer) bool {
+	for _, opponent := range p1.PastOpponents {
+		if opponent == p2.Player {
+			return true
+		}
+	}
+	return false
 }
 
 func setPlayersColorPreferences(p1 TournamentPlayer, p2 TournamentPlayer) {
