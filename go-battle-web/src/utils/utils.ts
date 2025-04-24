@@ -80,8 +80,14 @@ export const allPlayersHaveSameScore = (players: PlayerScore[]) => {
     }
 }
 
-export const average = (array: any[]) => array.reduce((a, b) => a + b) / array.length;
-
+export const average = (array: number[]): number => {
+    if (array.length === 0) {
+        return 0
+    }
+    const sum = array.reduce((a, b) => a + b, 0)
+    return sum / array.length
+}
+  
 export const getPagesToDisplay = (numPages: number, selectedPage: number): number[] => {
     if (numPages < 10) {
         return range(1, numPages + 1, 1);

@@ -156,7 +156,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                             variant="outline-info" 
                             size="sm" 
                             key={`games-${ID}`}
-                            href={`${window.location.origin}/games/search?ids=${encodeURI(matchIds)}`}>
+                            href={`${window.location.origin}/matches/search?ids=${encodeURI(matchIds)}`}>
                                 {matchIds}
                         </Button>
                     )
