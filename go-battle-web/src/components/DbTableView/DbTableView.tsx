@@ -33,6 +33,7 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
     const apiUrl = process.env.REACT_APP_API_URL;
 
     const resultsPerPageOptions = [5, 10, 15, 20];
+    
     const pagesWithPagination = ["matches", "games"];
     
     // fetch data from api
@@ -136,7 +137,7 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
         else {
             return [];
         }
-    }
+    };
 
     const handlePageChange = (pageNumber: number) => {
         setSelectedPage(pageNumber);
@@ -169,10 +170,23 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                     {context === "tournaments" &&
                         <SearchTournaments tableData={data ?? []} refreshData={fetchFromApi} />
                     }
+                    
                     {data !== undefined && data.length > 0 && shouldShowPagination &&
                         <Container>
                             <Row className="my-2">
-                                <Col>
+                                <Col xs={2}>
+                                    <Dropdown autoClose={true} onSelect={handleResultsPerPageChange}>
+                                        <Dropdown.Toggle variant="outline-info" id="dropdown-basic" size="sm">
+                                            Results Per Page ({resultsPerPage})
+                                        </Dropdown.Toggle>
+                                        <Dropdown.Menu>
+                                            {resultsPerPageOptions.map((o) => {
+                                                return <Dropdown.Item eventKey={o} active={resultsPerPage === o} key={`results-dropdown-${o}`}>{o}</Dropdown.Item>
+                                            })}
+                                        </Dropdown.Menu>
+                                    </Dropdown>
+                                </Col>
+                                <Col xs={8} className="d-flex justify-content-center">
                                     <Pagination>
                                         <Pagination.First onClick={() => handlePageChange(1)} disabled={selectedPage === 1} />
                                         <Pagination.Prev onClick={() => handlePageChange(selectedPage - 1)} disabled={selectedPage === 1} />
@@ -193,24 +207,12 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                                         <Pagination.Last onClick={() => handlePageChange(numPages)} disabled={selectedPage === numPages} />
                                     </Pagination>
                                 </Col>
-                                <Col lg="2">
-                                    <Dropdown autoClose={true} onSelect={handleResultsPerPageChange}>
-                                        <Dropdown.Toggle variant="outline-info" id="dropdown-basic">
-                                            Results Per Page ({resultsPerPage})
-                                        </Dropdown.Toggle>
-                                        <Dropdown.Menu>
-                                            {resultsPerPageOptions.map((o) => {
-                                                return <Dropdown.Item eventKey={o} active={resultsPerPage === o} key={`results-dropdown-${o}`}>{o}</Dropdown.Item>
-                                            })}
-                                        </Dropdown.Menu>
-                                    </Dropdown>
-                                </Col>
+                                <Col xs={2}></Col>
                             </Row>
                         </Container>
                     }
                 </>
-            )
-            }
+            )}
         </>
-      );
+    );
 }
