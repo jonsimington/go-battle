@@ -1,8 +1,8 @@
-FROM golang:1.21.0-bullseye as builder
+FROM golang:1.24.2-bookworm AS builder
 
 WORKDIR /usr/src/app
 
-RUN go install github.com/cosmtrek/air@latest
+RUN go install github.com/air-verse/air@latest
 
 # install node so we can run js clients
 ENV NODE_VERSION=10.24.1
