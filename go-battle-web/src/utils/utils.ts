@@ -133,6 +133,36 @@ export const calculateStreak = (gameHistory: GamesResult[], playerID: number): {
     return { streakType, streakCount };
 }
 
+export const calculatePlayerScores = (games: GamesResult[], players: any[]): PlayerScore[] => {
+    const playerScores: PlayerScore[] = [];
+    
+    // Create a PlayerScore object for each player
+    players.forEach(player => {
+        const playerName = player.name;
+        const playerID = player.ID;
+        const playerElo = player.elo;
+        
+        // Count wins, losses, and draws
+        const playerWins = games.filter(g => g.winner?.name === playerName).length;
+        const playerLosses = games.filter(g => g.loser?.name === playerName).length;
+        const playerDraws = games.filter(g => g.draw === true).length * 0.5;
+        
+        playerScores.push({
+            name: playerName,
+            id: playerID,
+            wins: playerWins,
+            losses: playerLosses,
+            draws: playerDraws,
+            elo: playerElo
+        });
+    });
+    
+    // Sort players by wins (descending)
+    playerScores.sort((a, b) => a.wins > b.wins ? -1 : a.wins < b.wins ? 1 : 0);
+    
+    return playerScores;
+}
+
 export const calculateGameResult = (game: GamesResult, playerID: number): string => {
     if (game.draw) {
         return "draw";

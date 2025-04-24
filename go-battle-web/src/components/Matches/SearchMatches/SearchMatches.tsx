@@ -70,16 +70,17 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             title: "Games",
             width: 100,
             render: (_, { games, ID }) => {
-                const gameIds = games.map(pluck('ID')).join(', ');
+                const gameIdsQuery = games.map(pluck('ID')).join(',');
+                const gameIdsDisplay = gameIdsQuery.replace(/,/g, ', ');
 
-                if(gameIds.length > 0) {
+                if(gameIdsQuery.length > 0) {
                     return (
                         <Button 
                             variant="outline-info" 
                             size="sm" 
                             key={`games-${ID}`}
-                            href={`${window.location.origin}/games/search?ids=${encodeURI(gameIds)}`}>
-                                {gameIds}
+                            href={`${window.location.origin}/games/search?ids=${encodeURI(gameIdsQuery)}`}>
+                                {gameIdsDisplay}
                         </Button>
                     )
                 }

@@ -1,0 +1,96 @@
+.tournament-bracket-container {
+    padding: 20px 0;
+}
+
+.bracket-container {
+    display: flex;
+    overflow-x: auto;
+    padding: 20px 0;
+    min-height: 400px;
+}
+
+.bracket-round {
+    min-width: 250px;
+    margin: 0 10px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.round-title {
+    text-align: center;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.matches-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.bracket-match {
+    background-color: #222;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bracket-match .card-header {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 8px 10px;
+    font-size: 0.8em;
+}
+
+.clickable-header {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.clickable-header:hover {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.bracket-match .card-body {
+    padding: 10px;
+}
+
+.player {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    margin: 3px 0;
+    border-radius: 4px;
+    background-color: #333;
+}
+
+.player.winner {
+    background-color: rgba(40, 167, 69, 0.3);
+    font-weight: bold;
+}
+
+.player .score {
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+}
+
+.winner-card {
+    max-width: 400px;
+    margin: 0 auto;
+    background-color: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.winner-card .card-header {
+    background-color: rgba(40, 167, 69, 0.2);
+    font-weight: bold;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .bracket-round {
+        min-width: 200px;
+    }
+}

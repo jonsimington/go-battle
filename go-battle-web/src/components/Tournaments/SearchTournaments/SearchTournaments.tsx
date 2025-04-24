@@ -4,8 +4,9 @@ import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { allPlayersHaveSameScore, delay, pluck, slugify } from '../../../utils/utils';
 import { TournamentsResult } from '../../../models/TournamentsResult';
 import { PlayerScore } from '../../../models/PlayerScore';
-import { FaCirclePlay, FaSpinner } from 'react-icons/fa6';
+import { FaCirclePlay, FaSpinner, FaDiagramProject } from 'react-icons/fa6';
 import TimeAgo from 'timeago-react';
+import { Link } from 'react-router-dom';
 
 interface SearchTournamentsProps {
     tableData: any[]
@@ -155,7 +156,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                         <Button 
                             variant="outline-info" 
                             size="sm" 
-                            key={`games-${ID}`}
+                            key={`matches-${ID}`}
                             href={`${window.location.origin}/matches/search?ids=${encodeURI(matchIds)}`}>
                                 {matchIds}
                         </Button>
@@ -167,6 +168,18 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                     )
                 }
             }
+        },
+        {
+            key: "viewBracket",
+            title: "Bracket",
+            width: 100,
+            render: (_, { ID }) => (
+                <Link to={`/tournaments/bracket/${ID}`}>
+                    <Button variant="outline-primary" size="sm">
+                        <FaDiagramProject /> View
+                    </Button>
+                </Link>
+            )
         },
         {
             key: "winner",

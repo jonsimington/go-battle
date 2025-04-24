@@ -203,6 +203,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 	// play a game concurrently for each session we created
 	for _, session := range matchSessions {
 		go func(currentSession int) {
+			defer matchWG.Done()
 
 			g := Game{
 				Players:   players,
@@ -220,28 +221,86 @@ func (m Match) StartMatch(db *gorm.DB) {
 
 			// Pass nil for player since we're just initiating the game, not running a specific player's code
 			g.PlayGame(currentSession)
-
-			matchWG.Done()
-			return
 		}(session)
 	}
 
-	matchWG.Wait()
+	// Add a timeout to wait for games to complete
+	gameCompletionChan := make(chan bool, 1)
+	go func() {
+		matchWG.Wait()
+		gameCompletionChan <- true
+	}()
+
+	// Wait for all games to complete or timeout after 60 minutes
+	select {
+	case <-gameCompletionChan:
+		// All goroutines completed, but we need to verify game statuses
+		log.Infoln("All game goroutines completed for match", m.ID)
+	case <-time.After(60 * time.Minute): // 60 minute timeout
+		// Timeout occurred - handle incomplete games
+		log.Warningln("Match", m.ID, "timed out waiting for games to complete")
+	}
+
+	// Now verify that all games are actually complete in the database
+	// We'll wait for up to 5 minutes checking periodically if all games have reached a final state
+	maxWaitTime := 5 * time.Minute
+	checkInterval := 15 * time.Second
+	startCheckTime := time.Now()
+	allGamesComplete := false
+
+	for !allGamesComplete && time.Since(startCheckTime) < maxWaitTime {
+		// Refresh game data from database to get current statuses
+		refreshedMatch := getMatch(int(m.ID))
+		games := refreshedMatch.Games
+
+		// Check if we have all expected games
+		if len(games) < m.NumGames {
+			log.Warningf("Match %d missing games, has %d out of %d expected. Waiting...",
+				m.ID, len(games), m.NumGames)
+			time.Sleep(checkInterval)
+			continue
+		}
+
+		// Check if all games have reached a final status
+		incompleteGames := 0
+		for _, game := range games {
+			if game.Status != "Complete" && game.Status != "Canceled" && game.Status != "Error" {
+				incompleteGames++
+			}
+		}
+
+		if incompleteGames > 0 {
+			log.Warningf("Match %d has %d games still not in final state. Waiting...",
+				m.ID, incompleteGames)
+			time.Sleep(checkInterval)
+		} else {
+			allGamesComplete = true
+			log.Infof("All %d games in match %d have reached a final state", len(games), m.ID)
+		}
+	}
+
+	// If we still have incomplete games after waiting, cancel them
+	if !allGamesComplete {
+		log.Warningf("Match %d timed out waiting for all games to reach final status", m.ID)
+		markIncompleteGamesAsCanceled(db, m)
+	}
+
+	// Refresh game data one last time to get final statuses
+	games := getMatch(int(m.ID)).Games
+
+	// Count how many games were actually returned
+	log.Infof("Match %d has %d games out of %d expected", m.ID, len(games), m.NumGames)
 
 	player1Wins := 0
 	player2Wins := 0
 
-	// THIS IS A HACK TO REFRESH THE STATE OF THE GAMES STATUSES...
-	// I don't like this
-	games := getMatch(int(m.ID)).Games
-
 	// for each game played, calculate the winner/loser tally
 	for _, game := range games {
-		if game.Status != "Canceled" && game.Status != "" {
+		if game.Status == "Complete" || game.Status == "Error" {
 			// Get the gamelog URL to display in logs
 			gamelogUrl := game.GamelogUrl
 			log.Infof("Game %d complete with gamelog: %s", game.SessionID, gamelogUrl)
-			
+
 			// Count wins for Elo calculation
 			if game.Draw {
 				log.Infoln("Game was a draw!")
@@ -254,6 +313,8 @@ func (m Match) StartMatch(db *gorm.DB) {
 					log.Infof("Winner: %s, Loser: %s", player2.Name, player1.Name)
 				}
 			}
+		} else {
+			log.Warningf("Game %d has status %s, not counting in win totals", game.ID, game.Status)
 		}
 	}
 
@@ -269,9 +330,10 @@ func (m Match) StartMatch(db *gorm.DB) {
 		handleEloChanges(player1, player2, &player2, false)
 	}
 
-	defer cleanUpMatchDirectory(m)
-	defer updateMatchStatus(db, m, "Complete")
-	defer updateMatchEndTime(db, m, time.Now())
+	// Clean up and ensure match is marked as complete
+	cleanUpMatchDirectory(m)
+	updateMatchStatus(db, m, "Complete")
+	updateMatchEndTime(db, m, time.Now())
 }
 
 func cleanUpMatchDirectory(match Match) {
@@ -289,6 +351,17 @@ func handleEloChanges(player1 Player, player2 Player, winner *Player, draw bool)
 
 	updatePlayerElo(db, player1, outcomeA.Rating)
 	updatePlayerElo(db, player2, outcomeB.Rating)
+}
+
+// markIncompleteGamesAsCanceled marks any games that aren't Complete as Canceled
+func markIncompleteGamesAsCanceled(db *gorm.DB, match Match) {
+	games := getMatch(int(match.ID)).Games
+	for _, game := range games {
+		if game.Status != "Complete" && game.Status != "Canceled" {
+			log.Warningf("Game %d in match %d has status %s, marking as Canceled", game.ID, match.ID, game.Status)
+			updateGameStatus(db, game, "Canceled")
+		}
+	}
 }
 
 func compareMatches(matchOne Match, matchTwo Match) bool {

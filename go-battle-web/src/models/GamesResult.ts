@@ -12,4 +12,6 @@ export interface GamesResult extends ApiResult {
     draw: boolean;
     status: string;
     error_message: string;
+    winner_id: number;
+    loser_id: number;
 }
