@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
 import { pluck, prettyDate } from '../../../utils/utils';
-import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Button, OverlayTrigger, Tooltip, Badge } from 'react-bootstrap';
 import { FaTv } from 'react-icons/fa6';
 import moment from 'moment';
 
@@ -131,10 +131,25 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             key: "status",
             title: "Status",
             width: 100,
-            render: (_, { status }) => {
-                return (
-                    status
-                )
+            render: (_, { status, error_message }) => {
+                if (status === "Error" || error_message) {
+                    return (
+                        <OverlayTrigger
+                            placement="top"
+                            overlay={
+                                <Tooltip id={`tooltip-error`} style={{position:"fixed", maxWidth: "300px"}}>
+                                    {error_message || "An error occurred"}
+                                </Tooltip>
+                            }
+                        >
+                            <Badge bg="danger">
+                                {status}!
+                            </Badge>
+                        </OverlayTrigger>
+                    )
+                } else {
+                    return status;
+                }
             }
         },
         {
