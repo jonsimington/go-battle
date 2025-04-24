@@ -115,13 +115,13 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                     } as PlayerScore)
                 });
 
-                playerScores.sort((a, b) => a.wins < b.wins ? -1 : a.wins > b.wins ? 0 : 1)
+                playerScores.sort((a, b) => a.wins > b.wins ? -1 : a.wins < b.wins ? 1 : 0)
 
                 if(playerIds.length > 0) {
                     return (
                         <>
                             {playerScores.map((score) => {
-                                let badgeColor = allPlayersHaveSameScore(playerScores) ? "outline-secondary" : playerScores[playerScores.length - 1]?.name === score.name ? "outline-success" : "outline-danger";
+                                let badgeColor = allPlayersHaveSameScore(playerScores) ? "outline-secondary" : playerScores[0]?.name === score.name ? "outline-success" : "outline-danger";
                                 let badgeKey = `player-score-badge-${slugify(score.name)}-${ID}`;
                                 let aKey = `player-score-a-${slugify(score.name)}-${ID}`;
                                 let playersLink = `${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`;
