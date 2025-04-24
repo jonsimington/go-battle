@@ -218,6 +218,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 			// add Game to the match in memory
 			m.Games = append(m.Games, g)
 
+			// Pass nil for player since we're just initiating the game, not running a specific player's code
 			g.PlayGame(currentSession)
 
 			matchWG.Done()
@@ -234,47 +235,24 @@ func (m Match) StartMatch(db *gorm.DB) {
 	// I don't like this
 	games := getMatch(int(m.ID)).Games
 
-	// for each game played, set the game result
+	// for each game played, calculate the winner/loser tally
 	for _, game := range games {
 		if game.Status != "Canceled" && game.Status != "" {
-			gamelogFilename := getGamelogFilename(players[0].Client.Game, game.SessionID)
-			gamelogUrl := getGamelogUrl(gamelogFilename)
-
-			setGamelogUrl(db, game, gamelogUrl)
-
-			glog := getGamelog(gamelogFilename)
-
-			// once the game is finished, get the status and insert into DB
-			gameStatus := getGameStatus(players[0].Client.Game, game.SessionID)
-			insertGameStatus(db, gameStatus)
-
-			// refresh Player state
-			player1 = getPlayerByName(player1.Name)
-			player2 = getPlayerByName(player2.Name)
-
-			// no winners or losers means draw
-			if len(glog.Winners) == 0 {
-				log.Infoln("Draw!")
-				updateGameDraw(db, game, true)
-				handleEloChanges(player1, player2, nil, true)
-			} else {
-				winner := getPlayerByName(glog.Winners[0].Name)
-				loser := getPlayerByName(glog.Losers[0].Name)
-
-				if winner.Name == player1.Name {
-					player1Wins += 1
-				} else {
-					player2Wins += 1
+			// Get the gamelog URL to display in logs
+			gamelogUrl := game.GamelogUrl
+			log.Infof("Game %d complete with gamelog: %s", game.SessionID, gamelogUrl)
+			
+			// Count wins for Elo calculation
+			if game.Draw {
+				log.Infoln("Game was a draw!")
+			} else if game.Winner != nil && game.Loser != nil {
+				if game.Winner.ID == player1.ID {
+					player1Wins++
+					log.Infof("Winner: %s, Loser: %s", player1.Name, player2.Name)
+				} else if game.Winner.ID == player2.ID {
+					player2Wins++
+					log.Infof("Winner: %s, Loser: %s", player2.Name, player1.Name)
 				}
-
-				setGameWinner(db, game, winner)
-				setGameLoser(db, game, loser)
-
-				handleEloChanges(player1, player2, &winner, false)
-
-				log.Infof("Session %d Summary", game.SessionID)
-				log.Infof("\twinner: %s", winner.Name)
-				log.Infof("\tloser: %s", loser.Name)
 			}
 		}
 	}
@@ -282,13 +260,18 @@ func (m Match) StartMatch(db *gorm.DB) {
 	if player1Wins == player2Wins {
 		log.Infof("It's a match draw!")
 		updateMatchDraw(db, m, true)
+		handleEloChanges(player1, player2, nil, true)
+	} else if player1Wins > player2Wins {
+		log.Infof("%s won the match %d - %d", player1.Name, player1Wins, player2Wins)
+		handleEloChanges(player1, player2, &player1, false)
+	} else {
+		log.Infof("%s won the match %d - %d", player2.Name, player2Wins, player1Wins)
+		handleEloChanges(player1, player2, &player2, false)
 	}
 
 	defer cleanUpMatchDirectory(m)
 	defer updateMatchStatus(db, m, "Complete")
 	defer updateMatchEndTime(db, m, time.Now())
-
-	return
 }
 
 func cleanUpMatchDirectory(match Match) {

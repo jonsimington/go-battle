@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -19,21 +20,52 @@ import (
 type Game struct {
 	gorm.Model
 
-	Players    []Player `json:"players" gorm:"many2many:game_players"`
-	Winner     *Player  `json:"winner" gorm:"foreignKey:WinnerID"`
-	WinnerID   *int     `json:"winner_id" gorm:"default:null"`
-	Loser      *Player  `json:"loser" gorm:"foreignKey:LoserID"`
-	LoserID    *int     `json:"loser_id" gorm:"default:null"`
-	MatchID    int      `json:"match_id"`
-	Match      Match    `json:"match" gorm:"foreignKey:MatchID"`
-	SessionID  int      `json:"session_id"`
-	GamelogUrl string   `json:"gamelog_url"`
-	Draw       bool     `json:"draw"`
-	Status     string   `json:"status"`
+	Players      []Player `json:"players" gorm:"many2many:game_players"`
+	Winner       *Player  `json:"winner" gorm:"foreignKey:WinnerID"`
+	WinnerID     *int     `json:"winner_id" gorm:"default:null"`
+	Loser        *Player  `json:"loser" gorm:"foreignKey:LoserID"`
+	LoserID      *int     `json:"loser_id" gorm:"default:null"`
+	MatchID      int      `json:"match_id"`
+	Match        Match    `json:"match" gorm:"foreignKey:MatchID"`
+	SessionID    int      `json:"session_id"`
+	GamelogUrl   string   `json:"gamelog_url"`
+	Draw         bool     `json:"draw"`
+	Status       string   `json:"status"`
+	ErrorMessage string   `json:"error_message"` // Store error messages for display in UI
 }
 
 var _httpClient = &http.Client{
 	Timeout: time.Second * 10,
+}
+
+// clientBuildMutexes is a map of player directory paths to mutexes
+// used to synchronize building of clients, especially C++ clients
+var clientBuildMutexes sync.Map
+
+// gameResultMutexes is a map of game session IDs to mutexes
+// used to ensure only one goroutine processes the game results
+var gameResultMutexes sync.Map
+
+// getClientBuildMutex returns a mutex for the given player directory
+// creating one if it doesn't exist
+func getClientBuildMutex(playerDir string) *sync.Mutex {
+	mutex, _ := clientBuildMutexes.LoadOrStore(playerDir, &sync.Mutex{})
+	return mutex.(*sync.Mutex)
+}
+
+// getGameResultMutex returns a mutex for the given game session ID
+// creating one if it doesn't exist
+func getGameResultMutex(sessionID int) *sync.Mutex {
+	mutex, _ := gameResultMutexes.LoadOrStore(sessionID, &sync.Mutex{})
+	return mutex.(*sync.Mutex)
+}
+
+// hasProcessedGameResult checks if the game result has already been processed
+// and marks it as processed if not
+func hasProcessedGameResult(sessionID int) bool {
+	key := fmt.Sprintf("game_processed_%d", sessionID)
+	_, loaded := gameResultMutexes.LoadOrStore(key, true)
+	return loaded
 }
 
 func getGamesWithPlayers(players []int) []Game {
@@ -157,6 +189,19 @@ func updateGameStatus(db *gorm.DB, game Game, status string) {
 	db.Save(&g)
 }
 
+func updateGameErrorMessage(db *gorm.DB, game Game, errorMessage string) {
+	var g Game
+
+	gameLock.Lock()
+	defer gameLock.Unlock()
+
+	db.Where("id = ?", game.ID).First(&g)
+
+	g.ErrorMessage = errorMessage
+
+	db.Save(&g)
+}
+
 func (g Game) PlayGame(gameSession int) bool {
 	updateGameStatus(db, g, "In Progress")
 	g.Status = "In Progress"
@@ -190,18 +235,59 @@ func (g Game) PlayGame(gameSession int) bool {
 }
 
 func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession int) {
-
-	makeClient(playerDir, player.Client.Language)
-
 	playerLanguage := player.Client.Language
 	gameType := player.Client.Game
 
-	g.runGame(playerLanguage, playerDir, gameType, gameSession)
+	// Build the client first
+	buildErr := makeClient(playerDir, playerLanguage)
+	if buildErr != nil {
+		log.Warningf("Failed to build client for player %s: %v", player.Name, buildErr)
+		
+		// Find the opponent player
+		var opponent Player
+		for _, p := range g.Players {
+			if p.ID != player.ID {
+				opponent = p
+				break
+			}
+		}
+		
+		// Set error status and message
+		errorMsg := fmt.Sprintf("Build failed for player %s: %v", player.Name, buildErr)
+		updateGameStatus(db, g, "Error")
+		updateGameErrorMessage(db, g, errorMsg)
+		
+		// Mark this player as loser since their code failed to build
+		setGameWinner(db, g, opponent)
+		setGameLoser(db, g, player)
+		
+		return
+	}
+
+	errorOccurred := false
+	g.runGame(playerLanguage, playerDir, gameType, gameSession, &player, &errorOccurred)
+
+	// If the player's code caused an error, mark this player as loser and opponent as winner
+	if errorOccurred {
+		// Find the opponent player
+		var opponent Player
+		for _, p := range g.Players {
+			if p.ID != player.ID {
+				opponent = p
+				break
+			}
+		}
+
+		log.Infof("Player %s code caused error in game %d - marking as loser", player.Name, gameSession)
+		
+		setGameWinner(db, g, opponent)
+		setGameLoser(db, g, player)
+	}
 
 	return
 }
 
-func (g Game) runGame(playerLanguage string, playerDir string, gameType string, gameSession int) {
+func (g Game) runGame(playerLanguage string, playerDir string, gameType string, gameSession int, player *Player, errorOccurred *bool) {
 	m := make(map[string]string)
 	m["js"] = "node"
 	m["cpp"] = "./build/cpp-client"
@@ -258,18 +344,156 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 	if gameTimeoutContext.Err() != context.DeadlineExceeded && gameTimeoutContext.Err() != nil {
 		log.Debugf("Run Game context returned error, but not timeout: %v", gameTimeoutContext.Err())
 	}
+	
+	var numRetries = 0
+	maxRetries := 3
+	
 	if runErr != nil {
-		var numErrs = 0
-
-		// continually retry to run the game
-		for runErr == nil {
-			handleRunErr(runErr, numErrs, g)
+		for numRetries < maxRetries {
+			log.Warningf("Game error occurred for player %s, attempt %d of %d: %v", player.Name, numRetries+1, maxRetries, runErr)
+			
+			// Create a new command for each retry - can't reuse runCmd because Stdout is already set
+			if playerLanguage == "cpp" {
+				runCmd = exec.CommandContext(gameTimeoutContext, exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
+				runCmd.Dir = playerDir
+			} else {
+				runCmd = exec.CommandContext(gameTimeoutContext, m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
+			}
+			
+			// Retry running the game
+			_, runErr = runCmd.CombinedOutput()
+			numRetries++
+			
+			// If successful on retry, break out
+			if runErr == nil {
+				break
+			}
+			
+			time.Sleep(2 * time.Second)
 		}
-	} else {
-		updateGameStatus(db, g, "Complete")
-		g.Status = "Complete"
+		
+		// If we still have an error after retries
+		if runErr != nil {
+			if runErr.Error() == "signal: killed" {
+				updateGameStatus(db, g, "Canceled")
+				g.Status = "Canceled"
+				updateGameErrorMessage(db, g, "Game process was killed")
+			} else {
+				var gameErrorCode, _ = GetGameErrorCode(runErr.Error())
+				errorMsg := fmt.Sprintf("Player %s game command failed after %d attempts: %v (%s)", 
+					player.Name, numRetries, runErr, gameErrorCode.String())
+				log.Warningln(errorMsg)
+				updateGameStatus(db, g, "Error")
+				updateGameErrorMessage(db, g, errorMsg)
+				g.Status = "Error"
+			}
+			*errorOccurred = true 
+			return
+		}
 	}
+	
+	// Game completed successfully, now wait for and verify gamelog exists
+	var gamelogFilename string
+	var getGamelogAttempts = 0
+	maxGamelogAttempts := 5
+	var gamelogFound bool = false
+	
+	for getGamelogAttempts < maxGamelogAttempts && !gamelogFound {
+		log.Debugf("Waiting for gamelog for session %d (attempt %d of %d)", gameSession, getGamelogAttempts+1, maxGamelogAttempts)
+		
+		// Use Go's error handling instead of try/catch
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Warningf("Error getting gamelog for game session %d (attempt %d): %v", gameSession, getGamelogAttempts+1, r)
+				}
+			}()
+			
+			gamelogFilename = getGamelogFilename(gameType, gameSession)
+			if gamelogFilename != "" {
+				gamelogUrl := getGamelogUrl(gamelogFilename)
 
+				if gamelogUrl != "" {
+					// Lock the game result processing to prevent duplicate processing
+					resultMutex := getGameResultMutex(gameSession)
+					resultMutex.Lock()
+					defer resultMutex.Unlock()
+					
+					// Check if another goroutine has already processed the results
+					if hasProcessedGameResult(gameSession) {
+						log.Infof("Game %d results already processed, skipping", gameSession)
+						gamelogFound = true
+						return
+					}
+					
+					setGamelogUrl(db, g, gamelogUrl)
+					updateGameStatus(db, g, "Complete")
+					g.Status = "Complete"
+					log.Infof("Game %d complete with gamelog: %s", gameSession, gamelogUrl)
+					
+					glog := getGamelog(gamelogFilename)
+					
+					// Process winners and losers from the gamelog
+					if glog != nil {
+						if len(glog.Winners) > 0 && len(glog.Losers) > 0 {
+							// Get the winner and loser
+							winnerName := glog.Winners[0].Name
+							loserName := glog.Losers[0].Name
+							
+							var winner, loser Player
+							
+							// Find the matching players from our game
+							for _, p := range g.Players {
+								if p.Name == winnerName {
+									winner = p
+								} else if p.Name == loserName {
+									loser = p
+								}
+							}
+							
+							if winner.ID > 0 {
+								log.Infof("Setting winner for game %d: %s", gameSession, winner.Name)
+								setGameWinner(db, g, winner)
+							}
+							
+							if loser.ID > 0 {
+								log.Infof("Setting loser for game %d: %s", gameSession, loser.Name)
+								setGameLoser(db, g, loser)
+							}
+						} else if len(glog.Winners) == 0 && len(glog.Losers) == 0 {
+							// No winners or losers means it's a draw
+							log.Infof("Game %d resulted in a draw", gameSession)
+							updateGameDraw(db, g, true)
+						}
+					}
+					
+					gamelogFound = true
+				}
+			}
+		}()
+		
+		if gamelogFound {
+			break
+		}
+		
+		getGamelogAttempts++
+		time.Sleep(3 * time.Second)
+	}
+	
+	if gamelogFound {
+		*errorOccurred = false
+		return
+	}
+	
+	// If we get here, we couldn't get a gamelog, but we don't know which player is at fault
+	// This is likely a system issue, not a player's code issue
+	errorMsg := fmt.Sprintf("Failed to retrieve gamelog for session %d after %d attempts", gameSession, maxGamelogAttempts)
+	log.Warningf(errorMsg)
+	updateGameStatus(db, g, "Incomplete") 
+	updateGameErrorMessage(db, g, errorMsg)
+	g.Status = "Incomplete"
+	
+	*errorOccurred = false // Don't penalize any player for system issues
 	return
 }
 
@@ -289,26 +513,72 @@ func handleRunErr(runErr error, depth int, g Game) {
 	}
 }
 
-func makeClient(playerDir string, playerLanguage string) {
+func makeClient(playerDir string, playerLanguage string) error {
 	var makeCmd *exec.Cmd
+	var makeErr error
 
 	// run make to grab client deps, build, etc.
 	if playerLanguage == "cpp" {
-		makeCmd = exec.Command("make clean")
-		makeCmd.Dir = playerDir
-		makeCmd.Run()
+		// Acquire a mutex lock for this player directory
+		// This ensures that only one goroutine can build a C++ client in this directory at a time
+		mutex := getClientBuildMutex(playerDir)
+		mutex.Lock()
+		defer mutex.Unlock()
+		
+		// Check for executable before running make
+		exePath := filepath.Join(playerDir, "build", "cpp-client")
+		if _, err := os.Stat(exePath); err == nil {
+			// Executable already exists - this is likely from a previous build in another goroutine
+			// Skip rebuilding to prevent concurrent builds
+			log.Infof("C++ client already exists at %s, skipping build", exePath)
+			return nil
+		}
+		
+		// Check if the directory exists before running commands
+		if _, err := os.Stat(playerDir); os.IsNotExist(err) {
+			return fmt.Errorf("player directory %s does not exist", playerDir)
+		}
 
+		log.Infof("Building C++ client in %s", playerDir)
+		
+		// Run make clean
+		makeCmd = exec.Command("make", "clean")
+		makeCmd.Dir = playerDir
+		output, err := makeCmd.CombinedOutput()
+		if err != nil {
+			log.Warningf("Make clean failed: %v\nOutput: %s", err, string(output))
+			// Continue even if clean fails
+		}
+
+		// Run make to build
 		makeCmd = exec.Command("make")
 		makeCmd.Dir = playerDir
-		makeCmd.Run()
+		output, makeErr = makeCmd.CombinedOutput()
+		if makeErr != nil {
+			log.Warningf("Make build failed: %v\nOutput: %s", makeErr, string(output))
+			return makeErr
+		}
+		
+		// Verify the executable exists
+		if _, err := os.Stat(exePath); os.IsNotExist(err) {
+			log.Warningf("C++ client executable not found at %s after build", exePath)
+			return fmt.Errorf("C++ client build completed but executable not found at %s", exePath)
+		} else {
+			log.Infof("C++ client successfully built at %s", exePath)
+		}
 	} else {
+		// For non-C++ clients
 		makeCmd = exec.Command("make")
 		makeCmd.Dir = playerDir
-
-		makeCmd.Run()
+		
+		output, makeErr := makeCmd.CombinedOutput()
+		if makeErr != nil {
+			log.Warningf("Make failed for %s client: %v\nOutput: %s", playerLanguage, makeErr, string(output))
+			return makeErr
+		}
 	}
 
-	return
+	return nil
 }
 
 func getGamelog(gamelogFilename string) *Gamelog {
