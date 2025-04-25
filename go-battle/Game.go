@@ -242,7 +242,7 @@ func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, game
 	buildErr := makeClient(playerDir, playerLanguage)
 	if buildErr != nil {
 		log.Warningf("Failed to build client for player %s: %v", player.Name, buildErr)
-		
+
 		// Find the opponent player
 		var opponent Player
 		for _, p := range g.Players {
@@ -251,16 +251,16 @@ func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, game
 				break
 			}
 		}
-		
+
 		// Set error status and message
 		errorMsg := fmt.Sprintf("Build failed for player %s: %v", player.Name, buildErr)
 		updateGameStatus(db, g, "Error")
 		updateGameErrorMessage(db, g, errorMsg)
-		
+
 		// Mark this player as loser since their code failed to build
 		setGameWinner(db, g, opponent)
 		setGameLoser(db, g, player)
-		
+
 		return
 	}
 
@@ -279,7 +279,7 @@ func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, game
 		}
 
 		log.Infof("Player %s code caused error in game %d - marking as loser", player.Name, gameSession)
-		
+
 		setGameWinner(db, g, opponent)
 		setGameLoser(db, g, player)
 	}
@@ -344,14 +344,14 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 	if gameTimeoutContext.Err() != context.DeadlineExceeded && gameTimeoutContext.Err() != nil {
 		log.Debugf("Run Game context returned error, but not timeout: %v", gameTimeoutContext.Err())
 	}
-	
+
 	var numRetries = 0
 	maxRetries := 3
-	
+
 	if runErr != nil {
 		for numRetries < maxRetries {
 			log.Warningf("Game error occurred for player %s, attempt %d of %d: %v", player.Name, numRetries+1, maxRetries, runErr)
-			
+
 			// Create a new command for each retry - can't reuse runCmd because Stdout is already set
 			if playerLanguage == "cpp" {
 				runCmd = exec.CommandContext(gameTimeoutContext, exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
@@ -359,19 +359,19 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 			} else {
 				runCmd = exec.CommandContext(gameTimeoutContext, m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
 			}
-			
+
 			// Retry running the game
 			_, runErr = runCmd.CombinedOutput()
 			numRetries++
-			
+
 			// If successful on retry, break out
 			if runErr == nil {
 				break
 			}
-			
+
 			time.Sleep(2 * time.Second)
 		}
-		
+
 		// If we still have an error after retries
 		if runErr != nil {
 			if runErr.Error() == "signal: killed" {
@@ -380,27 +380,27 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 				updateGameErrorMessage(db, g, "Game process was killed")
 			} else {
 				var gameErrorCode, _ = GetGameErrorCode(runErr.Error())
-				errorMsg := fmt.Sprintf("Player %s game command failed after %d attempts: %v (%s)", 
+				errorMsg := fmt.Sprintf("Player %s game command failed after %d attempts: %v (%s)",
 					player.Name, numRetries, runErr, gameErrorCode.String())
 				log.Warningln(errorMsg)
 				updateGameStatus(db, g, "Error")
 				updateGameErrorMessage(db, g, errorMsg)
 				g.Status = "Error"
 			}
-			*errorOccurred = true 
+			*errorOccurred = true
 			return
 		}
 	}
-	
+
 	// Game completed successfully, now wait for and verify gamelog exists
 	var gamelogFilename string
 	var getGamelogAttempts = 0
 	maxGamelogAttempts := 5
 	var gamelogFound bool = false
-	
+
 	for getGamelogAttempts < maxGamelogAttempts && !gamelogFound {
 		log.Debugf("Waiting for gamelog for session %d (attempt %d of %d)", gameSession, getGamelogAttempts+1, maxGamelogAttempts)
-		
+
 		// Use Go's error handling instead of try/catch
 		func() {
 			defer func() {
@@ -408,7 +408,7 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 					log.Warningf("Error getting gamelog for game session %d (attempt %d): %v", gameSession, getGamelogAttempts+1, r)
 				}
 			}()
-			
+
 			gamelogFilename = getGamelogFilename(gameType, gameSession)
 			if gamelogFilename != "" {
 				gamelogUrl := getGamelogUrl(gamelogFilename)
@@ -418,30 +418,42 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 					resultMutex := getGameResultMutex(gameSession)
 					resultMutex.Lock()
 					defer resultMutex.Unlock()
-					
+
 					// Check if another goroutine has already processed the results
 					if hasProcessedGameResult(gameSession) {
 						log.Infof("Game %d results already processed, skipping", gameSession)
 						gamelogFound = true
 						return
 					}
-					
+
 					setGamelogUrl(db, g, gamelogUrl)
 					updateGameStatus(db, g, "Complete")
 					g.Status = "Complete"
 					log.Infof("Game %d complete with gamelog: %s", gameSession, gamelogUrl)
-					
+
 					glog := getGamelog(gamelogFilename)
-					
+
 					// Process winners and losers from the gamelog
 					if glog != nil {
-						if len(glog.Winners) > 0 && len(glog.Losers) > 0 {
-							// Get the winner and loser
+						// First check for the draw case - two losers with reason starting with "Draw"
+						if len(glog.Losers) == 2 &&
+							(len(glog.Losers[0].Reason) > 0 && glog.Losers[0].Reason[:4] == "Draw" ||
+								len(glog.Losers[1].Reason) > 0 && glog.Losers[1].Reason[:4] == "Draw") {
+							log.Infof("Game %d resulted in a draw (both players in losers with Draw reason)", gameSession)
+							updateGameDraw(db, g, true)
+
+							// Set an error message with the draw reason for UI display
+							updateGameErrorMessage(db, g, glog.Losers[0].Reason)
+
+							// Handle ELO changes for draw
+							handleEloChanges(g.Players[0], g.Players[1], nil, true)
+						} else if len(glog.Winners) > 0 && len(glog.Losers) > 0 {
+							// Regular win/loss case
 							winnerName := glog.Winners[0].Name
 							loserName := glog.Losers[0].Name
-							
+
 							var winner, loser Player
-							
+
 							// Find the matching players from our game
 							for _, p := range g.Players {
 								if p.Name == winnerName {
@@ -450,51 +462,61 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 									loser = p
 								}
 							}
-							
+
 							if winner.ID > 0 {
 								log.Infof("Setting winner for game %d: %s", gameSession, winner.Name)
 								setGameWinner(db, g, winner)
 							}
-							
+
 							if loser.ID > 0 {
 								log.Infof("Setting loser for game %d: %s", gameSession, loser.Name)
 								setGameLoser(db, g, loser)
 							}
+
+							handleEloChanges(winner, loser, &winner, false)
 						} else if len(glog.Winners) == 0 && len(glog.Losers) == 0 {
-							// No winners or losers means it's a draw
-							log.Infof("Game %d resulted in a draw", gameSession)
+							// No winners or losers means it's a draw (fallback case)
+							log.Infof("Game %d resulted in a draw (no winners or losers)", gameSession)
 							updateGameDraw(db, g, true)
+							handleEloChanges(g.Players[0], g.Players[1], nil, true)
 						}
 					}
-					
+
 					gamelogFound = true
 				}
 			}
 		}()
-		
+
 		if gamelogFound {
 			break
 		}
-		
+
 		getGamelogAttempts++
 		time.Sleep(3 * time.Second)
 	}
-	
+
 	if gamelogFound {
 		*errorOccurred = false
 		return
 	}
-	
+
 	// If we get here, we couldn't get a gamelog, but we don't know which player is at fault
 	// This is likely a system issue, not a player's code issue
 	errorMsg := fmt.Sprintf("Failed to retrieve gamelog for session %d after %d attempts", gameSession, maxGamelogAttempts)
 	log.Warningf(errorMsg)
-	updateGameStatus(db, g, "Incomplete") 
+	updateGameStatus(db, g, "Incomplete")
 	updateGameErrorMessage(db, g, errorMsg)
 	g.Status = "Incomplete"
-	
+
 	*errorOccurred = false // Don't penalize any player for system issues
 	return
+}
+
+func handleEloChanges(player1 Player, player2 Player, winner *Player, draw bool) {
+	outcomeA, outcomeB := calculateEloOutcomes(player1, player2, winner, draw)
+
+	updatePlayerElo(db, player1, outcomeA.Rating)
+	updatePlayerElo(db, player2, outcomeB.Rating)
 }
 
 func handleRunErr(runErr error, depth int, g Game) {
@@ -524,7 +546,7 @@ func makeClient(playerDir string, playerLanguage string) error {
 		mutex := getClientBuildMutex(playerDir)
 		mutex.Lock()
 		defer mutex.Unlock()
-		
+
 		// Check for executable before running make
 		exePath := filepath.Join(playerDir, "build", "cpp-client")
 		if _, err := os.Stat(exePath); err == nil {
@@ -533,14 +555,14 @@ func makeClient(playerDir string, playerLanguage string) error {
 			log.Infof("C++ client already exists at %s, skipping build", exePath)
 			return nil
 		}
-		
+
 		// Check if the directory exists before running commands
 		if _, err := os.Stat(playerDir); os.IsNotExist(err) {
 			return fmt.Errorf("player directory %s does not exist", playerDir)
 		}
 
 		log.Infof("Building C++ client in %s", playerDir)
-		
+
 		// Run make clean
 		makeCmd = exec.Command("make", "clean")
 		makeCmd.Dir = playerDir
@@ -558,7 +580,7 @@ func makeClient(playerDir string, playerLanguage string) error {
 			log.Warningf("Make build failed: %v\nOutput: %s", makeErr, string(output))
 			return makeErr
 		}
-		
+
 		// Verify the executable exists
 		if _, err := os.Stat(exePath); os.IsNotExist(err) {
 			log.Warningf("C++ client executable not found at %s after build", exePath)
@@ -570,7 +592,7 @@ func makeClient(playerDir string, playerLanguage string) error {
 		// For non-C++ clients
 		makeCmd = exec.Command("make")
 		makeCmd.Dir = playerDir
-		
+
 		output, makeErr := makeCmd.CombinedOutput()
 		if makeErr != nil {
 			log.Warningf("Make failed for %s client: %v\nOutput: %s", playerLanguage, makeErr, string(output))

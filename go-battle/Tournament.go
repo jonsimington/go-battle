@@ -64,9 +64,11 @@ func getTournaments(ids []int) []Tournament {
 			Preload("Games.Loser").
 			Preload("Players").
 			Preload("Players.Client").
+			Preload("Players.Games").
 			Preload("Matches").
 			Preload("Matches.Games").
 			Preload("Matches.Players").
+			Preload("Matches.Players.Games").
 			Where("id = ANY(?)", pq.Array(ids)).
 			Find(&tournaments)
 	} else {
@@ -75,9 +77,11 @@ func getTournaments(ids []int) []Tournament {
 			Preload("Games.Loser").
 			Preload("Players").
 			Preload("Players.Client").
+			Preload("Players.Games").
 			Preload("Matches").
 			Preload("Matches.Games").
 			Preload("Matches.Players").
+			Preload("Matches.Players.Games").
 			Find(&tournaments)
 	}
 
@@ -92,9 +96,11 @@ func getTournament(db *gorm.DB, id int) Tournament {
 		Preload("Games.Loser").
 		Preload("Players").
 		Preload("Players.Client").
+		Preload("Players.Games").
 		Preload("Matches").
 		Preload("Matches.Games").
 		Preload("Matches.Players").
+		Preload("Matches.Players.Games").
 		Where("id = ?", id).First(&t)
 
 	return t

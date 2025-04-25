@@ -27,6 +27,9 @@ type Match struct {
 
 var matchLock = &sync.Mutex{}
 
+// Add a dedicated mutex for match-game associations
+var matchGameLock = &sync.Mutex{}
+
 func getCurrentMatchID(db *gorm.DB) int {
 	var lastMatch Match
 
@@ -50,13 +53,14 @@ func deleteMatch(db *gorm.DB, matchId int) {
 }
 
 func addGameToMatch(db *gorm.DB, match Match, game Game) {
-	var m Match
+	matchGameLock.Lock()
+	defer matchGameLock.Unlock()
 
+	var m Match
 	db.Where("id = ?", match.ID).First(&m)
 
-	m.Games = append(m.Games, game)
-
-	db.Save(&m)
+	// Use GORM's Association method to safely add the game
+	db.Model(&m).Association("Games").Append(&game)
 }
 
 func updateMatchStatus(db *gorm.DB, match Match, status string) {
@@ -103,14 +107,18 @@ func getMatches(ids []int) []Match {
 	var matches []Match
 
 	if len(ids) > 0 {
-		db.Preload("Games").
+		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
+			return db.Order("games.id ASC") // Consistently order games by ID
+		}).
 			Preload("Games.Winner").
 			Preload("Games.Loser").
 			Preload("Players").
 			Where("id = ANY(?)", pq.Array(ids)).
 			Find(&matches)
 	} else {
-		db.Preload("Games").
+		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
+			return db.Order("games.id ASC") // Consistently order games by ID
+		}).
 			Preload("Games.Winner").
 			Preload("Games.Loser").
 			Preload("Players").
@@ -128,14 +136,18 @@ func getMatchesWithPlayers(players []int) []Match {
 
 		db.Table("match_players").Where("player_id = ANY(?)", pq.Array(players)).Select("match_id").Find(&matchesWithPlayers)
 
-		db.Preload("Games").
+		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
+			return db.Order("games.id ASC") // Consistently order games by ID
+		}).
 			Preload("Games.Winner").
 			Preload("Games.Loser").
 			Preload("Players").
 			Where("id = ANY(?)", pq.Array(matchesWithPlayers)).
 			Find(&matches)
 	} else {
-		db.Preload("Games").
+		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
+			return db.Order("games.id ASC") // Consistently order games by ID
+		}).
 			Preload("Games.Winner").
 			Preload("Games.Loser").
 			Preload("Players").
@@ -148,7 +160,9 @@ func getMatchesWithPlayers(players []int) []Match {
 func getMatch(id int) Match {
 	var match Match
 
-	result := db.Preload("Games").
+	result := db.Preload("Games", func(db *gorm.DB) *gorm.DB {
+		return db.Order("games.id ASC") // Consistently order games by ID
+	}).
 		Preload("Games.Winner").
 		Preload("Games.Loser").
 		Preload("Players").
@@ -215,9 +229,6 @@ func (m Match) StartMatch(db *gorm.DB) {
 			addGameToMatch(db, m, g)
 			addGameToPlayer(db, player1, g)
 			addGameToPlayer(db, player2, g)
-
-			// add Game to the match in memory
-			m.Games = append(m.Games, g)
 
 			// Pass nil for player since we're just initiating the game, not running a specific player's code
 			g.PlayGame(currentSession)
@@ -301,7 +312,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 			gamelogUrl := game.GamelogUrl
 			log.Infof("Game %d complete with gamelog: %s", game.SessionID, gamelogUrl)
 
-			// Count wins for Elo calculation
+			// Count wins for overall match result
 			if game.Draw {
 				log.Infoln("Game was a draw!")
 			} else if game.Winner != nil && game.Loser != nil {
@@ -321,13 +332,6 @@ func (m Match) StartMatch(db *gorm.DB) {
 	if player1Wins == player2Wins {
 		log.Infof("It's a match draw!")
 		updateMatchDraw(db, m, true)
-		handleEloChanges(player1, player2, nil, true)
-	} else if player1Wins > player2Wins {
-		log.Infof("%s won the match %d - %d", player1.Name, player1Wins, player2Wins)
-		handleEloChanges(player1, player2, &player1, false)
-	} else {
-		log.Infof("%s won the match %d - %d", player2.Name, player2Wins, player1Wins)
-		handleEloChanges(player1, player2, &player2, false)
 	}
 
 	// Clean up and ensure match is marked as complete
@@ -344,13 +348,6 @@ func cleanUpMatchDirectory(match Match) {
 	if err != nil {
 		log.Warningln(err)
 	}
-}
-
-func handleEloChanges(player1 Player, player2 Player, winner *Player, draw bool) {
-	outcomeA, outcomeB := calculateEloOutcomes(player1, player2, winner, draw)
-
-	updatePlayerElo(db, player1, outcomeA.Rating)
-	updatePlayerElo(db, player2, outcomeB.Rating)
 }
 
 // markIncompleteGamesAsCanceled marks any games that aren't Complete as Canceled
@@ -398,4 +395,67 @@ func getPlayerWithMostWins(match Match) (Player, bool) {
 	}
 
 	return player2, true
+}
+
+// CheckAndUpdateMatchStatus checks if all games in a match are in a final state (Complete, Error, Canceled)
+// and updates the match status to Complete if necessary
+func CheckAndUpdateMatchStatus(db *gorm.DB, matchID int) {
+	match := getMatch(matchID)
+
+	// If match is already complete, no need to check
+	if match.Status == "Complete" {
+		return
+	}
+
+	// Ensure we have the expected number of games
+	if len(match.Games) < match.NumGames {
+		log.Debugf("Match %d has fewer games than expected (%d vs %d), not marking as complete",
+			matchID, len(match.Games), match.NumGames)
+		return
+	}
+
+	// Check if all games have reached a final status
+	allGamesComplete := true
+	for _, game := range match.Games {
+		if game.Status != "Complete" && game.Status != "Canceled" && game.Status != "Error" {
+			allGamesComplete = false
+			break
+		}
+	}
+
+	// If all games are complete, update the match status
+	if allGamesComplete {
+		log.Infof("All games in match %d are in a final state, updating match status to Complete", matchID)
+
+		// Count wins to determine if it's a draw
+		player1 := match.Players[0]
+		player2 := match.Players[1]
+		player1Wins := 0
+		player2Wins := 0
+
+		for _, game := range match.Games {
+			if game.Status == "Complete" || game.Status == "Error" {
+				if game.Draw {
+					// Draw counts as half a win for each player
+				} else if game.Winner != nil && game.Loser != nil {
+					if game.Winner.ID == player1.ID {
+						player1Wins++
+					} else if game.Winner.ID == player2.ID {
+						player2Wins++
+					}
+				}
+			}
+		}
+
+		if player1Wins == player2Wins {
+			updateMatchDraw(db, match, true)
+		}
+
+		updateMatchStatus(db, match, "Complete")
+
+		// Only set EndTime if it's not already set
+		if match.EndTime.IsZero() {
+			updateMatchEndTime(db, match, time.Now())
+		}
+	}
 }

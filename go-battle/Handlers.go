@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -287,6 +288,22 @@ func getMatchesHandler(c *fiber.Ctx) error {
 		matches = getMatches([]int{})
 	}
 
+	// Check and update status for all in-progress matches
+	for _, match := range matches {
+		if match.Status == "In Progress" {
+			CheckAndUpdateMatchStatus(db, int(match.ID))
+		}
+	}
+
+	// Reload the matches to reflect any status updates
+	if len(playersList) > 0 {
+		matches = getMatchesWithPlayers(playersList)
+	} else if len(idList) > 0 {
+		matches = getMatches(idList)
+	} else {
+		matches = getMatches([]int{})
+	}
+
 	jsonMatches, err := json.Marshal(matches)
 
 	if err != nil {
@@ -316,15 +333,54 @@ func startMatchHandler(c *fiber.Ctx) error {
 		return c.Status(400).SendString(fmt.Sprintf("`match_id` query parameter must point to an existing Match"))
 	}
 
-	match.StartMatch(db)
+	// If the match status is still "In Progress" but all games are in a final state,
+	// update the match status to "Complete"
+	if match.Status == "In Progress" {
+		allGamesComplete := true
+		if len(match.Games) == match.NumGames {
+			for _, game := range match.Games {
+				if game.Status != "Complete" && game.Status != "Canceled" && game.Status != "Error" {
+					allGamesComplete = false
+					break
+				}
+			}
 
-	match = getMatch(matchIdInt)
-	winner, draw := getPlayerWithMostWins(match)
+			if allGamesComplete {
+				log.Infof("Match %d has all games complete. Updating match status to Complete.", matchIdInt)
 
-	if draw {
-		return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Draw!", matchIdInt))
+				// Calculate winner
+				_, draw := getPlayerWithMostWins(match) // Changed to not store the unused winner variable
+
+				// Update match status
+				if draw {
+					updateMatchDraw(db, match, true)
+				}
+
+				// Mark the match complete and set end time if not already set
+				updateMatchStatus(db, match, "Complete")
+				if match.EndTime.IsZero() {
+					updateMatchEndTime(db, match, time.Now())
+				}
+
+				match = getMatch(matchIdInt)
+			}
+		}
+	}
+
+	// If the match isn't already started, start it
+	if match.Status == "Pending" {
+		match.StartMatch(db)
+
+		match = getMatch(matchIdInt)
+		winner, draw := getPlayerWithMostWins(match)
+
+		if draw {
+			return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Draw!", matchIdInt))
+		} else {
+			return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Winner: %s", matchIdInt, winner.Name))
+		}
 	} else {
-		return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Winner: %s", matchIdInt, winner.Name))
+		return c.Status(200).SendString(fmt.Sprintf("Match %d is already %s", matchIdInt, match.Status))
 	}
 }
 

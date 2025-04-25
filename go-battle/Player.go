@@ -43,6 +43,20 @@ func getPlayers(ids []int) []Player {
 	return players
 }
 
+func getPlayer(id int) Player {
+	var player Player
+
+	db.Preload("Client").
+		Preload("EloHistory").
+		Preload("Games").
+		Preload("Games.Winner").
+		Preload("Games.Loser").
+		Where("id = ?", id).
+		First(&player)
+
+	return player
+}
+
 func getPlayerByName(name string) Player {
 	var player Player
 
@@ -80,18 +94,43 @@ func updatePlayerElo(db *gorm.DB, player Player, elo int) {
 
 	var p Player
 
-	db.Where("id = ?", player.ID).First(&p)
+	// Use First instead of Find, and check for errors
+	result := db.Where("id = ?", player.ID).First(&p)
+	if result.Error != nil {
+		log.Errorf("Error retrieving player %s (ID: %d) from database: %v", player.Name, player.ID, result.Error)
+		return
+	}
 
+	// Make sure we actually got a valid player
+	if p.ID == 0 {
+		log.Errorf("Player with ID %d (%s) not found in database when trying to update ELO", player.ID, player.Name)
+		return
+	}
+
+	// Check if we're actually changing the ELO - log either way for debugging
+	if p.Elo == elo {
+		log.Infof("Player %s (ID: %d) ELO remains unchanged at %d", p.Name, p.ID, elo)
+	} else {
+		log.Infof("Updating player %s (ID: %d) ELO from %d to %d (delta: %d)",
+			p.Name, p.ID, p.Elo, elo, elo-p.Elo)
+	}
+
+	// Update the ELO
 	p.Elo = elo
 
+	// Create a new historical ELO entry
 	newEloHistory := HistoricalElo{
 		Elo:       elo,
 		Timestamp: time.Now(),
 	}
 
+	// Append the new ELO history entry
 	p.EloHistory = append(p.EloHistory, newEloHistory)
 
-	db.Save(&p)
+	// Save with error checking
+	if err := db.Save(&p).Error; err != nil {
+		log.Errorf("Failed to update ELO for player %s (ID: %d): %v", p.Name, p.ID, err)
+	}
 }
 
 func addGameToPlayer(db *gorm.DB, player Player, game Game) {
