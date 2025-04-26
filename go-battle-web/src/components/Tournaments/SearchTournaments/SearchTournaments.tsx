@@ -4,9 +4,10 @@ import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { allPlayersHaveSameScore, delay, pluck, slugify } from '../../../utils/utils';
 import { TournamentsResult } from '../../../models/TournamentsResult';
 import { PlayerScore } from '../../../models/PlayerScore';
-import { FaCirclePlay, FaSpinner, FaDiagramProject } from 'react-icons/fa6';
+import { FaCirclePlay, FaSpinner, FaDiagramProject, FaTrash } from 'react-icons/fa6';
 import TimeAgo from 'timeago-react';
 import { Link } from 'react-router-dom';
+import { Modal } from '../../Common/Modal';
 
 interface SearchTournamentsProps {
     tableData: any[]
@@ -28,6 +29,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
     const [sortType, setSortType] = useState("created-desc");
     const [tournamentsPlaying, setTournamentsPlaying] = useState<number[]>([]);
     const [tournamentStartTimes, setTournamentStartTimes] = useState<TournamentStartTime[]>([]);
+    const [tournamentToDelete, setTournamentToDelete] = useState<number | null>(null);
 
     const [hasError, setHasError] = useState(false);
     const [hasWarning, setHasWarning] = useState(false);
@@ -203,6 +205,31 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             }
         },
         {
+            key: "status",
+            title: "Status",
+            width: 120,
+            render: (_, { status }) => {
+                let badgeVariant = "secondary";
+                
+                if (status === "Pending") {
+                    badgeVariant = "warning";
+                } else if (status === "In Progress") {
+                    badgeVariant = "info";
+                } else if (status === "Completed") {
+                    badgeVariant = "success";
+                }
+                
+                return (
+                    <Button 
+                        variant={`outline-${badgeVariant}`} 
+                        size="sm" 
+                        disabled={true}>
+                        {status || "Unknown"}
+                    </Button>
+                );
+            }
+        },
+        {
             key: "type",
             title: "Type",
             width: 150,
@@ -232,6 +259,27 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                         </>
                     )
                 }
+                return null;
+            }
+        },
+        {
+            key: "deleteTournament",
+            title: "Delete",
+            width: 80,
+            render: (_, { ID, status }) => {
+                // Only allow deletion of pending tournaments
+                const canDelete = true; // status === "Pending" && !tournamentsPlaying.includes(ID);
+                
+
+                return (
+                    <Button 
+                        variant="outline-danger" 
+                        size="sm" 
+                        onClick={() => confirmDeleteTournament(ID)} 
+                        disabled={!canDelete}>
+                        <h3><FaTrash /></h3>
+                    </Button>
+                );
             }
         },
     ];
@@ -278,6 +326,35 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             });
     }
 
+    const confirmDeleteTournament = (tournamentID: number) => {
+        setTournamentToDelete(tournamentID);
+        setShowConfirmDeleteModal(true);
+    }
+
+    const deleteTournament = () => {
+        if (!tournamentToDelete) return;
+        
+        const requestOptions = {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+        };
+
+        const apiUrl = process.env.REACT_APP_API_URL;
+
+        fetch(`${apiUrl}/tournaments?tournament_id=${tournamentToDelete}`, requestOptions)
+            .then(async response => handleFetchResponse(response))
+            .then(async () => {
+                await delay(1000);
+                setShowConfirmDeleteModal(false);
+                setTournamentToDelete(null);
+                refreshData();
+            })
+            .catch(() => {
+                setShowConfirmDeleteModal(false);
+                setTournamentToDelete(null);
+            });
+    }
+
     const renderPlayerRecordTooltip = (player: PlayerScore) => {
         return (
             <Tooltip id={`tooltip-${slugify(player.name)}`} style={{position:"fixed"}}>
@@ -302,6 +379,25 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             </Toast>
 
             <DynamicTable data={data} columns={columns} />
+
+            {/* Using the GenericModal component for delete confirmation */}
+            <Modal
+                show={showConfirmDeleteModal}
+                title={`Delete Tournament ${tournamentToDelete}?`}
+                onHide={() => setShowConfirmDeleteModal(false)}
+                primaryButton={{
+                    variant: "danger",
+                    text: "Delete",
+                    onClick: deleteTournament
+                }}
+                secondaryButton={{
+                    variant: "secondary",
+                    text: "Cancel",
+                    onClick: () => setShowConfirmDeleteModal(false)
+                }}
+            >
+                <p>Are you sure you want to delete tournament #{tournamentToDelete}?</p>
+            </Modal>
         </>
     );
 }
