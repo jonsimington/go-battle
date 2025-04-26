@@ -1,13 +1,13 @@
 import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
-import { FaCirclePlay, FaSpinner, FaX } from 'react-icons/fa6';
-import { Button, Col, Container, Dropdown, Modal, OverlayTrigger, Row, Toast, Tooltip } from 'react-bootstrap';
+import { FaCirclePlay, FaSpinner, FaTrash } from 'react-icons/fa6';
+import { Button, Col, Container, Dropdown, OverlayTrigger, Row, Toast, Tooltip } from 'react-bootstrap';
 import { allPlayersHaveSameScore, delay, elapsedTime, pluck, prettyDate, prettyTimeAgo, slugify } from '../../../utils/utils';
 import { useState } from 'react';
-import { COLORS } from '../../../utils/colors';
 import moment from 'moment';
 import TimeAgo from 'timeago-react';
 import { PlayerScore } from '../../../models/PlayerScore';
+import { Modal } from '../../Common/Modal';
 
 interface SearchMatchesProps {
     tableData: any[]
@@ -19,24 +19,6 @@ interface MatchStartTime {
     startTime: Date;
 }
 
-const modalHeaderStyles = {
-    background: COLORS.dark.primary,
-    color: COLORS.dark.text.primary,
-    border: "1px solid rgba(0, 0, 0, 0.175)",
-}
-const modalBodyStyles = {
-    background: COLORS.dark.secondary,
-    color: COLORS.dark.text.primary,
-    border: "1px solid rgba(0, 0, 0, 0.175)",
-}
-const modalFooterStyles = {
-    background: COLORS.dark.primary,
-    color: COLORS.dark.text.primary,
-    border: "1px solid rgba(0, 0, 0, 0.175)",
-}
-const modalStyles = {
-
-}
 const toastStyles = {
     maxWidth: "95%",
     minWidth: "75%"
@@ -224,7 +206,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                 return (
                     <>
                         <Button variant="outline-danger" onClick={() => deleteMatch(ID)} key={`deleteMatchButton-${ID}`}>
-                            <h3><FaX /></h3>
+                            <h3><FaTrash /></h3>
                         </Button>
                     </>
                 )
@@ -320,25 +302,6 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         setData(sortedData);
     }
 
-    const renderConfirmDeleteModal = (title: string, body: string) => {
-        return (
-            <Modal show={showConfirmDeleteModal} onHide={() => setShowConfirmDeleteModal(false)} style={modalStyles}>
-                <Modal.Header style={modalHeaderStyles} closeButton>
-                    <Modal.Title>{title}</Modal.Title>
-                </Modal.Header>
-
-                <Modal.Body style={modalBodyStyles}>
-                    <p>{body}</p>
-                </Modal.Body>
-
-                <Modal.Footer style={modalFooterStyles}>
-                    <Button variant="secondary" onClick={() => setShowConfirmDeleteModal(false)}>Close</Button>
-                    <Button variant="danger" onClick={() => confirmDeleteMatch(matchIdToDelete)}>Delete</Button>
-                </Modal.Footer>
-            </Modal>
-        )
-    }
-
     const renderPlayerRecordTooltip = (player: PlayerScore) => {
         return (
             <Tooltip id={`tooltip-${slugify(player.name)}`} style={{position:"fixed"}}>
@@ -365,8 +328,6 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
     return (
         <>
-            {renderConfirmDeleteModal(`Delete Match ${matchIdToDelete}?`, `Are you sure you want to delete Match ${matchIdToDelete}?  This is permanent.`)}
-
             <Container className="pb-3">
                 <Row className="text-center">
                     <Col>
@@ -404,6 +365,24 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             </Toast>
 
             <DynamicTable data={tableData} columns={columns} />
+            
+            <Modal
+                show={showConfirmDeleteModal}
+                title={`Delete Match ${matchIdToDelete}?`}
+                onHide={() => setShowConfirmDeleteModal(false)}
+                primaryButton={{
+                    variant: "danger",
+                    text: "Delete",
+                    onClick: () => confirmDeleteMatch(matchIdToDelete)
+                }}
+                secondaryButton={{
+                    variant: "secondary",
+                    text: "Cancel",
+                    onClick: () => setShowConfirmDeleteModal(false)
+                }}
+            >
+                <p>Are you sure you want to delete Match {matchIdToDelete}? This is permanent.</p>
+            </Modal>
         </>
     );
 }
