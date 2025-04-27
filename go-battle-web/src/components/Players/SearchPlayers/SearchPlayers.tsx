@@ -5,6 +5,7 @@ import { Button } from 'react-bootstrap';
 import { calculateGameResult, calculateStreak, pluck } from '../../../utils/utils';
 import { Sparklines, SparklinesLine, SparklinesSpots } from 'react-sparklines';
 import { FaInfinity } from 'react-icons/fa6';
+import EloBadge from '../../Common/ELO/ELOBadge';
 
 interface SearchPlayersProps {
     tableData: any[],
@@ -165,13 +166,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                 }
 
                 return (
-                    <Button 
-                        variant={`outline-${buttonVariant}`} 
-                        size="sm" 
-                        key={`elo-${ID}`}
-                        disabled={true}>
-                            {elo}
-                    </Button>
+                    <EloBadge elo={elo} />
                 )
             }
         },

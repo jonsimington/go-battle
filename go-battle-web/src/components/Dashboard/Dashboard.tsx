@@ -5,6 +5,7 @@ import { PlayersResult } from '../../models/PlayersResult';
 import { MatchesResult } from '../../models/MatchesResult';
 import { GamesResult } from '../../models/GamesResult';
 import { average, elapsedTime, prettyTimeAgo } from '../../utils/utils';
+import EloBadge from '../Common/ELO/ELOBadge';
 
 interface DashboardProps {}
 
@@ -84,13 +85,7 @@ const Dashboard: FC<DashboardProps> = () => {
                                                 <span className="ms-2 me-auto fw-bold">
                                                     {p.name}
                                                 </span>
-                                                <Button 
-                                                    variant={`outline-secondary`} 
-                                                    size="sm" 
-                                                    key={`elo-${p.ID}`}
-                                                    disabled={true}>
-                                                        {p.elo}
-                                                </Button>
+                                                <EloBadge elo={p.elo} />
                                             </ListGroup.Item>
                                         )
                                     })}
