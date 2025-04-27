@@ -1,0 +1,78 @@
+.elo-badge {
+    font-size: 0.75em;
+    margin-left: 6px;
+    font-weight: 600;
+    color: #0c0c0c;  /* Nearly black text */
+    background-color: #38b2ac;  /* Default teal color */
+    padding: 2px 5px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.elo-label {
+    background-color: #0c0c0c;  /* Nearly black background */
+    color: #38b2ac;  /* Default matching teal */
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-right: 4px;
+    font-weight: bold;
+}
+
+/* ELO Rating Tiers with Color Scheme */
+.elo-badge.beginner {
+    background-color: #6c757d;  /* Gray */
+}
+
+.elo-badge.novice {
+    background-color: #28a745;  /* Green */
+}
+
+.elo-badge.intermediate {
+    background-color: #17a2b8;  /* Teal/Cyan */
+}
+
+.elo-badge.advanced {
+    background-color: #007bff;  /* Blue */
+}
+
+.elo-badge.expert {
+    background-color: #6f42c1;  /* Purple */
+}
+
+.elo-badge.master {
+    background-color: #fd7e14;  /* Orange */
+}
+
+.elo-badge.grandmaster {
+    background-color: #dc3545;  /* Red */
+}
+
+/* Matching label colors */
+.elo-badge.beginner .elo-label {
+    color: #6c757d;
+}
+
+.elo-badge.novice .elo-label {
+    color: #28a745;
+}
+
+.elo-badge.intermediate .elo-label {
+    color: #17a2b8;
+}
+
+.elo-badge.advanced .elo-label {
+    color: #007bff;
+}
+
+.elo-badge.expert .elo-label {
+    color: #6f42c1;
+}
+
+.elo-badge.master .elo-label {
+    color: #fd7e14;
+}
+
+.elo-badge.grandmaster .elo-label {
+    color: #dc3545;
+}
