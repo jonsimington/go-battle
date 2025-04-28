@@ -89,13 +89,15 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                     let playerDraws = games.filter((g) => g.draw === true).length * 0.5
                     let playerID = players.filter((p) => p.name === playerName)[0].ID
                     let playerELO = players.filter((p) => p.name === playerName)[0].elo
+                    let playerELOHistory = players.filter((p) => p.name === playerName)[0].elo_history
                     playerScores.push({
                         name: playerName,
                         wins: playerWins,
                         losses: playerLosses,
                         draws: playerDraws,
                         id: playerID,
-                        elo: playerELO
+                        elo: playerELO,
+                        elo_history: playerELOHistory,
                     } as PlayerScore)
                 });
 
@@ -113,7 +115,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                                 return (
                                     <a href={playersLink} key={aKey}>
                                         <OverlayTrigger placement="top" overlay={renderPlayerRecordTooltip(score)}>
-                                            <Button variant={badgeColor} size="sm" className="mx-1 my-1 w-100" key={badgeKey}>{score.name}<EloBadge elo={score.elo} /> : {score.wins + score.draws}</Button>
+                                            <Button variant={badgeColor} size="sm" className="mx-1 my-1 w-100" key={badgeKey}>{score.name}<EloBadge elo={score.elo} eloHistory={score.elo_history} /> : {score.wins + score.draws}</Button>
                                         </OverlayTrigger>
                                     </a>
                                 )

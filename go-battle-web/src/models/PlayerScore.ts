@@ -1,3 +1,5 @@
+import { HistoricalElo } from "./HistoricalElo";
+
 export interface PlayerScore {
     name: string;
     id: number;
@@ -5,4 +7,5 @@ export interface PlayerScore {
     losses: number;
     draws: number;
     elo: number;
+    elo_history: HistoricalElo[];
 }

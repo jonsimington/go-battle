@@ -85,7 +85,7 @@ const Dashboard: FC<DashboardProps> = () => {
                                                 <span className="ms-2 me-auto fw-bold">
                                                     {p.name}
                                                 </span>
-                                                <EloBadge elo={p.elo} />
+                                                <EloBadge elo={p.elo} eloHistory={p.elo_history} />
                                             </ListGroup.Item>
                                         )
                                     })}

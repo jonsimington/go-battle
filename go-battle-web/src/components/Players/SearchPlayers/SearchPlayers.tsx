@@ -149,7 +149,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             key: "elo",
             title: "ELO",
             width: 100,
-            render: (_, { elo, ID }) => {
+            render: (_, { elo, elo_history, ID }) => {
                 let buttonVariant = "danger";
 
                 if (elo >= 1800) {
@@ -166,7 +166,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                 }
 
                 return (
-                    <EloBadge elo={elo} />
+                    <EloBadge elo={elo} eloHistory={elo_history} />
                 )
             }
         },

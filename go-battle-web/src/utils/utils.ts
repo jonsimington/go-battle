@@ -153,7 +153,8 @@ export const calculatePlayerScores = (games: GamesResult[], players: any[]): Pla
             wins: playerWins,
             losses: playerLosses,
             draws: playerDraws,
-            elo: playerElo
+            elo: playerElo,
+            elo_history: player.elo_history,
         });
     });
     
