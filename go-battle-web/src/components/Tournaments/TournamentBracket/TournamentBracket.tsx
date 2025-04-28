@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Alert, Badge, Button, Card, Col, Container, Row, Spinner } from 'react-bootstrap';
 import { useParams, Link } from 'react-router-dom';
 import { TournamentsResult } from '../../../models/TournamentsResult';
@@ -6,7 +6,10 @@ import { MatchesResult } from '../../../models/MatchesResult';
 import { FaSync } from 'react-icons/fa';
 import './TournamentBracket.css';
 import { PlayersResult } from '../../../models/PlayersResult';
-import { RFC_2822 } from 'moment';
+import moment from 'moment';
+import { Timer } from '../../Common/Timer';
+import ELOBadge from '../../Common/ELO';
+import { HistoricalElo } from '../../../models/HistoricalElo';
 
 interface TournamentBracketProps {}
 
@@ -27,7 +30,9 @@ interface MatchPlayer {
     isWinner?: boolean;
     wins?: number;
     losses?: number;
-    draws?: number;    // Added to track draws
+    draws?: number;
+    elo?: number;
+    elo_history?: HistoricalElo[];
     qualified?: boolean;
     eliminated?: boolean;
 }
@@ -39,23 +44,23 @@ interface BracketMatch {
     player1: MatchPlayer;
     player2: MatchPlayer;
     status: string;
-    numGames: number;        // Total number of games in the match
-    completedGames: number;  // Number of completed games
-    isDraw: boolean;         // Flag to indicate if the match ended in a draw
+    numGames: number;
+    completedGames: number;
+    isDraw: boolean;
+    startedAt?: Date;
+    endedAt?: Date;
 }
 
-// Track player status across the tournament
 interface PlayerStatus {
     id: number;
     name: string;
     wins: number;
     losses: number;
-    draws: number;    // Added to track draws
+    draws: number;
     qualified: boolean;
     eliminated: boolean;
 }
 
-// Add interfaces to represent the gamelog structure we see in the image
 interface GamelogPlayer {
     id: string;
     index: number;
@@ -65,15 +70,6 @@ interface GamelogPlayer {
     timeout: boolean;
 }
 
-interface Gamelog {
-    winners: GamelogPlayer[];
-    losers: GamelogPlayer[];
-    gameName: string;
-    gameSession: string;
-    epoch: number;
-    randomSeed: string;
-}
-
 export function TournamentBracket(): JSX.Element {
     const { id } = useParams<{id: string}>();
     const [tournament, setTournament] = useState<TournamentsResult | null>(null);
@@ -81,26 +77,22 @@ export function TournamentBracket(): JSX.Element {
     const [error, setError] = useState<string | null>(null);
     const [rounds, setRounds] = useState<Round[]>([]);
     const [bracketMatches, setBracketMatches] = useState<BracketMatch[]>([]);
-    // Player status tracking for qualification and elimination
     const [playerStatus, setPlayerStatus] = useState<Map<number, PlayerStatus>>(new Map());
-    // Add state for detailed match data
     const [matchesWithDetailedGames, setMatchesWithDetailedGames] = useState<Map<number, MatchesResult>>(new Map());
-    // Add state for refresh loading indicator
     const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
     const apiUrl = process.env.REACT_APP_API_URL;
 
-    // Modify the useEffect hook to properly handle data loading sequence
+    // fetch tournament data when component mounts
     useEffect(() => {
         if (id) {
             fetchTournament(parseInt(id));
         }
     }, [id]);
     
-    // Add a new effect to organize tournament data only after match data is loaded
+    // organize tournament data when tournament or matchesWithDetailedGames change
     useEffect(() => {
         if (tournament && matchesWithDetailedGames.size > 0) {
-            console.log("Both tournament and detailed matches loaded, organizing data");
             organizeTournamentData(tournament);
         }
     }, [tournament, matchesWithDetailedGames]);
@@ -117,24 +109,19 @@ export function TournamentBracket(): JSX.Element {
             
             const data = await response.json();
             if (data && data.length > 0) {
-                console.log("Tournament data fetched:", data[0]);
                 setTournament(data[0]);
                 
-                // Get all match IDs
                 const matchIds = data[0].matches.map((m: MatchesResult) => m.ID).join(',');
                 
-                // Get detailed match data that includes properly populated games
                 if (matchIds) {
                     fetchDetailedMatches(matchIds);
                 }
-                
                 // We'll organize data in the useEffect after both data sources are loaded
             } else {
                 setError('Tournament not found');
                 setLoading(false);
             }
         } catch (err) {
-            setError(`Failed to fetch tournament data: ${err instanceof Error ? err.message : String(err)}`);
             setLoading(false);
         }
     };
@@ -151,14 +138,13 @@ export function TournamentBracket(): JSX.Element {
             const matchesData = await response.json();
             console.log("Detailed matches data fetched:", matchesData);
             
-            // Create a map of match ID to detailed match data
             const detailedMatchesMap = new Map<number, MatchesResult>();
             matchesData.forEach((match: MatchesResult) => {
                 detailedMatchesMap.set(match.ID, match);
             });
             
             setMatchesWithDetailedGames(detailedMatchesMap);
-            setLoading(false); // Move this here to ensure we're only done loading when both data sets are ready
+            setLoading(false);
         } catch (err) {
             console.error("Failed to fetch detailed match data:", err);
             setLoading(false);
@@ -166,7 +152,7 @@ export function TournamentBracket(): JSX.Element {
     };
 
     const organizeTournamentData = (tournament: TournamentsResult) => {
-        console.log(`got tournament data: ${tournament}`);
+        console.log(`got tournament data: ${JSON.stringify(tournament)}`);
         
         // Group matches by round (based on creation time)
         const sortedMatches = [...tournament.matches].sort((a, b) => 
@@ -196,13 +182,11 @@ export function TournamentBracket(): JSX.Element {
         });
         
         // Number of rounds in Swiss tournament
-        const maxRounds = 5; // Based on image showing 5 rounds
+        const maxRounds = 5;
         
-        // Create a structure for organized rounds
         const organizedRounds: Round[] = [];
         let bracketMatchesArray: BracketMatch[] = [];
         
-        // Create empty rounds structure first
         for (let i = 0; i < maxRounds; i++) {
             organizedRounds.push({
                 roundNumber: i + 1,
@@ -236,42 +220,18 @@ export function TournamentBracket(): JSX.Element {
             const detailedMatch = matchesWithDetailedGames.get(match.ID);
             
             // Calculate match results
-            // let player1IsWinner = false;
-            // let player2IsWinner = false;
             let completedGames = 0;
             let isDraw = false;
 
-            const player1Score = calculateScore(player1);
-            const player2Score = player2 ? calculateScore(player2) : 0;
+            const player1Score = calculateScore(player1, match);
+            const player2Score = player2 ? calculateScore(player2, match) : 0;
             const player1IsWinner = player1Score > player2Score;
             const player2IsWinner = player2 ? player2Score > player1Score : false;
             
             if (detailedMatch && detailedMatch.games) {
                 // Count completed games
-                completedGames = detailedMatch.games.filter(g => g.status === "Complete").length;
-                
-                // Calculate scores from completed games
-                // detailedMatch.games.forEach(game => {
-                //     if (game.status !== "Complete") return;
-                    
-                //     // Check if the game is marked as a draw in the game data
-                //     if (game.draw) {
-                //         player1Score += 0.5;
-                //         player2Score += 0.5;
-                //         isDraw = true;
-                //         return;
-                //     }
-                    
-                //     // Regular win/loss scoring
-                //     if (game.winner_id === player1.ID) {
-                //         player1Score += 1;
-                //     } else if (player2 && game.winner_id === player2.ID) {
-                //         player2Score += 1;
-                //     }
-                // });
+                completedGames = detailedMatch.games.filter(g => g.status === "Complete").length;             
 
-                
-                
                 // Determine match winner if complete
                 if (match.status === "Complete") {
                     
@@ -279,7 +239,6 @@ export function TournamentBracket(): JSX.Element {
                     if (player1IsWinner) {
                         const status = playerStatusMap.get(player1.ID);
                         if (status) {
-                            // status.wins += 1;
                             if (status.wins >= 3) status.qualified = true;
                             playerStatusMap.set(player1.ID, status);
                         }
@@ -287,7 +246,6 @@ export function TournamentBracket(): JSX.Element {
                         if (player2) {
                             const status2 = player2 ? playerStatusMap.get(player2.ID) : undefined;
                             if (status2) {
-                                // status2.losses += 1;
                                 if (status2.losses >= 3) status2.eliminated = true;
                                 if (player2) {
                                     if (player2) {
@@ -299,7 +257,6 @@ export function TournamentBracket(): JSX.Element {
                     } else if (player2IsWinner) {
                         const status2 = player2 ? playerStatusMap.get(player2.ID) : undefined;
                         if (status2) {
-                            // status2.wins += 1;
                             if (status2.wins >= 3) status2.qualified = true;
                             if (player2) {
                                 playerStatusMap.set(player2.ID, status2);
@@ -308,7 +265,6 @@ export function TournamentBracket(): JSX.Element {
                         
                         const status = playerStatusMap.get(player1.ID);
                         if (status) {
-                            // status.losses += 1;
                             if (status.losses >= 3) status.eliminated = true;
                             playerStatusMap.set(player1.ID, status);
                         }
@@ -359,12 +315,8 @@ export function TournamentBracket(): JSX.Element {
                 }
             }
             
-            // Get player win/loss record for display
             const player1Status = playerStatusMap.get(player1.ID);
             const player2Status = player2 ? playerStatusMap.get(player2.ID) : undefined;
-
-            
-
             
             bracketMatchesArray.push({
                 id: match.ID,
@@ -378,6 +330,8 @@ export function TournamentBracket(): JSX.Element {
                     wins: player1Status?.wins || 0,
                     losses: player1Status?.losses || 0,
                     draws: player1Status?.draws || 0,
+                    elo: player1.elo,
+                    elo_history: player1.elo_history,
                     qualified: player1Status?.qualified || false,
                     eliminated: player1Status?.eliminated || false
                 },
@@ -389,6 +343,8 @@ export function TournamentBracket(): JSX.Element {
                     wins: player2Status?.wins || 0,
                     losses: player2Status?.losses || 0,
                     draws: player2Status?.draws || 0,
+                    elo: player2.elo,
+                    elo_history: player2.elo_history,
                     qualified: player2Status?.qualified || false,
                     eliminated: player2Status?.eliminated || false
                 } : {
@@ -400,7 +356,9 @@ export function TournamentBracket(): JSX.Element {
                 status: match.status,
                 numGames: match.numGames,
                 completedGames: completedGames,
-                isDraw: isDraw
+                isDraw: isDraw,
+                startedAt: match.start_time ? new Date(match.start_time) : undefined,
+                endedAt: match.status === "Complete" && match.end_time ? new Date(match.end_time) : undefined
             });
         });
         
@@ -409,12 +367,12 @@ export function TournamentBracket(): JSX.Element {
         setPlayerStatus(playerStatusMap);
     };
 
-    const calculateScore = (player: PlayersResult) => {
+    const calculateScore = (player: PlayersResult, match: MatchesResult) => {
+        const matchGames = matchesWithDetailedGames.get(match.ID)?.games || match.games;
+        const wins = matchGames.filter((g: any) => g.winner_id === player.ID && g.status === "Complete").length;
+        const draws = matchGames.filter((g: any) => g.draw && g.status === "Complete").length;
 
-        const wins = player.games.filter(g => g.winner_id === player.ID).length;
-        const draws = player.games.filter(g => g.draw).length;
-
-        return wins * (draws > 0 ? 0.5 : 1);
+        return wins + (draws * 0.5);
     }
 
     const renderMatch = (match: BracketMatch) => {
@@ -538,6 +496,20 @@ export function TournamentBracket(): JSX.Element {
     const renderSwissMatch = (match: BracketMatch) => {
         const matchUrl = `${window.location.origin}/matches/search?ids=${match.id}`;
         
+        // Get detailed match information to calculate match-specific stats
+        const detailedMatch = matchesWithDetailedGames.get(match.id);
+        const matchGames = detailedMatch?.games || [];
+        
+        // Calculate match-specific stats for player 1
+        const player1MatchWins = matchGames.filter(g => g.winner_id === match.player1.id && g.status === "Complete").length;
+        const player1MatchLosses = matchGames.filter(g => g.loser_id === match.player1.id && g.status === "Complete").length;
+        const player1MatchDraws = matchGames.filter(g => g.draw && g.status === "Complete").length;
+        
+        // Calculate match-specific stats for player 2
+        const player2MatchWins = matchGames.filter(g => g.winner_id === match.player2.id && g.status === "Complete").length;
+        const player2MatchLosses = matchGames.filter(g => g.loser_id === match.player2.id && g.status === "Complete").length;
+        const player2MatchDraws = matchGames.filter(g => g.draw && g.status === "Complete").length;
+        
         return (
             <Card className="bracket-match" key={`match-${match.id}`}>
                 {match.status === "Complete" && match.isDraw && (
@@ -556,18 +528,38 @@ export function TournamentBracket(): JSX.Element {
                              </span>
                             }
                         </small>
-                        <Badge bg={match.isDraw && match.status === "Complete" ? "warning" : match.status === "Complete" ? "success" : match.status === "In Progress" ? "primary" : "secondary"}>
-                            {match.isDraw && match.status === "Complete" ? "Draw" : match.status}
-                        </Badge>
+                        <div className="d-flex align-items-center">
+                            {/* Show elapsed timer for in-progress matches */}
+                            {match.status === "In Progress" && match.startedAt && (
+                                <div className="me-2">
+                                    <Timer startTime={match.startedAt} />
+                                </div>
+                            )}
+                            {/* Show static elapsed time for completed matches */}
+                            {match.status === "Complete" && match.startedAt && match.endedAt && (
+                                <div className="me-2">
+                                    <Timer startTime={match.startedAt} endTime={match.endedAt} />
+                                </div>
+                            )}
+                            <Badge bg={match.isDraw && match.status === "Complete" ? "warning" : match.status === "Complete" ? "success" : match.status === "In Progress" ? "primary" : "secondary"}>
+                                {match.isDraw && match.status === "Complete" ? "Draw" : match.status}
+                            </Badge>
+                        </div>
                     </div>
                 </Card.Header>
                 <Card.Body>
                     <div className={`player ${match.isDraw && match.status === "Complete" ? 'draw' : match.player1.isWinner ? 'winner' : ''}`}>
                         <span>
                             {match.player1.name}
-                            <span className="player-stats">
-                                ({match.player1.wins}-{match.player1.losses}-{match.player1.draws})
+                            <span className="player-stats" title="Match W-L-D record">
+                                ({player1MatchWins}-{player1MatchLosses}-{player1MatchDraws})
                             </span>
+                            <span className="player-stats overall-stats" title="Overall tournament W-L-D record">
+                                T: ({match.player1.wins}-{match.player1.losses}-{match.player1.draws})
+                            </span>
+                            {match.player1.elo !== undefined && (
+                                <ELOBadge elo={match.player1.elo} eloHistory={match.player1.elo_history} />
+                            )}
                             {match.player1.qualified && (
                                 <span className="player-status player-qualified">IN</span>
                             )}
@@ -584,10 +576,16 @@ export function TournamentBracket(): JSX.Element {
                     <div className={`player ${match.isDraw && match.status === "Complete" ? 'draw' : match.player2.isWinner ? 'winner' : ''}`}>
                         <span>
                             {match.player2.name}
+                            <span className="player-stats" title="Match W-L-D record">
+                                ({player2MatchWins}-{player2MatchLosses}-{player2MatchDraws})
+                            </span>
                             {match.player2.wins !== undefined && match.player2.losses !== undefined && match.player2.draws !== undefined && (
-                                <span className="player-stats">
-                                    ({match.player2.wins}-{match.player2.losses}-{match.player2.draws})
+                                <span className="player-stats overall-stats" title="Overall tournament W-L-D record">
+                                    T: ({match.player2.wins}-{match.player2.losses}-{match.player2.draws})
                                 </span>
+                            )}
+                            {match.player2.elo !== undefined && (
+                                <ELOBadge elo={match.player2.elo} eloHistory={match.player2.elo_history} />
                             )}
                             {match.player2.qualified && (
                                 <span className="player-status player-qualified">IN</span>
