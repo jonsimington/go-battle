@@ -1,0 +1,147 @@
+/* Player table styles */
+.player-table-card {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-bottom: 1.5rem;
+}
+
+/* Rank column styling */
+.player-rank-container {
+  display: flex;
+  align-items: center;
+}
+
+.player-rank {
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.rank-1 {
+  color: #ffc107; /* Gold for first place */
+}
+
+.rank-2 {
+  color: #e0e0e0; /* Silver for second place */
+}
+
+.rank-3 {
+  color: #CD7F32; /* Bronze for third place */
+}
+
+/* Player name styling */
+.player-name-container {
+  display: flex;
+  align-items: center;
+}
+
+.player-name {
+  font-weight: 600;
+  color: white;
+}
+
+.player-activity {
+  margin-left: 0.5rem;
+}
+
+.activity-badge {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+}
+
+/* Stats styling */
+.player-stats-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.player-stats {
+  font-weight: 500;
+}
+
+.win-count {
+  color: #28a745;
+}
+
+.loss-count {
+  color: #dc3545;
+}
+
+.draw-count {
+  color: #6c757d;
+}
+
+.stats-progress {
+  width: 40px;
+  height: 5px;
+  margin-left: 0.5rem;
+}
+
+/* Streak styling */
+.streak-badge {
+  padding: 0.25rem 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.hot-streak-icon {
+  margin-left: 0.25rem;
+  color: #ffcc00;
+}
+
+/* ELO history chart styling */
+.elo-history-container {
+  display: flex;
+  align-items: center;
+}
+
+.elo-chart {
+  flex-grow: 1;
+}
+
+.elo-diff-badge {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+}
+
+/* Filter and search controls */
+.filters-container {
+  margin-bottom: 1rem;
+}
+
+.search-input {
+  border-top-right-radius: 4px !important;
+  border-bottom-right-radius: 4px !important;
+}
+
+.elo-range-input {
+  width: 80px;
+  text-align: center;
+}
+
+.sort-dropdown {
+  width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .filters-container {
+    flex-direction: column;
+  }
+  
+  .search-container, .elo-filter-container, .sort-container {
+    margin-bottom: 0.5rem;
+    width: 100%;
+  }
+}
+
+/* Tooltip enhancements */
+.stats-tooltip {
+  font-size: 0.8rem;
+}
+
+/* Player card animation on hover */
+.player-row:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  transition: background-color 0.2s ease;
+}

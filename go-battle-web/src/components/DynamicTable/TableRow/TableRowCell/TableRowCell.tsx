@@ -1,5 +1,6 @@
 import { styled } from "@stitches/react";
 import get from "lodash.get";
+import { ReactNode } from "react";
 
 import { IColumnType } from "../../DynamicTable";
 import { COLORS } from '../../../../utils/colors';
@@ -7,6 +8,7 @@ import { COLORS } from '../../../../utils/colors';
 interface TableRowCellProps<T> {
     item: T;
     column: IColumnType<T>;
+    index: number;
 }
 
 const TableCell = styled("td", {
@@ -16,9 +18,16 @@ const TableCell = styled("td", {
     textAlign: "center",
 });
 
-export function TableRowCell<T>({ item, column }: TableRowCellProps<T>): JSX.Element {
+export function TableRowCell<T>({ item, column, index }: TableRowCellProps<T>): JSX.Element {
     const value = get(item, column.key);
-    return (
-        <TableCell>{column.render ? column.render(column, item) : value}</TableCell>
-    );
+    let cellContent: ReactNode;
+    
+    if (column.render) {
+        // Capture the rendered content as a React node
+        cellContent = column.render(column, item, index);
+    } else {
+        cellContent = value;
+    }
+    
+    return <TableCell>{cellContent}</TableCell>;
 }

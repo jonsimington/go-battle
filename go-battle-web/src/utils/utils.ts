@@ -118,11 +118,10 @@ export const calculateStreak = (gameHistory: GamesResult[], playerID: number): {
         return { streakType: 'none', streakCount: 0 }
     }
 
-    let streakCount = 1;
-
+    let streakCount = 0;  // Initialize to 0 instead of 1
     let streakType = calculateGameResult(gameHistory[0], playerID);
-
-    for (let i = 1; i < gameHistory.length; i++) {
+    
+    for (let i = 0; i < gameHistory.length; i++) {  // Start from 0 instead of 1
         if (calculateGameResult(gameHistory[i], playerID) === streakType) {
             streakCount++;
         } else {

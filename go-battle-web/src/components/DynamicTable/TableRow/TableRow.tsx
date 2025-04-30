@@ -32,6 +32,7 @@ export function TableRow<T>({ data, columns }: TableRowProps<T>): JSX.Element {
                         key={`table-row-cell-${columnIndex}`}
                         item={item}
                         column={column}
+                        index={itemIndex}
                     />
                 ))}
             </TableRowItem>
