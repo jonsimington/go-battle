@@ -3,12 +3,12 @@ import { Alert, Badge, Button, Card, Col, Container, Row, Spinner } from 'react-
 import { useParams, Link } from 'react-router-dom';
 import { TournamentsResult } from '../../../models/TournamentsResult';
 import { MatchesResult } from '../../../models/MatchesResult';
-import { FaSync } from 'react-icons/fa';
 import './TournamentBracket.css';
 import { PlayersResult } from '../../../models/PlayersResult';
 import moment from 'moment';
 import { Timer } from '../../Common/Timer';
 import ELOBadge from '../../Common/ELO';
+import { RefreshButton } from '../../Common';
 import { HistoricalElo } from '../../../models/HistoricalElo';
 
 interface TournamentBracketProps {}
@@ -79,8 +79,7 @@ export function TournamentBracket(): JSX.Element {
     const [bracketMatches, setBracketMatches] = useState<BracketMatch[]>([]);
     const [playerStatus, setPlayerStatus] = useState<Map<number, PlayerStatus>>(new Map());
     const [matchesWithDetailedGames, setMatchesWithDetailedGames] = useState<Map<number, MatchesResult>>(new Map());
-    const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-
+    
     const apiUrl = process.env.REACT_APP_API_URL;
 
     // fetch tournament data when component mounts
@@ -608,7 +607,6 @@ export function TournamentBracket(): JSX.Element {
     // Function to refresh tournament data
     const refreshTournamentData = async () => {
         if (!id) return;
-        setIsRefreshing(true);
         
         try {
             // Clear existing data first
@@ -650,8 +648,6 @@ export function TournamentBracket(): JSX.Element {
             }
         } catch (err) {
             setError(`Failed to refresh tournament data: ${err instanceof Error ? err.message : String(err)}`);
-        } finally {
-            setIsRefreshing(false);
         }
     };
 
@@ -689,50 +685,15 @@ export function TournamentBracket(): JSX.Element {
                     </Badge>
                 </h2>
                 <div>
-                    <Button 
-                        variant="outline-primary" 
-                        className="me-2" 
-                        onClick={refreshTournamentData}
-                        disabled={isRefreshing}
-                    >
-                        {isRefreshing ? (
-                            <>
-                                <Spinner
-                                    as="span"
-                                    animation="border"
-                                    size="sm"
-                                    role="status"
-                                    aria-hidden="true"
-                                    className="me-1"
-                                />
-                                Refreshing...
-                            </>
-                        ) : (
-                            <>
-                                <FaSync className="me-1" />
-                                Refresh Data
-                            </>
-                        )}
-                    </Button>
+                    <RefreshButton 
+                        onRefresh={refreshTournamentData} 
+                        className="me-2"
+                    />
                     <Link to="/tournaments/search">
                         <Button variant="outline-secondary">Back to Tournaments</Button>
                     </Link>
                 </div>
             </div>
-
-            {isRefreshing && (
-                <Alert variant="info" className="mb-3">
-                    <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden="true"
-                        className="me-2"
-                    />
-                    Refreshing tournament data...
-                </Alert>
-            )}
 
             {tournament?.players.length === 0 ? (
                 <Alert variant="warning">

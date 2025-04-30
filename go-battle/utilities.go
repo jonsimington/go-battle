@@ -10,6 +10,20 @@ import (
 	"strings"
 )
 
+// parseIntWithDefault converts a string to int with a fallback default value
+func parseIntWithDefault(value string, defaultValue int) int {
+	if value == "" {
+		return defaultValue
+	}
+
+	intValue, err := strconv.Atoi(value)
+	if err != nil {
+		return defaultValue
+	}
+
+	return intValue
+}
+
 func sliceAtoi(sa []string) ([]int, error) {
 	si := make([]int, 0, len(sa))
 	for _, a := range sa {

@@ -84,7 +84,7 @@ func postPlayersHandler(c *fiber.Ctx) error {
 	clientIdInt, clientIdIntErr := strconv.Atoi(clientId)
 
 	if clientIdIntErr != nil {
-		return c.Status(400).SendString(fmt.Sprintf("`client_id` query parameter must be an integer"))
+		return c.Status(400).SendString("`client_id` query parameter must be an integer")
 	}
 
 	foundClients := getClients([]int{clientIdInt})
@@ -133,7 +133,7 @@ func postGamesHandler(c *fiber.Ctx) error {
 	playersQuery := c.Query("players")
 
 	if numGamesIntErr != nil {
-		return c.Status(400).SendString(fmt.Sprintf("`num_games` query parameter must be an integer"))
+		return c.Status(400).SendString("`num_games` query parameter must be an integer")
 	}
 	if numGames == "" {
 		return c.Status(400).SendString("The `players` query param value must be a comma-separated list of two ints")
@@ -178,10 +178,10 @@ func getGamesHandler(c *fiber.Ctx) error {
 	players := c.Query("players")
 	ids := c.Query("ids")
 
-	playersList, err := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
+	playersList, _ := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
 	}))
-	idList, err := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
+	idList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
 	}))
 
@@ -213,7 +213,7 @@ func postMatchesHandler(c *fiber.Ctx) error {
 	playersQuery := c.Query("players")
 
 	if numGamesIntErr != nil {
-		return c.Status(400).SendString(fmt.Sprintf("`num_games` query parameter must be an integer"))
+		return c.Status(400).SendString("`num_games` query parameter must be an integer")
 	}
 	if numGames == "" {
 		return c.Status(400).SendString("The `num_games` query param value must be provided")
@@ -251,7 +251,7 @@ func deleteMatchesHandler(c *fiber.Ctx) error {
 	}
 
 	if matchIdIntErr != nil {
-		return c.Status(400).SendString(fmt.Sprintf("`match_id` query parameter must be an integer"))
+		return c.Status(400).SendString("`match_id` query parameter must be an integer")
 	}
 
 	var emptyMatch Match
@@ -259,7 +259,7 @@ func deleteMatchesHandler(c *fiber.Ctx) error {
 	match := getMatch(matchIdInt)
 
 	if compareMatches(match, emptyMatch) {
-		return c.Status(400).SendString(fmt.Sprintf("`match_id` query parameter must point to an existing Match"))
+		return c.Status(400).SendString("`match_id` query parameter must point to an existing Match")
 	}
 
 	deleteMatch(db, matchIdInt)
@@ -271,10 +271,10 @@ func getMatchesHandler(c *fiber.Ctx) error {
 	ids := c.Query("ids")
 	players := c.Query("players")
 
-	playersList, err := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
+	playersList, _ := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
 	}))
-	idList, err := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
+	idList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
 	}))
 
@@ -322,7 +322,7 @@ func startMatchHandler(c *fiber.Ctx) error {
 	}
 
 	if matchIdIntErr != nil {
-		return c.Status(400).SendString(fmt.Sprintf("`match_id` query parameter must be an integer"))
+		return c.Status(400).SendString("`match_id` query parameter must be an integer")
 	}
 
 	var emptyMatch Match
@@ -330,7 +330,7 @@ func startMatchHandler(c *fiber.Ctx) error {
 	match := getMatch(matchIdInt)
 
 	if compareMatches(match, emptyMatch) {
-		return c.Status(400).SendString(fmt.Sprintf("`match_id` query parameter must point to an existing Match"))
+		return c.Status(400).SendString("`match_id` query parameter must point to an existing Match")
 	}
 
 	// If the match status is still "In Progress" but all games are in a final state,
@@ -389,10 +389,17 @@ func randomMatchHandler(c *fiber.Ctx) error {
 	numGamesInt, numGamesIntErr := strconv.Atoi(numGames)
 
 	if numGames != "" && numGamesIntErr != nil {
-		return c.Status(400).SendString(fmt.Sprintf("`num_games` query parameter must be an integer"))
+		return c.Status(400).SendString("`num_games` query parameter must be an integer")
 	}
 
 	allPlayers := getPlayers([]int{})
+
+	// Check if we have any players at all
+	if len(allPlayers) < 2 {
+		return c.Status(400).SendString("Not enough players available to create a match (minimum 2 required)")
+	}
+
+	// log.Infof("All players: %v\n", allPlayers)
 
 	var matchPlayerIds [2]int
 	matchPlayerIds[0] = -1
@@ -406,6 +413,14 @@ func randomMatchHandler(c *fiber.Ctx) error {
 	log.Infof("Going to pair player %d against %d", matchPlayerIds[0], matchPlayerIds[1])
 
 	playersToInclude := getPlayers(matchPlayerIds[:])
+
+	log.Debugf("After filtering, players to include")
+
+	// Check if we successfully found both players
+	if len(playersToInclude) != 2 {
+		log.Errorf("Failed to find both players with IDs %d and %d", matchPlayerIds[0], matchPlayerIds[1])
+		return c.Status(404).SendString(fmt.Sprintf("Could not find players with IDs %d and %d", matchPlayerIds[0], matchPlayerIds[1]))
+	}
 
 	var numGamesInMatch int
 
@@ -423,9 +438,31 @@ func randomMatchHandler(c *fiber.Ctx) error {
 
 	insertMatch(db, &match)
 
-	go match.StartMatch(db)
+	// Confirm that the match was inserted successfully and has an ID
+	if match.ID == 0 {
+		log.Errorf("Failed to insert match in the database")
+		return c.Status(500).SendString("Failed to create match due to a database error")
+	}
 
-	return c.Status(200).SendString(fmt.Sprintf("Started Random Match: ID %d, %d Games, Players %d & %d", match.ID, match.NumGames, match.Players[0].ID, match.Players[1].ID))
+	// Start the match in a goroutine
+	go func() {
+		// Catch panics to prevent crashing the server
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("Panic recovered in match.StartMatch goroutine: %v", r)
+				// Update match status to Error
+				updateMatchStatus(db, match, "Error")
+			}
+		}()
+		match.StartMatch(db)
+	}()
+
+	// Double check that we have valid player IDs before attempting to access them
+	if len(match.Players) >= 2 {
+		return c.Status(200).SendString(fmt.Sprintf("Started Random Match: ID %d, %d Games, Players %d & %d", match.ID, match.NumGames, match.Players[0].ID, match.Players[1].ID))
+	} else {
+		return c.Status(200).SendString(fmt.Sprintf("Started Random Match: ID %d, %d Games", match.ID, match.NumGames))
+	}
 }
 
 // /////////////////////////////////////////////////////////////////////////
@@ -476,7 +513,7 @@ func postTournamentsHandler(c *fiber.Ctx) error {
 func getTournamentsHandler(c *fiber.Ctx) error {
 	ids := c.Query("ids")
 
-	idList, err := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
+	idList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
 	}))
 
@@ -500,7 +537,7 @@ func startTournamentsHandler(c *fiber.Ctx) error {
 	}
 
 	if tournamentIdIntErr != nil {
-		return c.Status(400).SendString(fmt.Sprintf("`tournament_id` query parameter must be an integer"))
+		return c.Status(400).SendString("`tournament_id` query parameter must be an integer")
 	}
 
 	var emptyTournament Tournament
@@ -508,18 +545,40 @@ func startTournamentsHandler(c *fiber.Ctx) error {
 	tournament := getTournament(db, tournamentIdInt)
 
 	if compareTournaments(tournament, emptyTournament) {
-		return c.Status(400).SendString(fmt.Sprintf("`tournament_id` query parameter must point to an existing Tournament"))
+		return c.Status(400).SendString("`tournament_id` query parameter must point to an existing Tournament")
 	}
 
 	tournament.StartTournament(tournamentIdInt)
 
-	tournament = getTournament(db, tournamentIdInt)
+	return c.Status(200).SendString(fmt.Sprintf("Started tournament %d", tournamentIdInt))
+}
 
-	// if draw {
-	// 	return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Draw!", matchIdInt))
-	// } else {
-	// 	return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Winner: %s", matchIdInt, winner.Name))
-	// }
+func deleteTournamentsHandler(c *fiber.Ctx) error {
+	tournamentId := c.Query("tournament_id")
+	tournamentIdInt, tournamentIdIntErr := strconv.Atoi(tournamentId)
 
-	return c.Status(200).SendString(fmt.Sprintf("Tournament %d finished, Winner: %s", tournamentIdInt, "TODO WINNER NAME"))
+	if tournamentId == "" {
+		return c.Status(400).SendString("The `tournament_id` query param value must be provided")
+	}
+
+	if tournamentIdIntErr != nil {
+		return c.Status(400).SendString("`tournament_id` query parameter must be an integer")
+	}
+
+	var emptyTournament Tournament
+
+	tournament := getTournament(db, tournamentIdInt)
+
+	if compareTournaments(tournament, emptyTournament) {
+		return c.Status(400).SendString("`tournament_id` query parameter must point to an existing Tournament")
+	}
+
+	// Only allow deletion of tournaments in "Pending" status
+	if tournament.Status != "Pending" {
+		return c.Status(400).SendString(fmt.Sprintf("Only tournaments with 'Pending' status can be deleted. Tournament %d has status '%s'", tournamentIdInt, tournament.Status))
+	}
+
+	deleteTournament(db, tournamentIdInt)
+
+	return c.Status(200).SendString(fmt.Sprintf("Deleted tournament %d", tournamentIdInt))
 }

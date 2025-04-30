@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"time"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+
 	"github.com/jonsimington/go-battle/matchmaker"
 	elogo "github.com/kortemy/elo-go"
 	"github.com/sirupsen/logrus"
@@ -34,19 +37,27 @@ func checkErr(err error) {
 	}
 }
 
-func init() {
-	log.Out = os.Stdout
-	log.Level = logrus.DebugLevel
+func initLogs() {
+	logsDir := "logs"
+	if err := os.MkdirAll(logsDir, 0755); err != nil {
+		fmt.Printf("Error creating logs directory: %v\n", err)
+	}
 
-	conf.Use("local", NewJsonConfig("./config.json"))
+	timestamp := time.Now().Format("2006-01-02_15-04-05")
+	logFilePath := filepath.Join(logsDir, fmt.Sprintf("go-battle-%s.log", timestamp))
+	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		fmt.Printf("Error opening log file: %v\n", err)
+	}
 
-	processorsToUse := runtime.NumCPU() - 1
-	log.Infof("Running with GOMAXPROCS = %d", processorsToUse)
-	runtime.GOMAXPROCS(processorsToUse)
+	multiWriter := io.MultiWriter(os.Stdout, logFile)
 
-	wg.Add(1)
+	log.SetOutput(multiWriter)
+	log.SetLevel(logrus.DebugLevel)
+	log.Infof("Logging initialized. Logs will be written to console and %s", logFilePath)
+}
 
-	// INIT DB
+func initDB() {
 	dbHost := conf.Get("DB_HOST")
 	dbPort, _ := strconv.Atoi(conf.Get("DB_PORT"))
 	dbUser := conf.Get("DB_USER")
@@ -71,12 +82,25 @@ func init() {
 		&Session{},
 		&Tournament{},
 		&HistoricalElo{},
+		&Metadata{},
 	)
 
 	if dbEmpty() {
 		FillDbWithTestData()
 	}
+}
 
+func init() {
+	initLogs()
+
+	conf.Use("local", NewJsonConfig("./config.json"))
+
+	processorsToUse := runtime.NumCPU() - 1
+	log.Infof("Running with GOMAXPROCS = %d", processorsToUse)
+	runtime.GOMAXPROCS(processorsToUse)
+
+	wg.Add(1)
+	initDB()
 	wg.Done()
 
 	// wait until DB is initialized before continuing
@@ -111,6 +135,10 @@ func main() {
 	app.Post("/tournaments", postTournamentsHandler)
 	app.Get("/tournaments", getTournamentsHandler)
 	app.Post("/tournaments/start", startTournamentsHandler)
+	app.Delete("/tournaments", deleteTournamentsHandler)
+
+	log.Infof("Initializing tournament controller")
+	InitializeTournamentController(db)
 
 	matchmakerPeriod := 5 * time.Minute
 	log.Infof("Starting matchmaker with random games every %v", matchmakerPeriod)

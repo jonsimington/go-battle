@@ -31,13 +31,13 @@ func GetGameErrorCode(s string) (GameErrorCode, error) {
 	match := re.FindString(s)
 
 	if match == "" {
-		return 0, fmt.Errorf("No int error code found in string '%s'", s)
+		return 0, fmt.Errorf("no int error code found in string '%s'", s)
 	}
 
 	i, convertErr := strconv.Atoi(match)
 
 	if convertErr != nil {
-		return 0, fmt.Errorf("Error parsing integer '%s': %s", match, convertErr)
+		return 0, fmt.Errorf("error parsing integer '%s': %s", match, convertErr)
 	}
 
 	switch i {

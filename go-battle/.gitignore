@@ -32,3 +32,5 @@ vendor/
 \#*\#
 
 bin/
+
+logs/

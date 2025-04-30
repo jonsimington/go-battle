@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"sort"
 )
 
 // win = 1 pt
@@ -52,133 +53,134 @@ func removeMatchedPlayer(players []*TournamentPlayer, i int) []*TournamentPlayer
 }
 
 func SwissPairing(tournamentPlayers []*TournamentPlayer, round int) []MatchPairing {
-	matchedPlayers := make([]MatchPairing, 0) // Initialize as empty slice to avoid nil issues
-	var pairs = [][]*TournamentPlayer{}
+	matchedPlayers := make([]MatchPairing, 0)
+	playersToPair := make([]*TournamentPlayer, 0)
 
-	// assumption: players is sorted in Elo desc
-	playersToPair := make([]*TournamentPlayer, len(tournamentPlayers))
-	copy(playersToPair, tournamentPlayers)
-
-	var winnersLastRound []*TournamentPlayer
-	var losersLastRound []*TournamentPlayer
-
-	for i := range playersToPair {
-		if playersToPair[i].LastGameResult == GameResultWin {
-			winnersLastRound = append(winnersLastRound, playersToPair[i])
-		} else {
-			losersLastRound = append(losersLastRound, playersToPair[i])
+	// Filter out any potentially nil players
+	for _, tp := range tournamentPlayers {
+		if tp != nil && tp.Player != nil {
+			playersToPair = append(playersToPair, tp)
 		}
 	}
 
-	if round == 1 {
-		var players = append([]*TournamentPlayer{}, playersToPair...)
-		for {
-			if len(players) <= 1 {
-				break
-			}
-			// handle trying to prevent playing previous opponents
+	if len(playersToPair) < 2 {
+		log.Warningf("Not enough valid players to create pairings for round %d", round)
+		return matchedPlayers
+	}
 
-			pairs = append(pairs, []*TournamentPlayer{players[0], players[1]})
-			players = players[2:] // Simplified slice manipulation
+	log.Infof("Creating pairings for round %d with %d players", round, len(playersToPair))
+
+	if round == 1 {
+		// First round pairing - players should already be sorted by Elo
+		players := playersToPair
+		for len(players) >= 2 {
+			p1 := players[0]
+			p2 := players[1]
+
+			// Get fresh player data
+			freshPlayer1 := getPlayer(int(p1.Player.ID))
+			freshPlayer2 := getPlayer(int(p2.Player.ID))
+
+			if freshPlayer1.ID != 0 && freshPlayer2.ID != 0 {
+				matchPairing := MatchPairing{
+					Player1: freshPlayer1,
+					Player2: freshPlayer2,
+				}
+				matchedPlayers = append(matchedPlayers, matchPairing)
+			}
+			players = players[2:]
 		}
+
+		// Handle odd number of players with a bye
 		if len(players) > 0 {
 			log.Infof("Assigning bye to player %s for round %d", players[0].Player.Name, round)
 			players[0].ByeGames = append(players[0].ByeGames, round)
-		}
-
-		log.Debugf("pairs: %v", pairs)
-
-		for i := range pairs {
-			pair := pairs[i]
-
-			m := MatchPairing{
-				Player1: *pair[0].Player,
-				Player2: *pair[1].Player,
-			}
-
-			matchedPlayers = append(matchedPlayers, m)
+			players[0].Score += 1.0
 		}
 	} else {
-		// Match winners against winners
-		for len(winnersLastRound) > 1 {
-			p1 := winnersLastRound[0]
-			p2 := winnersLastRound[1]
+		// For round 2+, use score-based pairing
+		// Sort players by score (should already be sorted but ensure it)
+		sort.Slice(playersToPair, func(i, j int) bool {
+			return playersToPair[i].Score > playersToPair[j].Score
+		})
 
-			if !hasPlayedBefore(p1, p2) {
-				setPlayersColorPreferences(*p1, *p2)
+		players := playersToPair
+		for len(players) >= 2 {
+			// Try to find a valid pairing for the current top player
+			p1 := players[0]
+			validOpponentFound := false
 
-				matchPairing := MatchPairing{
-					*p1.Player,
-					*p2.Player,
+			// Look for the highest-ranked player they haven't played yet
+			for j := 1; j < len(players); j++ {
+				p2 := players[j]
+				if !hasPlayedBefore(p1, p2) {
+					// Valid pairing found
+					freshPlayer1 := getPlayer(int(p1.Player.ID))
+					freshPlayer2 := getPlayer(int(p2.Player.ID))
+
+					if freshPlayer1.ID != 0 && freshPlayer2.ID != 0 {
+						matchPairing := MatchPairing{
+							Player1: freshPlayer1,
+							Player2: freshPlayer2,
+						}
+						matchedPlayers = append(matchedPlayers, matchPairing)
+
+						// Remove both players from the pool
+						players = append(players[:j], players[j+1:]...) // Remove p2 first
+						players = players[1:]                           // Remove p1
+						validOpponentFound = true
+						break
+					}
 				}
+			}
 
-				matchedPlayers = append(matchedPlayers, matchPairing)
-
-				winnersLastRound = winnersLastRound[2:] // Remove matched players
-			} else {
-				// Handle case where players have already played
-				winnersLastRound = append(winnersLastRound[1:], winnersLastRound[0])
+			// If no valid opponent found, give a bye
+			if !validOpponentFound {
+				log.Infof("No valid opponents for %s, assigning bye for round %d", p1.Player.Name, round)
+				p1.ByeGames = append(p1.ByeGames, round)
+				p1.Score += 1.0
+				players = players[1:] // Remove p1
 			}
 		}
 
-		if len(winnersLastRound) == 1 {
-			winnersLastRound[0].ByeGames = append(winnersLastRound[0].ByeGames, round)
+		// Handle last player if odd number
+		if len(players) == 1 {
+			log.Infof("Odd number of players, assigning bye to %s for round %d",
+				players[0].Player.Name, round)
+			players[0].ByeGames = append(players[0].ByeGames, round)
+			players[0].Score += 1.0
 		}
+	}
 
-		// Match losers against losers
-		for len(losersLastRound) > 1 {
-			p1 := losersLastRound[0]
-			p2 := losersLastRound[1]
-
-			if !hasPlayedBefore(p1, p2) {
-				setPlayersColorPreferences(*p1, *p2)
-
-				matchPairing := MatchPairing{
-					*p1.Player,
-					*p2.Player,
-				}
-
-				matchedPlayers = append(matchedPlayers, matchPairing)
-
-				losersLastRound = losersLastRound[2:] // Remove matched players
-			} else {
-				// Handle case where players have already played
-				losersLastRound = append(losersLastRound[1:], losersLastRound[0])
-			}
-		}
-
-		if len(losersLastRound) == 1 {
-			losersLastRound[0].ByeGames = append(losersLastRound[0].ByeGames, round)
-		}
+	log.Infof("Created %d pairings for round %d", len(matchedPlayers), round)
+	for i, pairing := range matchedPlayers {
+		log.Debugf("Pairing %d: %s (ID: %d) vs %s (ID: %d)",
+			i, pairing.Player1.Name, pairing.Player1.ID, pairing.Player2.Name, pairing.Player2.ID)
 	}
 
 	return matchedPlayers
 }
 
 func hasPlayedBefore(p1, p2 *TournamentPlayer) bool {
+	if p1 == nil || p2 == nil || p1.Player == nil || p2.Player == nil {
+		log.Warningf("Nil player reference in hasPlayedBefore check")
+		return false
+	}
+
 	for _, opponent := range p1.PastOpponents {
-		if opponent == p2.Player {
+		if opponent != nil && p2.Player != nil && opponent.ID == p2.Player.ID {
 			return true
 		}
 	}
-	return false
-}
 
-func setPlayersColorPreferences(p1 TournamentPlayer, p2 TournamentPlayer) {
-	if p1.NumGamesBlack > p1.NumGamesWhite {
-		p1.ColorPreference = WhiteColor
-	} else if p1.NumGamesWhite > p1.NumGamesBlack {
-		p1.ColorPreference = BlackColor
-	} else {
-		p1.ColorPreference = rand.Intn(1)
+	// Check the reverse relationship as well
+	for _, opponent := range p2.PastOpponents {
+		if opponent != nil && p1.Player != nil && opponent.ID == p1.Player.ID {
+			return true
+		}
 	}
-	if p2.NumGamesBlack > p2.NumGamesWhite {
-		p2.ColorPreference = WhiteColor
-	} else if p2.NumGamesWhite > p2.NumGamesBlack {
-		p2.ColorPreference = BlackColor
-	} else {
-		p2.ColorPreference = rand.Intn(1)
-	}
+
+	return false
 }
 
 func MonradPairing(players []Player, round int) []MatchPairing {

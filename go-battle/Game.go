@@ -68,6 +68,26 @@ func hasProcessedGameResult(sessionID int) bool {
 	return loaded
 }
 
+// isDrawReason checks if the provided reason indicates a draw
+// by checking if it starts with "Draw" or "Stalemate"
+func isDrawReason(reason string) bool {
+	if len(reason) == 0 {
+		return false
+	}
+
+	// Check if reason starts with "Draw"
+	if len(reason) >= 4 && reason[:4] == "Draw" {
+		return true
+	}
+
+	// Check if reason starts with "Stalemate"
+	if len(reason) >= 9 && reason[:9] == "Stalemate" {
+		return true
+	}
+
+	return false
+}
+
 func getGamesWithPlayers(players []int) []Game {
 	var games []Game
 
@@ -224,7 +244,6 @@ func (g Game) PlayGame(gameSession int) bool {
 			g.playGame(player, playerDir, &gameplayWG, gameSession)
 
 			gameplayWG.Done()
-			return
 		}(player)
 	}
 
@@ -232,6 +251,17 @@ func (g Game) PlayGame(gameSession int) bool {
 	gameplayWG.Wait()
 
 	return true
+}
+
+// findOpponent finds the opponent player in a game given the current player
+func (g Game) findOpponent(player Player) Player {
+	for _, p := range g.Players {
+		if p.ID != player.ID {
+			return p
+		}
+	}
+	// This should never happen in a two-player game, but return the first player as fallback
+	return g.Players[0]
 }
 
 func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession int) {
@@ -243,16 +273,8 @@ func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, game
 	if buildErr != nil {
 		log.Warningf("Failed to build client for player %s: %v", player.Name, buildErr)
 
-		// Find the opponent player
-		var opponent Player
-		for _, p := range g.Players {
-			if p.ID != player.ID {
-				opponent = p
-				break
-			}
-		}
+		opponent := g.findOpponent(player)
 
-		// Set error status and message
 		errorMsg := fmt.Sprintf("Build failed for player %s: %v", player.Name, buildErr)
 		updateGameStatus(db, g, "Error")
 		updateGameErrorMessage(db, g, errorMsg)
@@ -269,22 +291,13 @@ func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, game
 
 	// If the player's code caused an error, mark this player as loser and opponent as winner
 	if errorOccurred {
-		// Find the opponent player
-		var opponent Player
-		for _, p := range g.Players {
-			if p.ID != player.ID {
-				opponent = p
-				break
-			}
-		}
+		opponent := g.findOpponent(player)
 
 		log.Infof("Player %s code caused error in game %d - marking as loser", player.Name, gameSession)
 
 		setGameWinner(db, g, opponent)
 		setGameLoser(db, g, player)
 	}
-
-	return
 }
 
 func (g Game) runGame(playerLanguage string, playerDir string, gameType string, gameSession int, player *Player, errorOccurred *bool) {
@@ -383,9 +396,9 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 				errorMsg := fmt.Sprintf("Player %s game command failed after %d attempts: %v (%s)",
 					player.Name, numRetries, runErr, gameErrorCode.String())
 				log.Warningln(errorMsg)
-				updateGameStatus(db, g, "Error")
+				updateGameStatus(db, g, "Complete")
 				updateGameErrorMessage(db, g, errorMsg)
-				g.Status = "Error"
+				g.Status = "Complete"
 			}
 			*errorOccurred = true
 			return
@@ -401,7 +414,6 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 	for getGamelogAttempts < maxGamelogAttempts && !gamelogFound {
 		log.Debugf("Waiting for gamelog for session %d (attempt %d of %d)", gameSession, getGamelogAttempts+1, maxGamelogAttempts)
 
-		// Use Go's error handling instead of try/catch
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -419,9 +431,7 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 					resultMutex.Lock()
 					defer resultMutex.Unlock()
 
-					// Check if another goroutine has already processed the results
 					if hasProcessedGameResult(gameSession) {
-						log.Infof("Game %d results already processed, skipping", gameSession)
 						gamelogFound = true
 						return
 					}
@@ -435,11 +445,9 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 
 					// Process winners and losers from the gamelog
 					if glog != nil {
-						// First check for the draw case - two losers with reason starting with "Draw"
-						if len(glog.Losers) == 2 &&
-							(len(glog.Losers[0].Reason) > 0 && glog.Losers[0].Reason[:4] == "Draw" ||
-								len(glog.Losers[1].Reason) > 0 && glog.Losers[1].Reason[:4] == "Draw") {
-							log.Infof("Game %d resulted in a draw (both players in losers with Draw reason)", gameSession)
+						// First check for the draw case - two losers with reason starting with "Draw" or "Stalemate"
+						if len(glog.Losers) == 2 && (isDrawReason(glog.Losers[0].Reason) || isDrawReason(glog.Losers[1].Reason)) {
+							log.Infof("Game %d resulted in a draw (both players in losers with Draw/Stalemate reason)", gameSession)
 							updateGameDraw(db, g, true)
 
 							// Set an error message with the draw reason for UI display
@@ -447,8 +455,8 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 
 							// Handle ELO changes for draw
 							handleEloChanges(g.Players[0], g.Players[1], nil, true)
-						} else if len(glog.Winners) > 0 && len(glog.Losers) > 0 {
 							// Regular win/loss case
+						} else if len(glog.Winners) > 0 && len(glog.Losers) > 0 {
 							winnerName := glog.Winners[0].Name
 							loserName := glog.Losers[0].Name
 
@@ -474,13 +482,21 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 							}
 
 							handleEloChanges(winner, loser, &winner, false)
-						} else if len(glog.Winners) == 0 && len(glog.Losers) == 0 {
 							// No winners or losers means it's a draw (fallback case)
+						} else if len(glog.Winners) == 0 && len(glog.Losers) == 0 {
 							log.Infof("Game %d resulted in a draw (no winners or losers)", gameSession)
 							updateGameDraw(db, g, true)
 							handleEloChanges(g.Players[0], g.Players[1], nil, true)
 						}
 					}
+
+					// Automatically check and update match status when a game completes
+					// This ensures matches are marked complete as soon as all their games are done
+					go func() {
+						// Add a small delay to ensure all game updates are persisted
+						time.Sleep(1 * time.Second)
+						CheckAndUpdateMatchStatus(db, g.MatchID)
+					}()
 
 					gamelogFound = true
 				}
@@ -509,7 +525,6 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 	g.Status = "Incomplete"
 
 	*errorOccurred = false // Don't penalize any player for system issues
-	return
 }
 
 func handleEloChanges(player1 Player, player2 Player, winner *Player, draw bool) {
@@ -517,22 +532,6 @@ func handleEloChanges(player1 Player, player2 Player, winner *Player, draw bool)
 
 	updatePlayerElo(db, player1, outcomeA.Rating)
 	updatePlayerElo(db, player2, outcomeB.Rating)
-}
-
-func handleRunErr(runErr error, depth int, g Game) {
-	if runErr != nil {
-		if runErr.Error() == "signal: killed" {
-			updateGameStatus(db, g, "Canceled")
-			g.Status = "Canceled"
-		} else {
-			var gameErrorCode, _ = GetGameErrorCode(runErr.Error())
-
-			log.Warningln(fmt.Sprintf("Play game command returned error: `%v` (%s), trying again", runErr, gameErrorCode.String()))
-		}
-	} else {
-		updateGameStatus(db, g, "Complete")
-		g.Status = "Complete"
-	}
 }
 
 func makeClient(playerDir string, playerLanguage string) error {
@@ -552,7 +551,6 @@ func makeClient(playerDir string, playerLanguage string) error {
 		if _, err := os.Stat(exePath); err == nil {
 			// Executable already exists - this is likely from a previous build in another goroutine
 			// Skip rebuilding to prevent concurrent builds
-			log.Infof("C++ client already exists at %s, skipping build", exePath)
 			return nil
 		}
 
@@ -560,8 +558,6 @@ func makeClient(playerDir string, playerLanguage string) error {
 		if _, err := os.Stat(playerDir); os.IsNotExist(err) {
 			return fmt.Errorf("player directory %s does not exist", playerDir)
 		}
-
-		log.Infof("Building C++ client in %s", playerDir)
 
 		// Run make clean
 		makeCmd = exec.Command("make", "clean")
@@ -584,9 +580,7 @@ func makeClient(playerDir string, playerLanguage string) error {
 		// Verify the executable exists
 		if _, err := os.Stat(exePath); os.IsNotExist(err) {
 			log.Warningf("C++ client executable not found at %s after build", exePath)
-			return fmt.Errorf("C++ client build completed but executable not found at %s", exePath)
-		} else {
-			log.Infof("C++ client successfully built at %s", exePath)
+			return fmt.Errorf("c++ client build completed but executable not found at %s", exePath)
 		}
 	} else {
 		// For non-C++ clients
