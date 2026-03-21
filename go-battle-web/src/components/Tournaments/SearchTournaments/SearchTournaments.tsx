@@ -174,8 +174,8 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
     }
 
     const startTournament = (tournamentID: number) =>  {
-        setTournamentsPlaying([...tournamentsPlaying, tournamentID]);
-        setTournamentStartTimes([...tournamentStartTimes, {
+        setTournamentsPlaying(prev => [...prev, tournamentID]);
+        setTournamentStartTimes(prev => [...prev, {
             id: tournamentID,
             startTime: new Date(),
         }]);
@@ -194,7 +194,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             })
             .then(() => {
                 refreshData();
-                setTournamentsPlaying(tournamentsPlaying.filter((mID) => mID !== tournamentID));
+                setTournamentsPlaying(prev => prev.filter((mID) => mID !== tournamentID));
             });
     }
 

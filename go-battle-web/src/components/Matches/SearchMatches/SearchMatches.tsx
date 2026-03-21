@@ -174,8 +174,8 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
     }
 
     const startMatch = (matchID: number) => {
-        setMatchesPlaying([...matchesPlaying, matchID]);
-        setMatchStartTimes([...matchStartTimes, {
+        setMatchesPlaying(prev => [...prev, matchID]);
+        setMatchStartTimes(prev => [...prev, {
             id: matchID,
             startTime: new Date(),
         }]);
@@ -194,7 +194,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             })
             .then(() => {
                 refreshData();
-                setMatchesPlaying(matchesPlaying.filter((mID) => mID !== matchID));
+                setMatchesPlaying(prev => prev.filter((mID) => mID !== matchID));
             });
     }
 

@@ -1,6 +1,6 @@
 import { GamesResult } from "../models/GamesResult";
 import { PlayerScore } from "../models/PlayerScore"
-import { range } from 'lodash';
+import range from 'lodash/range';
 
 /**
  * Builds a service URL using the browser's current hostname so the app
@@ -82,18 +82,10 @@ export const prettyTimeAgo = (ms: number) => {
     }
 }
 
-export const allPlayersHaveSameScore = (players: PlayerScore[]) => {
-    if (players.length !== 2) {
-        let currentWins = players[0].wins;
-
-        players.forEach((p) => {
-            if(p.wins !== currentWins) {
-                return false;
-            }
-        });
-    } else {
-        return players[0].wins === players[1].wins;
-    }
+export const allPlayersHaveSameScore = (players: PlayerScore[]): boolean => {
+    if (players.length < 2) return true;
+    const firstWins = players[0].wins;
+    return players.every(p => p.wins === firstWins);
 }
 
 export const average = (array: number[]): number => {
@@ -157,24 +149,33 @@ export const calculatePlayerScores = (games: GamesResult[], players: any[]): Pla
         const playerID = player.ID;
         const playerElo = player.elo;
         
-        // Count wins, losses, and draws (check both nested object and _id fields)
-        const playerWins = games.filter(g => g.winner?.name === playerName || g.winner_id === playerID).length;
-        const playerLosses = games.filter(g => g.loser?.name === playerName || g.loser_id === playerID).length;
-        const playerDraws = games.filter(g => g.draw === true).length * 0.5;
+        // Count wins, losses, and draws in a single pass instead of 3 separate filters
+        let wins = 0;
+        let losses = 0;
+        let draws = 0;
+        for (const g of games) {
+            if (g.draw === true) {
+                draws += 0.5;
+            } else if (g.winner?.name === playerName || g.winner_id === playerID) {
+                wins++;
+            } else if (g.loser?.name === playerName || g.loser_id === playerID) {
+                losses++;
+            }
+        }
         
         playerScores.push({
             name: playerName,
             id: playerID,
-            wins: playerWins,
-            losses: playerLosses,
-            draws: playerDraws,
+            wins: wins,
+            losses: losses,
+            draws: draws,
             elo: playerElo,
             elo_history: player.elo_history,
         });
     });
     
     // Sort players by wins (descending)
-    playerScores.sort((a, b) => a.wins > b.wins ? -1 : a.wins < b.wins ? 1 : 0);
+    playerScores.sort((a, b) => b.wins - a.wins);
     
     return playerScores;
 }

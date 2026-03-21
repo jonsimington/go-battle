@@ -1,6 +1,6 @@
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { PlayersResult } from '../../../models/PlayersResult';
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button, Badge, Card, Form, InputGroup, Row, Col, Dropdown, DropdownButton, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { calculateGameResult, calculateStreak, pluck } from '../../../utils/utils';
 import { Sparklines, SparklinesLine, SparklinesSpots } from 'react-sparklines';
@@ -14,9 +14,35 @@ interface SearchPlayersProps {
     refreshData: Function,
 }
 
+// Pure function hoisted outside component — no re-creation each render
+const calculateWinPercentage = (player: PlayersResult): number => {
+    const games = player.games || [];
+    let wins = 0;
+    let draws = 0;
+    let total = 0;
+    for (const g of games) {
+        if (g.status !== "Complete") continue;
+        total++;
+        if ((g.winner_id || g.winner?.ID) === player.ID) wins++;
+        if (g.draw) draws++;
+    }
+    return total > 0 ? ((2 * wins + draws) / (2 * total) * 100) : 0;
+};
+
+// Count wins/losses/draws in a single pass instead of 3 separate filter calls
+const countGameResults = (games: any[], playerID: number) => {
+    let wins = 0, losses = 0, draws = 0, total = 0;
+    for (const g of games) {
+        if (g.status !== "Complete") continue;
+        total++;
+        if (g.draw) { draws++; continue; }
+        if ((g.winner_id || g.winner?.ID) === playerID) wins++;
+        else if ((g.loser_id || g.loser?.ID) === playerID) losses++;
+    }
+    return { wins, losses, draws, total };
+};
+
 export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): JSX.Element {
-    const [data, setData] = useState(tableData);
-    const [filteredData, setFilteredData] = useState(tableData);
     const [sortType, setSortType] = useState("elo-desc");
     const [searchTerm, setSearchTerm] = useState("");
     const [eloMinFilter, setEloMinFilter] = useState("");
@@ -24,81 +50,51 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
 
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const sortData = (sortType: any) => {
-            let sortedData = [...data] as PlayersResult[];
-    
-            if(sortType === "created") {
-                sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
-            }
-            else if(sortType === "created-desc") {
-                sortedData.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
-            }
-            else if(sortType === "elo-desc") {
-                sortedData.sort((a, b) => a.elo > b.elo ? -1 : a.elo < b.elo ? 1 : 0)
-            }
-            else if(sortType === "elo-asc") {
-                sortedData.sort((a, b) => a.elo < b.elo ? -1 : a.elo > b.elo ? 1 : 0)
-            }
-            else if(sortType === "name-asc") {
-                sortedData.sort((a, b) => a.name.localeCompare(b.name))
-            }
-            else if(sortType === "name-desc") {
-                sortedData.sort((a, b) => b.name.localeCompare(a.name))
-            }
-            else if(sortType === "win-percent-desc") {
-                sortedData.sort((a, b) => {
-                    const aWinPercent = calculateWinPercentage(a);
-                    const bWinPercent = calculateWinPercentage(b);
-                    return aWinPercent > bWinPercent ? -1 : aWinPercent < bWinPercent ? 1 : 0;
-                });
-            }
-            else if(sortType === "activity-desc") {
-                sortedData.sort((a, b) => (a.games || []).length > (b.games || []).length ? -1 : (a.games || []).length < (b.games || []).length ? 1 : 0)
-            }
-    
-            setData(sortedData);
+    // Derive sorted + filtered data during render via useMemo instead of useEffect chains
+    const filteredData = useMemo(() => {
+        let result = [...tableData] as PlayersResult[];
+
+        // Sort
+        if (sortType === "created") {
+            result.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0);
+        } else if (sortType === "created-desc") {
+            result.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0);
+        } else if (sortType === "elo-desc") {
+            result.sort((a, b) => b.elo - a.elo);
+        } else if (sortType === "elo-asc") {
+            result.sort((a, b) => a.elo - b.elo);
+        } else if (sortType === "name-asc") {
+            result.sort((a, b) => a.name.localeCompare(b.name));
+        } else if (sortType === "name-desc") {
+            result.sort((a, b) => b.name.localeCompare(a.name));
+        } else if (sortType === "win-percent-desc") {
+            result.sort((a, b) => calculateWinPercentage(b) - calculateWinPercentage(a));
+        } else if (sortType === "activity-desc") {
+            result.sort((a, b) => (b.games || []).length - (a.games || []).length);
         }
 
-        sortData(sortType);
-    }, [sortType]);
-
-    useEffect(() => {
-        // Filter data based on search term and ELO range
-        let result = [...data] as PlayersResult[];
-        
+        // Filter by search term
         if (searchTerm) {
-            result = result.filter(player => 
-                player.name.toLowerCase().includes(searchTerm.toLowerCase())
-            );
+            const lower = searchTerm.toLowerCase();
+            result = result.filter(player => player.name.toLowerCase().includes(lower));
         }
-        
+
+        // Filter by ELO range
         if (eloMinFilter) {
             const minElo = parseInt(eloMinFilter);
             if (!isNaN(minElo)) {
                 result = result.filter(player => player.elo >= minElo);
             }
         }
-        
         if (eloMaxFilter) {
             const maxElo = parseInt(eloMaxFilter);
             if (!isNaN(maxElo)) {
                 result = result.filter(player => player.elo <= maxElo);
             }
         }
-        
-        setFilteredData(result);
-    }, [data, searchTerm, eloMinFilter, eloMaxFilter]);
 
-    const calculateWinPercentage = (player: PlayersResult): number => {
-        const completeGames = (player.games || []).filter(g => g.status === "Complete");
-        const wins = completeGames.filter(g => (g.winner_id || g.winner?.ID) === player.ID).length;
-        const draws = completeGames.filter(g => g.draw).length;
-        const numGames = completeGames.length;
-        
-        const winPercent = numGames > 0 ? ((2 * wins + draws) / (2 * numGames) * 100) : 0;
-        return winPercent;
-    };
+        return result;
+    }, [tableData, sortType, searchTerm, eloMinFilter, eloMaxFilter]);
 
     const renderRankBadge = (index: number) => {
         if (index === 0) return <FaTrophy className="text-warning" title="Top Ranked Player" />;
@@ -109,8 +105,8 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
 
     const renderPlayerActivity = (games: any[]) => {
         if (!games) return null;
-        const recentGames = games.filter(g => g.status === "Complete")
-                               .sort((a, b) => a.UpdatedAt > b.UpdatedAt ? -1 : a.UpdatedAt < b.UpdatedAt ? 1 : 0)
+        const recentGames = [...games.filter(g => g.status === "Complete")]
+                               .sort((a: any, b: any) => a.UpdatedAt > b.UpdatedAt ? -1 : a.UpdatedAt < b.UpdatedAt ? 1 : 0)
                                .slice(0, 15);
         
         if (recentGames.length === 0) return null;
@@ -134,7 +130,6 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             title: "#",
             width: 50,
             render: (column: IColumnType<PlayersResult>, item: PlayersResult, index?: number) => {
-                // Use a default value of 0 if index is undefined
                 const displayIndex = typeof index === 'number' ? index : 0;
                 return (
                     <div className="d-flex align-items-center">
@@ -160,7 +155,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                             </span>
                         </div>
                     </div>
-                )
+                );
             }
         },
         {
@@ -169,12 +164,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             width: 160,
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
                 const { ID } = item;
-                const safeGames = item.games || [];
-                const completeGames = safeGames.filter((g) => g.status === "Complete")
-                const wins = completeGames.filter((g) => (g.winner_id || g.winner?.ID) === ID).length;
-                const losses = completeGames.filter((g) => (g.loser_id || g.loser?.ID) === ID).length;
-                const draws = completeGames.filter((g) => g.draw).length;
-                const total = completeGames.length;
+                const { wins, losses, draws, total } = countGameResults(item.games || [], ID);
                 const wPct = total > 0 ? (wins / total) * 100 : 0;
                 const lPct = total > 0 ? (losses / total) * 100 : 0;
                 const dPct = total > 0 ? (draws / total) * 100 : 0;
@@ -203,7 +193,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                             </div>
                         </div>
                     </OverlayTrigger>
-                )
+                );
             }
         },
         {
@@ -213,8 +203,9 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
                 const { ID } = item;
                 const safeGames = item.games || [];
-                let sortedGames = safeGames.filter(g => g.status === "Complete").sort((a, b) => a.UpdatedAt > b.UpdatedAt ? -1 : a.UpdatedAt < b.UpdatedAt ? 1 : 0);
-                let { streakType, streakCount } = calculateStreak(sortedGames, ID);
+                const sortedGames = [...safeGames.filter(g => g.status === "Complete")]
+                    .sort((a: any, b: any) => a.UpdatedAt > b.UpdatedAt ? -1 : a.UpdatedAt < b.UpdatedAt ? 1 : 0);
+                const { streakType, streakCount } = calculateStreak(sortedGames, ID);
                 
                 if (streakCount === 0) {
                     return <span className="streak-none">—</span>;
@@ -226,7 +217,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                 return (
                     <span className={`streak-badge ${cls}`}>
                         {streakCount}{label}
-                        {streakType === "win" && streakCount >= 3 && <FaFire className="streak-fire" />}
+                        {streakType === "win" && streakCount >= 3 ? <FaFire className="streak-fire" /> : null}
                     </span>
                 );
             }
@@ -236,14 +227,9 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             title: "Win %",
             width: 80,
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
-                const { ID } = item;
-                const safeGames = item.games || [];
-                const completeGames = safeGames.filter((g) => g.status === "Complete")
-                const wins = completeGames.filter((g) => (g.winner_id || g.winner?.ID) === ID).length;
-                const draws = completeGames.filter((g) => g.draw).length;
-                const numGames = completeGames.length;
-                if (numGames === 0) return <span className="streak-none">—</span>;
-                const winPercent = Math.round(((2 * wins + draws) / (2 * numGames)) * 1000) / 10;
+                const { wins, draws, total } = countGameResults(item.games || [], item.ID);
+                if (total === 0) return <span className="streak-none">—</span>;
+                const winPercent = Math.round(((2 * wins + draws) / (2 * total)) * 1000) / 10;
 
                 const cls = winPercent >= 60 ? 'wp-high' : winPercent >= 45 ? 'wp-mid' : 'wp-low';
                 return <span className={`win-pct ${cls}`}>{winPercent.toFixed(1)}%</span>;
@@ -257,7 +243,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                 const { elo, elo_history } = item;
                 return (
                     <EloBadge elo={elo} eloHistory={elo_history} />
-                )
+                );
             }
         },
         {
@@ -270,20 +256,16 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                     return "No History Yet";
                 }
                 else if (elo_history.length < 3) {
-                    return "Not Enough History"
+                    return "Not Enough History";
                 }
                 else {
-                    let sortedHistory = elo_history.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 0 : 1);
-                    let sortedElos = sortedHistory.map(pluck('elo'));
+                    // Use spread + sort to avoid mutating the original array during render
+                    const sortedHistory = [...elo_history].sort((a: any, b: any) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0);
+                    const sortedElos = sortedHistory.map(pluck('elo'));
 
-                    let sparklineColor = "#f85149"; // danger
-
-                    let firstElo = sortedElos[0];
-                    let lastElo = sortedElos[sortedElos.length - 1];
-    
-                    if (firstElo < lastElo) {
-                        sparklineColor = "#3fb950"; // success
-                    }
+                    const firstElo = sortedElos[0];
+                    const lastElo = sortedElos[sortedElos.length - 1];
+                    const sparklineColor = firstElo < lastElo ? "#3fb950" : "#f85149";
 
                     return (
                         <div className="d-flex align-items-center">
@@ -297,7 +279,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                                 {firstElo < lastElo ? "+" : ""}{lastElo - firstElo}
                             </Badge>
                         </div>
-                    )
+                    );
                 }
             }
         },
@@ -316,7 +298,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                         onClick={() => navigate(`/clients/search?ids=${client.ID}`)}>
                             {client.ID}
                     </Button>
-                )
+                );
             }
         }
     ];

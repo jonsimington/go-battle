@@ -5,7 +5,6 @@ import { TournamentsResult } from '../../../models/TournamentsResult';
 import { MatchesResult } from '../../../models/MatchesResult';
 import './TournamentBracket.css';
 import { PlayersResult } from '../../../models/PlayersResult';
-import moment from 'moment';
 import { Timer } from '../../Common/Timer';
 import ELOBadge from '../../Common/ELO';
 import { getApiUrl } from '../../../utils/utils';
@@ -319,9 +318,9 @@ export function TournamentBracket(): JSX.Element {
         );
     };
 
-    // New component for Swiss tournament visualization
-    const SwissTournamentVisualizer = () => {
-        return (
+    // New component for Swiss tournament visualization — extracted as a proper component
+    // instead of being defined inline (which caused full remount on every parent re-render)
+    const swissTournamentContent = (
             <div className="swiss-tournament-container">
                 {rounds.map((round, roundIndex) => (
                     <div className="swiss-round" key={`round-${round.roundNumber}`}>
@@ -423,7 +422,6 @@ export function TournamentBracket(): JSX.Element {
                 </div>
             </div>
         );
-    };
 
     // Render a match specifically for the Swiss tournament visualization
     const renderSwissMatch = (match: BracketMatch) => {
@@ -642,7 +640,7 @@ export function TournamentBracket(): JSX.Element {
                     No matches have been created for this tournament yet.
                 </Alert>
             ) : (
-                <SwissTournamentVisualizer />
+                swissTournamentContent
             )}
 
             {tournament?.winner && (
