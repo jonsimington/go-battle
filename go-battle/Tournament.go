@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"sort"
 	"sync"
 	"time"
@@ -35,8 +36,17 @@ const (
 	GameResultWin  int = 1
 )
 
-// Maximum number of rounds before forcing tournament completion
-const MaxRounds = 20
+// MaxRoundsHardCap is the absolute maximum number of rounds before forcing tournament completion
+const MaxRoundsHardCap = 50
+
+// OptimalSwissRounds returns ceil(log2(n)) — the standard number of rounds for a Swiss tournament
+// with n players. Falls back to 1 if n < 2.
+func OptimalSwissRounds(n int) int {
+	if n < 2 {
+		return 1
+	}
+	return int(math.Ceil(math.Log2(float64(n))))
+}
 
 type TournamentPlayer struct {
 	Player          *Player   `json:"player"`
@@ -372,8 +382,9 @@ func createMatchesFromPairings(db *gorm.DB, tournament Tournament, roundPairings
 			}
 
 			// Set match times immediately since it's automatically complete
-			updateMatchStartTime(db, match, time.Now())
-			updateMatchEndTime(db, match, time.Now())
+			// Use the transaction for time updates since match was created in this tx
+			now := time.Now()
+			tx.Model(&match).Updates(map[string]interface{}{"start_time": now, "end_time": now})
 
 			matchCount++
 			continue
@@ -526,23 +537,31 @@ func ProgressTournament(db *gorm.DB, tournamentID int) {
 		return tournamentPlayers[i].Score > tournamentPlayers[j].Score
 	})
 
+	// Calculate optimal number of rounds based on player count
+	optimalRounds := OptimalSwissRounds(len(tournament.Players))
+	maxRounds := optimalRounds
+	if maxRounds > MaxRoundsHardCap {
+		maxRounds = MaxRoundsHardCap
+	}
+
 	// Check for tournament completion conditions
 	shouldComplete := false
 
-	// Condition 1: Maximum rounds reached
-	if currentRound >= MaxRounds {
-		log.Infof("Tournament %d has reached maximum rounds (%d), ending tournament", tournamentID, MaxRounds)
+	// Condition 1: Optimal (or max) rounds reached
+	if currentRound >= maxRounds {
+		log.Infof("Tournament %d has reached target rounds (%d, optimal=%d), ending tournament", tournamentID, maxRounds, optimalRounds)
 		shouldComplete = true
 	}
 
 	// Condition 2: Clear winner (highest scoring player cannot be caught)
+	// With per-match scoring: 1 point per match win, 0.5 for draw, 0 for loss
 	if len(tournamentPlayers) > 1 {
 		leader := tournamentPlayers[0]
 		secondPlace := tournamentPlayers[1]
-		remainingRoundsPossible := MaxRounds - currentRound       // Use MaxRounds instead of player count
-		maxPossiblePointsGain := float32(remainingRoundsPossible) // 1 point per round win
+		remainingRoundsPossible := maxRounds - currentRound
+		maxPossiblePointsGain := float32(remainingRoundsPossible) // 1 point per round (match) win
 
-		// If second place can't catch up even if they win all remaining possible games
+		// If second place can't catch up even if they win all remaining matches
 		if secondPlace.Score+maxPossiblePointsGain < leader.Score {
 			log.Infof("Tournament %d has a clear winner, no other player can catch up", tournamentID)
 			shouldComplete = true
@@ -603,7 +622,6 @@ func ProgressTournament(db *gorm.DB, tournamentID int) {
 
 	// If no matches were created (no valid pairings possible), end the tournament
 	if matchCount == 0 {
-		tournamentLock.Lock()
 		log.Infof("No new matches created for tournament %d, marking as complete", tournamentID)
 		winner := determineSwissTournamentWinner(tournament)
 		if winner != nil && winner.ID > 0 {
@@ -614,7 +632,6 @@ func ProgressTournament(db *gorm.DB, tournamentID int) {
 		}
 		updateTournamentStatus(db, tournament, "Completed")
 		updateTournamentEndTime(db, tournament, time.Now())
-		tournamentLock.Unlock()
 	}
 }
 
@@ -647,6 +664,7 @@ func buildTournamentPlayersFromResults(tournament Tournament) []*TournamentPlaye
 	}
 
 	// Process all matches to update player scores and past opponents
+	// Scoring is per-match (standard Swiss): Win=1, Draw=0.5, Loss=0
 	for _, match := range tournament.Matches {
 		// Skip incomplete matches
 		if match.Status != "Complete" {
@@ -678,9 +696,10 @@ func buildTournamentPlayersFromResults(tournament Tournament) []*TournamentPlaye
 		tp1.PastOpponents = append(tp1.PastOpponents, &player2)
 		tp2.PastOpponents = append(tp2.PastOpponents, &player1)
 
-		// Count wins for each player
-		player1Wins := 0
-		player2Wins := 0
+		// Count game wins to determine the match outcome
+		player1GameWins := 0
+		player2GameWins := 0
+		draws := 0
 
 		for _, game := range match.Games {
 			if game.Status != "Complete" && game.Status != "Error" {
@@ -688,29 +707,29 @@ func buildTournamentPlayersFromResults(tournament Tournament) []*TournamentPlaye
 			}
 
 			if game.Draw {
-				// For a draw, both players get 0.5 point
-				tp1.Score += 0.5
-				tp2.Score += 0.5
+				draws++
 			} else if game.Winner != nil && game.Loser != nil {
 				if game.Winner.ID == player1.ID {
-					player1Wins++
-					tp1.Score += 1.0
+					player1GameWins++
 				} else if game.Winner.ID == player2.ID {
-					player2Wins++
-					tp2.Score += 1.0
+					player2GameWins++
 				}
 			}
 		}
 
-		// Set last game result based on overall match outcome
-		if player1Wins > player2Wins {
+		// Award match-level points: Win=1, Draw=0.5, Loss=0
+		if player1GameWins > player2GameWins {
+			tp1.Score += 1.0
 			tp1.LastGameResult = GameResultWin
 			tp2.LastGameResult = GameResultLoss
-		} else if player2Wins > player1Wins {
+		} else if player2GameWins > player1GameWins {
+			tp2.Score += 1.0
 			tp1.LastGameResult = GameResultLoss
 			tp2.LastGameResult = GameResultWin
 		} else {
-			// It's a draw - no change to LastGameResult
+			// Match draw
+			tp1.Score += 0.5
+			tp2.Score += 0.5
 		}
 	}
 
@@ -722,15 +741,46 @@ func buildTournamentPlayersFromResults(tournament Tournament) []*TournamentPlaye
 	return tournamentPlayers
 }
 
+// buchholzScore calculates the Buchholz tiebreaker for a tournament player.
+// Buchholz = sum of all opponents' scores.
+func buchholzScore(tp *TournamentPlayer, playerMap map[uint]*TournamentPlayer) float32 {
+	var total float32
+	for _, opp := range tp.PastOpponents {
+		if opp == nil {
+			continue
+		}
+		if oppTP, ok := playerMap[opp.ID]; ok {
+			total += oppTP.Score
+		}
+	}
+	return total
+}
+
+// sortTournamentPlayers sorts by Score desc, then Buchholz desc as tiebreaker.
+func sortTournamentPlayers(players []*TournamentPlayer, playerMap map[uint]*TournamentPlayer) {
+	sort.SliceStable(players, func(i, j int) bool {
+		if players[i].Score != players[j].Score {
+			return players[i].Score > players[j].Score
+		}
+		// Tiebreaker: Buchholz (sum of opponents' scores)
+		return buchholzScore(players[i], playerMap) > buchholzScore(players[j], playerMap)
+	})
+}
+
 // determineSwissTournamentWinner determines the winner of a Swiss tournament
-// based on player scores from match results
+// based on player scores from match results, using Buchholz tiebreaker.
 func determineSwissTournamentWinner(tournament Tournament) *Player {
 	tournamentPlayers := buildTournamentPlayersFromResults(tournament)
 
-	// Sort by score (highest first)
-	sort.Slice(tournamentPlayers, func(i, j int) bool {
-		return tournamentPlayers[i].Score > tournamentPlayers[j].Score
-	})
+	// Build playerMap for Buchholz calculation
+	playerMap := make(map[uint]*TournamentPlayer)
+	for _, tp := range tournamentPlayers {
+		if tp.Player != nil {
+			playerMap[tp.Player.ID] = tp
+		}
+	}
+
+	sortTournamentPlayers(tournamentPlayers, playerMap)
 
 	if len(tournamentPlayers) > 0 && tournamentPlayers[0].Player != nil && tournamentPlayers[0].Player.ID > 0 {
 		return tournamentPlayers[0].Player
@@ -753,7 +803,14 @@ func InitializeTournamentController(db *gorm.DB) {
 		for {
 			select {
 			case <-ticker.C:
-				checkTournaments(db)
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							log.Errorf("Panic recovered in tournament controller: %v", r)
+						}
+					}()
+					checkTournaments(db)
+				}()
 			}
 		}
 	}()

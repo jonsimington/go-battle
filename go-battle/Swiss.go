@@ -55,52 +55,69 @@ func removeMatchedPlayer(players []*TournamentPlayer, i int) []*TournamentPlayer
 
 func SwissPairing(tournamentPlayers []*TournamentPlayer, round int) []MatchPairing {
 	matchedPlayers := make([]MatchPairing, 0)
-	playersToPair := make([]*TournamentPlayer, 0)
 
-	// Filter out any potentially nil players
+	// Filter out any potentially nil players into a fresh copy (avoid mutating the caller's slice)
+	remainingPlayers := make([]*TournamentPlayer, 0, len(tournamentPlayers))
 	for _, tp := range tournamentPlayers {
 		if tp != nil && tp.Player != nil {
-			playersToPair = append(playersToPair, tp)
+			remainingPlayers = append(remainingPlayers, tp)
 		}
 	}
 
-	if len(playersToPair) < 2 {
+	if len(remainingPlayers) < 2 {
 		log.Warningf("Not enough valid players to create pairings for round %d", round)
 		return matchedPlayers
 	}
 
-	log.Infof("Creating pairings for round %d with %d players", round, len(playersToPair))
+	log.Infof("Creating pairings for round %d with %d players", round, len(remainingPlayers))
 
 	// Sort players by score so highest scoring players play each other
-	sort.Slice(playersToPair, func(i, j int) bool {
-		return playersToPair[i].Score > playersToPair[j].Score
+	sort.Slice(remainingPlayers, func(i, j int) bool {
+		return remainingPlayers[i].Score > remainingPlayers[j].Score
 	})
 
-	// Create score groups - players with same scores should play each other when possible
-	scoreGroups := make(map[float32][]*TournamentPlayer)
-	for _, p := range playersToPair {
-		scoreGroups[p.Score] = append(scoreGroups[p.Score], p)
+	// Handle odd number of players: assign bye to the lowest-scoring player
+	// who hasn't already received a bye in this tournament.
+	if len(remainingPlayers)%2 != 0 {
+		byeIdx := -1
+		// Search from bottom (lowest score) up
+		for i := len(remainingPlayers) - 1; i >= 0; i-- {
+			if len(remainingPlayers[i].ByeGames) == 0 {
+				byeIdx = i
+				break
+			}
+		}
+		// If everyone has had a bye, give it to the lowest-scoring player
+		if byeIdx == -1 {
+			byeIdx = len(remainingPlayers) - 1
+		}
+
+		byePlayer := remainingPlayers[byeIdx]
+		log.Infof("Odd number of players, assigning bye to %s (lowest eligible) for round %d", byePlayer.Player.Name, round)
+		freshPlayer := getPlayer(int(byePlayer.Player.ID))
+		if freshPlayer.ID != 0 {
+			matchPairing := MatchPairing{
+				Player1: freshPlayer,
+				IsBye:   true,
+			}
+			matchedPlayers = append(matchedPlayers, matchPairing)
+			byePlayer.ByeGames = append(byePlayer.ByeGames, round)
+			byePlayer.Score += 1.0
+		}
+		// Remove the bye player from the pairing pool (safe copy removal)
+		remainingPlayers = append(remainingPlayers[:byeIdx], remainingPlayers[byeIdx+1:]...)
 	}
 
-	// Process each score group from highest to lowest
-	scores := make([]float32, 0)
-	for score := range scoreGroups {
-		scores = append(scores, score)
-	}
-	sort.Slice(scores, func(i, j int) bool {
-		return scores[i] > scores[j]
-	})
-
-	remainingPlayers := playersToPair
-	for len(remainingPlayers) > 1 { // Stop at 1 to handle odd number case separately
+	for len(remainingPlayers) > 1 {
 		p1 := remainingPlayers[0]
+		// Remove p1 from pool immediately (we always consume p1 in this iteration)
+		remainingPlayers = remainingPlayers[1:]
 		matched := false
 
 		// First try to find opponent from same score group who hasn't been played
-		for i := 1; i < len(remainingPlayers); i++ {
+		for i := 0; i < len(remainingPlayers); i++ {
 			p2 := remainingPlayers[i]
 			if !hasPlayedBefore(p1, p2) {
-				// Get fresh player data
 				freshPlayer1 := getPlayer(int(p1.Player.ID))
 				freshPlayer2 := getPlayer(int(p2.Player.ID))
 
@@ -111,9 +128,8 @@ func SwissPairing(tournamentPlayers []*TournamentPlayer, round int) []MatchPairi
 					}
 					matchedPlayers = append(matchedPlayers, matchPairing)
 
-					// Remove both players from remaining pool
+					// Remove p2 from remaining pool using safe copy
 					remainingPlayers = append(remainingPlayers[:i], remainingPlayers[i+1:]...)
-					remainingPlayers = remainingPlayers[1:]
 					matched = true
 					break
 				}
@@ -122,7 +138,7 @@ func SwissPairing(tournamentPlayers []*TournamentPlayer, round int) []MatchPairi
 
 		// If no unpaired opponent found, pair with anyone
 		if !matched {
-			for i := 1; i < len(remainingPlayers); i++ {
+			for i := 0; i < len(remainingPlayers); i++ {
 				p2 := remainingPlayers[i]
 				freshPlayer1 := getPlayer(int(p1.Player.ID))
 				freshPlayer2 := getPlayer(int(p2.Player.ID))
@@ -134,33 +150,17 @@ func SwissPairing(tournamentPlayers []*TournamentPlayer, round int) []MatchPairi
 					}
 					matchedPlayers = append(matchedPlayers, matchPairing)
 
-					// Remove both players from remaining pool
+					// Remove p2 from remaining pool using safe copy
 					remainingPlayers = append(remainingPlayers[:i], remainingPlayers[i+1:]...)
-					remainingPlayers = remainingPlayers[1:]
 					matched = true
 					break
 				}
 			}
 		}
 
-		// If still no match found (shouldn't happen unless player data invalid)
+		// If still no match found (player data invalid), p1 is skipped
 		if !matched {
-			remainingPlayers = remainingPlayers[1:]
-		}
-	}
-
-	// Handle last player if odd number
-	if len(remainingPlayers) == 1 {
-		log.Infof("Odd number of players, assigning bye to %s for round %d", remainingPlayers[0].Player.Name, round)
-		freshPlayer := getPlayer(int(remainingPlayers[0].Player.ID))
-		if freshPlayer.ID != 0 {
-			matchPairing := MatchPairing{
-				Player1: freshPlayer,
-				IsBye:   true,
-			}
-			matchedPlayers = append(matchedPlayers, matchPairing)
-			remainingPlayers[0].ByeGames = append(remainingPlayers[0].ByeGames, round)
-			remainingPlayers[0].Score += 1.0
+			log.Warningf("Could not find a valid opponent for player %s in round %d", p1.Player.Name, round)
 		}
 	}
 

@@ -46,6 +46,18 @@ var clientBuildMutexes sync.Map
 // used to ensure only one goroutine processes the game results
 var gameResultMutexes sync.Map
 
+// cleanupGameSyncMaps removes entries related to a specific match from the sync.Maps
+// to prevent unbounded memory growth during long-running tournaments.
+func cleanupGameSyncMaps(matchID uint, sessionIDs []int, playerDirs []string) {
+	for _, sid := range sessionIDs {
+		gameResultMutexes.Delete(sid)
+		gameResultMutexes.Delete(fmt.Sprintf("game_processed_%d", sid))
+	}
+	for _, dir := range playerDirs {
+		clientBuildMutexes.Delete(dir)
+	}
+}
+
 // getClientBuildMutex returns a mutex for the given player directory
 // creating one if it doesn't exist
 func getClientBuildMutex(playerDir string) *sync.Mutex {
@@ -367,15 +379,18 @@ func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, game
 	if buildErr != nil {
 		log.Warningf("Failed to build client for player %s: %v", player.Name, buildErr)
 
-		opponent := g.findOpponent(player)
+		// Use hasProcessedGameResult to ensure only one goroutine sets winner/loser
+		if !hasProcessedGameResult(gameSession) {
+			opponent := g.findOpponent(player)
 
-		errorMsg := fmt.Sprintf("Build failed for player %s: %v", player.Name, buildErr)
-		updateGameStatus(db, g, "Error")
-		updateGameErrorMessage(db, g, errorMsg)
+			errorMsg := fmt.Sprintf("Build failed for player %s: %v", player.Name, buildErr)
+			updateGameStatus(db, g, "Error")
+			updateGameErrorMessage(db, g, errorMsg)
 
-		// Mark this player as loser since their code failed to build
-		setGameWinner(db, g, opponent)
-		setGameLoser(db, g, player)
+			// Mark this player as loser since their code failed to build
+			setGameWinner(db, g, opponent)
+			setGameLoser(db, g, player)
+		}
 
 		return
 	}
@@ -385,12 +400,15 @@ func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, game
 
 	// If the player's code caused an error, mark this player as loser and opponent as winner
 	if errorOccurred {
-		opponent := g.findOpponent(player)
+		// Use hasProcessedGameResult to ensure only one goroutine sets winner/loser
+		if !hasProcessedGameResult(gameSession) {
+			opponent := g.findOpponent(player)
 
-		log.Infof("Player %s code caused error in game %d - marking as loser", player.Name, gameSession)
+			log.Infof("Player %s code caused error in game %d - marking as loser", player.Name, gameSession)
 
-		setGameWinner(db, g, opponent)
-		setGameLoser(db, g, player)
+			setGameWinner(db, g, opponent)
+			setGameLoser(db, g, player)
+		}
 	}
 }
 
@@ -406,15 +424,24 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 		} else if checkIfCommandExistsOnHost("python") {
 			m["py"] = "python"
 
-			// panic if host's python isn't python v3.x.x
 			if checkPythonVersionOnHost(m["py"]) != 3 {
-				panic("Host does not support python3.  Cerveau python clients require python3.")
+				errorMsg := "Host does not support python3. Cerveau python clients require python3."
+				log.Errorf(errorMsg)
+				updateGameStatus(db, g, "Error")
+				updateGameErrorMessage(db, g, errorMsg)
+				*errorOccurred = true
+				return
 			}
 		}
 	}
 
 	if !checkIfCommandExistsOnHost(m[playerLanguage]) {
-		panic(fmt.Sprintf("`%s` does not exist on host!  Game %d cannot be played until `%s` is available.", m[playerLanguage], gameSession, m[playerLanguage]))
+		errorMsg := fmt.Sprintf("`%s` does not exist on host! Game %d cannot be played until `%s` is available.", m[playerLanguage], gameSession, m[playerLanguage])
+		log.Errorf(errorMsg)
+		updateGameStatus(db, g, "Error")
+		updateGameErrorMessage(db, g, errorMsg)
+		*errorOccurred = true
+		return
 	}
 
 	var gameserverURL = conf.Get("cerveauApiHost")

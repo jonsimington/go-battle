@@ -384,6 +384,12 @@ func (m Match) StartMatch(db *gorm.DB) {
 	}
 
 	cleanUpMatchDirectory(m)
+	// Free sync.Map entries for this match to prevent memory leaks
+	playerDirs := []string{
+		matchDir + "/" + player1.Name + "/",
+		matchDir + "/" + player2.Name + "/",
+	}
+	cleanupGameSyncMaps(m.ID, matchSessions, playerDirs)
 	updateMatchStatus(db, m, "Complete")
 	updateMatchEndTime(db, m, time.Now())
 }
@@ -714,7 +720,12 @@ func createGamesForMatchWithOptions(db *gorm.DB, matchID uint, isPartOfProgressi
 			CheckAndUpdateMatchStatus(db, int(refreshedMatch.ID))
 		}
 
-		// Clean up match directory
+		// Clean up match directory and free sync.Map entries to prevent memory leaks
 		cleanUpMatchDirectory(match)
+		playerDirs := []string{
+			matchDir + "/" + player1.Name + "/",
+			matchDir + "/" + player2.Name + "/",
+		}
+		cleanupGameSyncMaps(match.ID, matchSessions, playerDirs)
 	}()
 }
