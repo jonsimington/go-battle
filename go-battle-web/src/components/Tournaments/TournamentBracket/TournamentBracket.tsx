@@ -164,7 +164,7 @@ export function TournamentBracket(): JSX.Element {
         // Initialize player status tracking
         const playerStatusMap = new Map<number, PlayerStatus>();
         tournament.players.forEach(player => {
-            const games = player.games || [];
+            const games = (player.games || []).filter(g => g.status === "Complete");
             let wins = games.filter(g => g.winner_id === player.ID).length;
             let losses = games.filter(g => g.loser_id === player.ID).length;
             let draws = games.filter(g => g.draw).length;
@@ -214,12 +214,12 @@ export function TournamentBracket(): JSX.Element {
             
             // Calculate match results
             let completedGames = 0;
-            let isDraw = false;
 
             const player1Score = calculateScore(player1, match);
             const player2Score = player2 ? calculateScore(player2, match) : 0;
             const player1IsWinner = player1Score > player2Score;
             const player2IsWinner = player2 ? player2Score > player1Score : false;
+            const isDraw = match.status === "Complete" && !player1IsWinner && !player2IsWinner && player2 !== null;
             
             if (detailedMatch && detailedMatch.games) {
                 completedGames = detailedMatch.games.filter(g => g.status === "Complete").length;

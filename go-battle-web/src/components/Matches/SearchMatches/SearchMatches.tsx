@@ -90,11 +90,11 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                                     key={`ps-${score.id}`}
                                     className={`${styles.playerScore} ${colorClass}`}
                                     onClick={() => navigate(`/players/search?ids=${encodeURI(playerIds)}`)}
-                                    title={`W: ${score.wins} | L: ${score.losses} | D: ${score.draws * 2}`}
+                                    title={`Score: ${score.wins + score.draws * 0.5}`}
                                 >
                                     {score.name}
                                     <EloBadge elo={score.elo} eloHistory={score.elo_history} />
-                                    <span className={styles.scoreValue}>{score.wins + score.draws}</span>
+                                    <span className={styles.scoreValue}>({score.wins}-{score.losses}-{score.draws})</span>
                                     <span className={styles.resultTag}>{label}</span>
                                 </span>
                             );

@@ -154,8 +154,9 @@ export const calculatePlayerScores = (games: GamesResult[], players: any[]): Pla
         let losses = 0;
         let draws = 0;
         for (const g of games) {
+            if (g.status !== "Complete") continue;
             if (g.draw === true) {
-                draws += 0.5;
+                draws++;
             } else if (g.winner?.name === playerName || g.winner_id === playerID) {
                 wins++;
             } else if (g.loser?.name === playerName || g.loser_id === playerID) {
