@@ -66,7 +66,7 @@
 
 .wld-w { color: var(--success, #3fb950); }
 .wld-l { color: var(--danger, #f85149); }
-.wld-d { color: var(--text-muted, #484f58); }
+.wld-d { color: var(--warning, #d29922); }
 .wld-sep { color: var(--text-muted, #484f58); font-weight: 400; }
 
 .wld-bar {
@@ -79,7 +79,7 @@
 
 .wld-bar-w { background: var(--success, #3fb950); }
 .wld-bar-l { background: var(--danger, #f85149); }
-.wld-bar-d { background: var(--text-muted, #484f58); }
+.wld-bar-d { background: var(--warning, #d29922); }
 
 /* ── Streak column ── */
 .streak-badge {

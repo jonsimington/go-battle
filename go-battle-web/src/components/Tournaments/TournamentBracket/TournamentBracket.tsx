@@ -8,7 +8,7 @@ import { Timer } from '../../Common/Timer';
 import ELOBadge from '../../Common/ELO';
 import { getApiUrl } from '../../../utils/utils';
 import { RefreshButton } from '../../Common';
-import { SwissFlowChart, PlayerFlowData } from './SwissFlowChart';
+import { SwissFlowChart, PlayerFlowData, TickResult } from './SwissFlowChart';
 import './TournamentBracket.css';
 
 interface Round {
@@ -380,11 +380,17 @@ export function TournamentBracket(): JSX.Element {
 
         return tournament.players.map(p => {
             const scores = new Array(totalTicks).fill(0);
+            const completed = new Array(totalTicks).fill(false);
+            const tickResults: (TickResult | null)[] = new Array(totalTicks).fill(null);
+            completed[0] = true; // tick 0 is the start
             let cumulative = 0;
 
             for (let roundIdx = 0; roundIdx < flowRoundCount; roundIdx++) {
                 const match = playerRoundMatch.get(p.ID)?.get(roundIdx);
                 const startTick = 1 + roundIdx * gamesPerRound;
+                const opponent = match
+                    ? (match.player1.id === p.ID ? match.player2.name : match.player1.name)
+                    : undefined;
 
                 if (match) {
                     const detailedMatch = matchesWithDetailedGames.get(match.id);
@@ -395,14 +401,36 @@ export function TournamentBracket(): JSX.Element {
                     for (let g = 0; g < gamesPerRound; g++) {
                         if (g < games.length) {
                             const game = games[g];
+                            const result: TickResult['result'] = game.draw
+                                ? 'draw'
+                                : game.winner_id === p.ID ? 'win' : 'loss';
                             if (game.draw) cumulative += 0.5;
                             else if (game.winner_id === p.ID) cumulative += 1;
+                            completed[startTick + g] = true;
+                            tickResults[startTick + g] = {
+                                result,
+                                opponent,
+                                round: roundIdx + 1,
+                                game: g + 1,
+                            };
+                        } else {
+                            tickResults[startTick + g] = {
+                                result: 'pending',
+                                opponent,
+                                round: roundIdx + 1,
+                                game: g + 1,
+                            };
                         }
                         scores[startTick + g] = cumulative;
                     }
                 } else {
                     for (let g = 0; g < gamesPerRound; g++) {
                         scores[startTick + g] = cumulative;
+                        tickResults[startTick + g] = {
+                            result: 'pending',
+                            round: roundIdx + 1,
+                            game: g + 1,
+                        };
                     }
                 }
             }
@@ -411,6 +439,8 @@ export function TournamentBracket(): JSX.Element {
                 playerId: p.ID,
                 playerName: p.name,
                 cumulativeScores: scores,
+                completedTicks: completed,
+                tickResults,
                 elo: p.elo,
             };
         });

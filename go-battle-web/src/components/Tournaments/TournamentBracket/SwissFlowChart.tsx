@@ -1,9 +1,20 @@
 import React, { useMemo, useState, useCallback } from 'react';
 
+export interface TickResult {
+    result: 'win' | 'loss' | 'draw' | 'pending';
+    opponent?: string;
+    round: number;
+    game: number;
+}
+
 export interface PlayerFlowData {
     playerId: number;
     playerName: string;
     cumulativeScores: number[];
+    /** true = game result exists, false = game not yet played */
+    completedTicks: boolean[];
+    /** Per-tick game result info for tooltips. null for tick 0 (start). */
+    tickResults: (TickResult | null)[];
     elo: number;
 }
 
@@ -21,8 +32,33 @@ const COLORS = [
     '#da3633', '#76e3ea', '#d4a72c', '#54aeff', '#986ee2',
 ];
 
+const RESULT_LABELS: Record<TickResult['result'], string> = {
+    win: 'Win',
+    loss: 'Loss',
+    draw: 'Draw',
+    pending: 'Pending',
+};
+
+const RESULT_COLORS: Record<TickResult['result'], string> = {
+    win: '#3fb950',
+    loss: '#f78166',
+    draw: '#d29922',
+    pending: '#484f58',
+};
+
+interface HoveredDot {
+    playerId: number;
+    playerName: string;
+    tick: number;
+    cx: number;
+    cy: number;
+    color: string;
+    tickResult: TickResult;
+}
+
 export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlowChartProps): JSX.Element | null {
     const [hoveredId, setHoveredId] = useState<number | null>(null);
+    const [hoveredDot, setHoveredDot] = useState<HoveredDot | null>(null);
 
     const totalTicks = 1 + gamesPerRound * roundCount;
 
@@ -82,6 +118,30 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
             `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(s).toFixed(1)}`
         ).join(''),
         [x, y, totalTicks]);
+
+    /** Split a player's path into solid (completed) and dashed (pending) segments */
+    const splitPaths = useCallback((scores: number[], completed: boolean[]) => {
+        // Find last tick with real data
+        let lastCompleted = 0;
+        for (let i = 0; i < Math.min(scores.length, totalTicks); i++) {
+            if (completed[i]) lastCompleted = i;
+        }
+
+        const hasPending = lastCompleted < totalTicks - 1;
+
+        const solidD = scores.slice(0, lastCompleted + 1).map((s, i) =>
+            `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(s).toFixed(1)}`
+        ).join('');
+
+        let dashedD = '';
+        if (hasPending) {
+            dashedD = scores.slice(lastCompleted, totalTicks).map((s, i) =>
+                `${i === 0 ? 'M' : 'L'}${x(lastCompleted + i).toFixed(1)},${y(s).toFixed(1)}`
+            ).join('');
+        }
+
+        return { solidD, dashedD };
+    }, [x, y, totalTicks]);
 
     if (roundCount < 1 || players.length === 0) return null;
 
@@ -181,6 +241,7 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
                 const lastScore = player.cumulativeScores[player.cumulativeScores.length - 1] || 0;
                 const lastX = x(totalTicks - 1);
                 const lastDataY = y(lastScore);
+                const { solidD, dashedD } = splitPaths(player.cumulativeScores, player.completedTicks);
 
                 return (
                     <g
@@ -194,27 +255,98 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
                             fill="none" stroke="transparent" strokeWidth={14}
                             style={{ cursor: 'default' }}
                         />
-                        {/* Visible line */}
+                        {/* Solid line — completed games */}
                         <path
-                            d={pathD(player.cumulativeScores)}
+                            d={solidD}
                             fill="none"
                             stroke={color}
                             strokeWidth={isHovered ? 2.5 : 1.5}
                             opacity={isDimmed ? 0.1 : isHovered ? 1 : 0.5}
                             strokeLinejoin="round"
                         />
-                        {/* Data points — all game dots always visible */}
+                        {/* Dashed line — pending games */}
+                        {dashedD && (
+                            <path
+                                d={dashedD}
+                                fill="none"
+                                stroke={color}
+                                strokeWidth={isHovered ? 2 : 1}
+                                opacity={isDimmed ? 0.06 : isHovered ? 0.45 : 0.2}
+                                strokeLinejoin="round"
+                                strokeDasharray="4,3"
+                            />
+                        )}
+                        {/* Data points */}
                         {player.cumulativeScores.slice(0, totalTicks).map((s, t) => {
                             if (t === 0) return null;
                             const isRoundEnd = roundEndTicks.includes(t);
+                            const isPending = !player.completedTicks[t];
+                            const tickResult = player.tickResults[t];
+                            const dotCx = x(t);
+                            const dotCy = y(s);
+
+                            const onDotEnter = () => {
+                                setHoveredId(player.playerId);
+                                if (tickResult) {
+                                    setHoveredDot({
+                                        playerId: player.playerId,
+                                        playerName: player.playerName,
+                                        tick: t,
+                                        cx: dotCx,
+                                        cy: dotCy,
+                                        color,
+                                        tickResult,
+                                    });
+                                }
+                            };
+                            const onDotLeave = () => {
+                                setHoveredDot(prev =>
+                                    prev?.playerId === player.playerId && prev?.tick === t ? null : prev
+                                );
+                            };
+
+                            if (isPending) {
+                                return (
+                                    <g key={t}>
+                                        {/* Invisible larger hit area */}
+                                        <circle
+                                            cx={dotCx} cy={dotCy} r={8}
+                                            fill="transparent"
+                                            style={{ cursor: 'pointer' }}
+                                            onMouseEnter={onDotEnter}
+                                            onMouseLeave={onDotLeave}
+                                        />
+                                        <circle
+                                            cx={dotCx} cy={dotCy}
+                                            r={isHovered ? 3 : 1.8}
+                                            fill="none"
+                                            stroke={color}
+                                            strokeWidth={isHovered ? 1.5 : 1}
+                                            opacity={isDimmed ? 0.06 : isHovered ? 0.5 : 0.2}
+                                            style={{ pointerEvents: 'none' }}
+                                        />
+                                    </g>
+                                );
+                            }
+
                             return (
-                                <circle
-                                    key={t}
-                                    cx={x(t)} cy={y(s)}
-                                    r={isHovered ? (isRoundEnd ? 4 : 3) : (isRoundEnd ? 2.5 : 1.5)}
-                                    fill={color}
-                                    opacity={isDimmed ? 0.1 : isHovered ? 1 : 0.5}
-                                />
+                                <g key={t}>
+                                    {/* Invisible larger hit area */}
+                                    <circle
+                                        cx={dotCx} cy={dotCy} r={8}
+                                        fill="transparent"
+                                        style={{ cursor: 'pointer' }}
+                                        onMouseEnter={onDotEnter}
+                                        onMouseLeave={onDotLeave}
+                                    />
+                                    <circle
+                                        cx={dotCx} cy={dotCy}
+                                        r={isHovered ? (isRoundEnd ? 4 : 3) : (isRoundEnd ? 2.5 : 1.5)}
+                                        fill={color}
+                                        opacity={isDimmed ? 0.1 : isHovered ? 1 : 0.5}
+                                        style={{ pointerEvents: 'none' }}
+                                    />
+                                </g>
                             );
                         })}
                         {/* Leader line from last data point to label */}
@@ -242,6 +374,56 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
                     </g>
                 );
             })}
+
+            {/* Tooltip — rendered last so it's on top */}
+            {hoveredDot && (() => {
+                const { cx: dotX, cy: dotY, playerName, color: dotColor, tickResult: tr } = hoveredDot;
+                const resultLabel = RESULT_LABELS[tr.result];
+                const resultColor = RESULT_COLORS[tr.result];
+                const line1 = `R${tr.round} G${tr.game}`;
+                const line2 = resultLabel + (tr.opponent ? ` vs ${tr.opponent}` : '');
+
+                // Estimate text width (rough: 6px per char at font-size 10)
+                const maxChars = Math.max(line1.length + playerName.length + 3, line2.length);
+                const tipW = Math.max(maxChars * 5.8 + 16, 90);
+                const tipH = 38;
+                const tipR = 4;
+
+                // Position tooltip above the dot; flip down if too close to top
+                const aboveY = dotY - tipH - 8;
+                const flipDown = aboveY < 2;
+                const tipY = flipDown ? dotY + 10 : aboveY;
+
+                // Horizontally center on dot, but clamp to chart bounds
+                let tipX = dotX - tipW / 2;
+                tipX = Math.max(margin.left, Math.min(tipX, margin.left + innerW - tipW));
+
+                return (
+                    <g style={{ pointerEvents: 'none' }}>
+                        <rect
+                            x={tipX} y={tipY}
+                            width={tipW} height={tipH}
+                            rx={tipR} ry={tipR}
+                            fill="var(--bg-overlay, #161b22)"
+                            stroke="var(--border-default, #30363d)"
+                            strokeWidth={0.5}
+                            opacity={0.95}
+                        />
+                        <text
+                            x={tipX + 8} y={tipY + 14}
+                            style={{ fontSize: 10, fill: dotColor, fontWeight: 600 }}
+                        >
+                            {playerName} — {line1}
+                        </text>
+                        <text
+                            x={tipX + 8} y={tipY + 28}
+                            style={{ fontSize: 10, fill: resultColor, fontWeight: 500 }}
+                        >
+                            {line2}
+                        </text>
+                    </g>
+                );
+            })()}
         </svg>
     );
 }
