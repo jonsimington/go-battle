@@ -1,8 +1,8 @@
 import React, { FC, useEffect, useState } from 'react';
-import { Alert, Button, Col, Form, Row, Container } from 'react-bootstrap';
-import { FaUserPlus, FaDice } from 'react-icons/fa6';
+import { Alert } from 'react-bootstrap';
+import { FaPlus, FaDice, FaArrowUpWideShort, FaArrowDownWideShort } from 'react-icons/fa6';
 import { PlayersResult } from '../../../models/PlayersResult';
-import './CreateTournament.css';
+import '../../shared/CreateForm.css';
 import { getApiUrl } from '../../../utils/utils';
 
 interface CreateTournamentProps {}
@@ -22,17 +22,16 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
 
     const handleIncrementMaxPlayers = () => {
         if (maxPlayers < 24) {
-            handleMaxPlayersChange({ target: { value: (maxPlayers + 1).toString() } } as React.ChangeEvent<HTMLInputElement>);
+            handleMaxPlayersChange((maxPlayers + 1).toString());
         }
     };
 
     const handleDecrementMaxPlayers = () => {
         if (maxPlayers > 8) {
-            handleMaxPlayersChange({ target: { value: (maxPlayers - 1).toString() } } as React.ChangeEvent<HTMLInputElement>);
+            handleMaxPlayersChange((maxPlayers - 1).toString());
         }
     };
 
-    // Helper function to shuffle an array
     const shuffleArray = (array: any[]) => {
         const newArray = [...array];
         for (let i = newArray.length - 1; i > 0; i--) {
@@ -42,68 +41,47 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
         return newArray;
     };
 
-    // Function to select top N players by ELO
+    const applyPlayerSelection = (selectedPlayers: PlayersResult[], count: number) => {
+        const newSelectedIds = new Set<string>();
+        const newPlayerValues = Array(count).fill('');
+        
+        selectedPlayers.forEach((player, index) => {
+            newPlayerValues[index] = player.ID.toString();
+            newSelectedIds.add(player.ID.toString());
+        });
+        
+        setPlayerValues(newPlayerValues);
+        setSelectedPlayerIds(newSelectedIds);
+        setPlayersValue(selectedPlayers.map(p => p.ID.toString()).join(','));
+    };
+
     const selectTopPlayers = () => {
         if (!players || players.length < 8) return;
-        
-        // Clear existing selections
-        setSelectedPlayerIds(new Set());
-        
-        // Sort players by ELO in descending order and take top N
-        const sortedPlayers = [...players].sort((a, b) => (b.elo || 0) - (a.elo || 0));
-        const selectedPlayers = sortedPlayers.slice(0, maxPlayers);
-        
-        // Update player values and selected IDs
-        const newSelectedIds = new Set<string>();
-        const newPlayerValues = Array(maxPlayers).fill('');
-        
-        selectedPlayers.forEach((player, index) => {
-            newPlayerValues[index] = player.ID.toString();
-            newSelectedIds.add(player.ID.toString());
-        });
-        
-        setPlayerValues(newPlayerValues);
-        setSelectedPlayerIds(newSelectedIds);
-        setPlayersValue(selectedPlayers.map(p => p.ID.toString()).join(','));
+        const sorted = [...players].sort((a, b) => (b.elo || 0) - (a.elo || 0));
+        applyPlayerSelection(sorted.slice(0, maxPlayers), maxPlayers);
     };
 
-    // Function to select bottom N players by ELO
     const selectBottomPlayers = () => {
         if (!players || players.length < 8) return;
-        
-        // Clear existing selections
-        setSelectedPlayerIds(new Set());
-        
-        // Sort players by ELO in ascending order and take bottom N
-        const sortedPlayers = [...players].sort((a, b) => (a.elo || 0) - (b.elo || 0));
-        const selectedPlayers = sortedPlayers.slice(0, maxPlayers);
-        
-        // Update player values and selected IDs
-        const newSelectedIds = new Set<string>();
-        const newPlayerValues = Array(maxPlayers).fill('');
-        
-        selectedPlayers.forEach((player, index) => {
-            newPlayerValues[index] = player.ID.toString();
-            newSelectedIds.add(player.ID.toString());
-        });
-        
-        setPlayerValues(newPlayerValues);
-        setSelectedPlayerIds(newSelectedIds);
-        setPlayersValue(selectedPlayers.map(p => p.ID.toString()).join(','));
+        const sorted = [...players].sort((a, b) => (a.elo || 0) - (b.elo || 0));
+        applyPlayerSelection(sorted.slice(0, maxPlayers), maxPlayers);
     };
 
-    // Helper function to update player selection and prevent duplicates
+    const randomlySelectPlayers = () => {
+        if (!players || players.length < 8) return;
+        const shuffled = shuffleArray(players);
+        applyPlayerSelection(shuffled.slice(0, Math.min(maxPlayers, players.length)), maxPlayers);
+    };
+
     const updatePlayerValue = (playerId: string, index: number) => {
         const newPlayerValues = [...playerValues];
         
-        // Remove current value from selected set if it exists
         if (playerValues[index] && selectedPlayerIds.has(playerValues[index])) {
             const newSet = new Set(selectedPlayerIds);
             newSet.delete(playerValues[index]);
             setSelectedPlayerIds(newSet);
         }
         
-        // Add new value to selected set
         if (playerId) {
             newPlayerValues[index] = playerId;
             const newSet = new Set(selectedPlayerIds);
@@ -114,75 +92,32 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
         }
         
         setPlayerValues(newPlayerValues);
-        updatePlayersValueFromState(newPlayerValues);
+        setPlayersValue(newPlayerValues.filter(val => val !== '').join(','));
     };
 
-    // Update combined players value from all individual player values
-    const updatePlayersValueFromState = (values: string[] = playerValues) => {
-        setPlayersValue(values.filter(val => val !== '').join(','));
-    };
-
-    const handleTypeValueChange = (event: { target: { value: React.SetStateAction<string>; }; }) => {
-        setTypeValue(event.target.value);
-    }
-
-    const handleMaxPlayersChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const value = parseInt(event.target.value);
+    const handleMaxPlayersChange = (rawValue: string) => {
+        const value = parseInt(rawValue);
         if (value >= 8 && value <= 24) {
             setMaxPlayers(value);
-            // Update player values array length
             const newPlayerValues = [...playerValues.slice(0, value)];
             while (newPlayerValues.length < value) {
                 newPlayerValues.push('');
             }
             setPlayerValues(newPlayerValues);
-            // Update selected IDs to remove any that are now out of bounds
             const newSelectedIds = new Set<string>();
             newPlayerValues.forEach(id => {
                 if (id) newSelectedIds.add(id);
             });
             setSelectedPlayerIds(newSelectedIds);
-            updatePlayersValueFromState(newPlayerValues);
+            setPlayersValue(newPlayerValues.filter(val => val !== '').join(','));
         }
-    };
-
-    // Function to randomly select players
-    const randomlySelectPlayers = () => {
-        if (!players || players.length < 8) return;
-        
-        // Clear existing selections
-        setSelectedPlayerIds(new Set());
-        
-        // Get up to 24 random players
-        const shuffled = shuffleArray(players);
-        const selectedPlayers = shuffled.slice(0, Math.min(maxPlayers, players.length));
-        
-        // Update player values and selected IDs
-        const newSelectedIds = new Set<string>();
-        const newPlayerValues = Array(maxPlayers).fill('');
-        
-        selectedPlayers.forEach((player, index) => {
-            newPlayerValues[index] = player.ID.toString();
-            newSelectedIds.add(player.ID.toString());
-        });
-        
-        setPlayerValues(newPlayerValues);
-        setSelectedPlayerIds(newSelectedIds);
-        setPlayersValue(selectedPlayers.map(p => p.ID.toString()).join(','));
     };
 
     const tournamentTypes = [
-        {
-            name: "Swiss",
-            value: "swiss"
-        },
-        {
-            name: "Round Robin",
-            value: "round-robin"
-        }
-    ]
+        { name: "Swiss", value: "swiss" },
+        { name: "Round Robin", value: "round-robin" },
+    ];
 
-    // fetch list of clients to populate dropdown and select random players
     useEffect(() => {
         const apiUrl = getApiUrl();
 
@@ -190,7 +125,6 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
           .then(response => response.json())
           .then(json => {
             setPlayers(json);
-            // Randomize players once the data is loaded
             setTimeout(() => {
               if (json && json.length >= 8) {
                 randomlySelectPlayers();
@@ -204,7 +138,7 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
         })
     }, []);
 
-    const handleSubmit = (event: any) => {
+    const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
 
         const requestOptions = {
@@ -234,160 +168,113 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
             })
     }
 
-    const renderAlerts = () => {
-        return (
-            <>
-            {hasApiResponse && hasError &&
-                <Alert key="danger" variant="danger" className="mt-4">
-                    {alertText}
-                </Alert>
-            }
-            {hasApiResponse && hasWarning &&
-                <Alert key="warning" variant="warning" className="mt-4">
-                    {alertText}
-                </Alert>
-            }
-            {hasApiResponse && !hasError && !hasWarning &&
-                <Alert key="success" variant="success" className="mt-4">
-                    {alertText}
-                </Alert>
-            }
-            </>
-        )
-    }
-
-    // Modified to disable already selected options
-    const renderPlayer = (player: PlayersResult, index: number) => {
-        const isDisabled = selectedPlayerIds.has(player.ID.toString()) && 
-                         playerValues[index] !== player.ID.toString();
-                          
-        return (
-            <option 
-                value={player.ID} 
-                key={`player-${index}-${player.ID}`} 
-                disabled={isDisabled}
-            >
-                ID {player.ID} | {player.name} | Client {player.client.ID}
-            </option>
-        );
-    }
-
-    const renderPlayerSelect = (index: number) => {
-        return (
-            <Form.Group className="mb-3" controlId={`player${index + 1}`}>
-                <Form.Label className="player-label">Player {index + 1}</Form.Label>
-                <Form.Select 
-                    value={playerValues[index]} 
-                    onChange={(e) => updatePlayerValue(e.target.value, index)}
-                    className="player-select"
-                >
-                    <option value="">Select a player</option>
-                    {players?.map((player) => renderPlayer(player, index))}
-                </Form.Select>
-            </Form.Group>
-        );
-    }
+    const alertVariant = hasError ? 'danger' : hasWarning ? 'warning' : 'success';
 
     return (
-        <Container className="create-tournament-container">
-            <Form className="tournament-form" onSubmit={handleSubmit}>
-                <Row className="mb-4">
-                    <Col md={6}>
-                        <Form.Group controlId="numGames">
-                            <Form.Label className="h4 fw-bold">Tournament Type</Form.Label>
-                            <Form.Select 
-                                value={typeValue} 
-                                onChange={handleTypeValueChange}
-                                className="tournament-type-select"
+        <div className="create-page create-page--wide">
+            <h2 className="create-page__title">New tournament</h2>
+            <form className="create-card" onSubmit={handleSubmit}>
+                <div className="create-card__row">
+                    <div className="create-card__section">
+                        <label className="create-card__label" htmlFor="tournamentType">Type</label>
+                        <select
+                            id="tournamentType"
+                            className="form-select"
+                            value={typeValue}
+                            onChange={e => setTypeValue(e.target.value)}
+                        >
+                            {tournamentTypes.map(t => (
+                                <option value={t.value} key={`type-${t.value}`}>{t.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="create-card__section">
+                        <label className="create-card__label">Max players</label>
+                        <div className="create-card__stepper">
+                            <button
+                                type="button"
+                                className="create-card__stepper-btn"
+                                onClick={handleDecrementMaxPlayers}
+                                disabled={maxPlayers <= 8}
                             >
-                                {tournamentTypes.map((t) => (
-                                    <option value={t.value} key={`type-${t.value}`}>{t.name}</option>
-                                ))}
-                            </Form.Select>
-                        </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                        <Form.Group controlId="maxPlayers">
-                            <Form.Label className="h4 fw-bold">Maximum Players</Form.Label>
-                            <div className="d-flex align-items-center">
-                                <Button 
-                                    variant="outline-secondary" 
-                                    onClick={handleDecrementMaxPlayers}
-                                    disabled={maxPlayers <= 8}
-                                    className="me-2"
-                                >
-                                    -
-                                </Button>
-                                <Form.Control
-                                    type="number"
-                                    min={8}
-                                    max={24}
-                                    value={maxPlayers}
-                                    onChange={handleMaxPlayersChange}
-                                    style={{ width: '80px' }}
-                                    className="text-center"
-                                />
-                                <Button 
-                                    variant="outline-secondary" 
-                                    onClick={handleIncrementMaxPlayers}
-                                    disabled={maxPlayers >= 24}
-                                    className="ms-2"
-                                >
-                                    +
-                                </Button>
-                            </div>
-                            <Form.Text className="text-muted">
-                                Choose between 8 and 24 players
-                            </Form.Text>
-                        </Form.Group>
-                    </Col>
-                </Row>
-                
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h4 className="fw-bold m-0">Players</h4>
-                    <div>
-                        <Button 
-                            variant="primary" 
-                            onClick={randomlySelectPlayers} 
-                            type="button"
-                            className="randomize-btn me-2"
-                        >
-                            <FaDice className="me-2" />
-                            Randomize Players
-                        </Button>
-                        <Button 
-                            variant="primary" 
-                            onClick={selectTopPlayers} 
-                            type="button"
-                            className="me-2"
-                        >
-                            Select Top Players
-                        </Button>
-                        <Button 
-                            variant="primary" 
-                            onClick={selectBottomPlayers} 
-                            type="button"
-                        >
-                            Select Bottom Players
-                        </Button>
+                                &minus;
+                            </button>
+                            <span className="create-card__stepper-value">{maxPlayers}</span>
+                            <button
+                                type="button"
+                                className="create-card__stepper-btn"
+                                onClick={handleIncrementMaxPlayers}
+                                disabled={maxPlayers >= 24}
+                            >
+                                +
+                            </button>
+                        </div>
+                        <span className="create-card__hint">8 &ndash; 24 players</span>
                     </div>
                 </div>
 
-                <div className="players-grid">
+                <hr className="create-card__divider" />
+
+                <div className="create-card__section-header">
+                    <span className="create-card__section-title">Players</span>
+                    <div className="create-card__actions">
+                        <button type="button" className="create-card__action-btn" onClick={randomlySelectPlayers}>
+                            <FaDice size={11} />
+                            Randomize
+                        </button>
+                        <button type="button" className="create-card__action-btn" onClick={selectTopPlayers}>
+                            <FaArrowUpWideShort size={11} />
+                            Top ELO
+                        </button>
+                        <button type="button" className="create-card__action-btn" onClick={selectBottomPlayers}>
+                            <FaArrowDownWideShort size={11} />
+                            Bottom ELO
+                        </button>
+                    </div>
+                </div>
+
+                <div className="create-card__player-grid">
                     {Array.from({ length: maxPlayers }, (_, i) => (
-                        <div key={`player-select-${i}`} className="player-select-container">
-                            {renderPlayerSelect(i)}
+                        <div key={`player-select-${i}`} className="create-card__player-slot">
+                            <div className="create-card__player-slot-label">Player {i + 1}</div>
+                            <select
+                                className="form-select"
+                                value={playerValues[i]}
+                                onChange={e => updatePlayerValue(e.target.value, i)}
+                            >
+                                <option value="">--</option>
+                                {players?.map(player => {
+                                    const isDisabled = selectedPlayerIds.has(player.ID.toString()) &&
+                                        playerValues[i] !== player.ID.toString();
+                                    return (
+                                        <option
+                                            value={player.ID}
+                                            key={`player-${i}-${player.ID}`}
+                                            disabled={isDisabled}
+                                        >
+                                            ID {player.ID} &middot; {player.name} &middot; Client {player.client.ID}
+                                        </option>
+                                    );
+                                })}
+                            </select>
                         </div>
                     ))}
                 </div>
 
-                <Button variant="success" type="submit" className="submit-btn mt-4">
-                    <FaUserPlus className="me-2" />Create Tournament
-                </Button>
+                <div className="create-card__footer">
+                    <button className="create-card__submit" type="submit">
+                        <FaPlus size={12} />
+                        Create tournament
+                    </button>
+                </div>
 
-                {renderAlerts()}
-            </Form>
-        </Container>
+                {hasApiResponse && (
+                    <Alert variant={alertVariant} className="create-card__alert">
+                        {alertText}
+                    </Alert>
+                )}
+            </form>
+        </div>
     );
 }
 

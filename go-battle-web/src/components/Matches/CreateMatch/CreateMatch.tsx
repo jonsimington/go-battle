@@ -1,8 +1,9 @@
 import React, { FC, useEffect, useState } from 'react';
 import { PlayersResult } from '../../../models/PlayersResult';
-import { Alert, Button, Col, Form, Row } from 'react-bootstrap';
-import { FaUserPlus } from 'react-icons/fa6';
+import { Alert } from 'react-bootstrap';
+import { FaPlus } from 'react-icons/fa6';
 import { getApiUrl } from '../../../utils/utils';
+import '../../shared/CreateForm.css';
 
 interface CreateMatchProps {}
 
@@ -19,24 +20,15 @@ const CreateMatch: FC<CreateMatchProps> = () => {
     const [hasApiResponse, setHasApiResponse] = useState(false);
     const [alertText, setAlertText] = useState('');
 
-    const handleNumGamesValueChange = (event: { target: { value: React.SetStateAction<string>; }; }) => {
-        setNumGames(event.target.value);
+    const handlePlayerOneValueChange = (value: string) => {
+        setPlayerOneValue(value);
+        setPlayersValue(`${value},${playerTwoValue}`);
     }
-    const handlePlayerOneValueChange = (event: { target: { value: React.SetStateAction<string>; }; }) => {
-        setPlayerOneValue(event.target.value);
-        updatePlayersValue(event.target.value.toString(), playerTwoValue);
-    }
-    const handlePlayerTwoValueChange = (event: { target: { value: React.SetStateAction<string>; }; }) => {
-        setPlayerTwoValue(event.target.value);
-        updatePlayersValue(playerOneValue, event.target.value.toString());
+    const handlePlayerTwoValueChange = (value: string) => {
+        setPlayerTwoValue(value);
+        setPlayersValue(`${playerOneValue},${value}`);
     }
 
-    const updatePlayersValue = (player1: string, player2: string) => {
-        setPlayersValue(`${player1},${player2}`);
-    }
-
-    
-    // fetch list of clients to populate dropdown
     useEffect(() => {
         const apiUrl = getApiUrl();
 
@@ -52,7 +44,7 @@ const CreateMatch: FC<CreateMatchProps> = () => {
         })
     }, []);
 
-    const handleSubmit = (event: any) => {
+    const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
 
         const requestOptions = {
@@ -82,77 +74,74 @@ const CreateMatch: FC<CreateMatchProps> = () => {
             })
     }
 
-    const renderAlerts = () => {
-        return (
-            <>
-            {hasApiResponse && hasError &&
-                <Alert key="danger" variant="danger" className="mt-2">
-                    {alertText}
-                </Alert>
-            }
-            {hasApiResponse && hasWarning &&
-                <Alert key="warning" variant="warning" className="mt-2">
-                    {alertText}
-                </Alert>
-            }
-            {hasApiResponse && !hasError && !hasWarning &&
-                <Alert key="success" variant="success" className="mt-2">
-                    {alertText}
-                </Alert>
-            }
-            </>
-        )
-    }
+    const renderPlayerOption = (player: PlayersResult, keyContext: string) => (
+        <option value={player.ID} key={`${keyContext}-${player.ID}`}>
+            ID {player.ID} &middot; {player.name} &middot; Client {player.client.ID} &middot; {player.client.language}
+        </option>
+    );
 
-    const renderPlayer = (player: PlayersResult, keyContext: string) => {
-        return <option value={player.ID} key={`${keyContext}-${player.ID}`}>ID {player.ID} | {player.name} | Client {player.client.ID} | {player.client.language}</option>
-    }
+    const alertVariant = hasError ? 'danger' : hasWarning ? 'warning' : 'success';
 
     return (
-        <>
-        <Form className="w-50" onSubmit={handleSubmit}>
-            <Form.Group className="mb-3" controlId="numGames">
-                <Form.Label className="h5">Number of Games</Form.Label>
-                <Form.Select value={numGamesValue} onChange={handleNumGamesValueChange}>
-                    {Array.from(Array(10).keys()).map((n) => {
-                        return (
+        <div className="create-page">
+            <h2 className="create-page__title">New match</h2>
+            <form className="create-card" onSubmit={handleSubmit}>
+                <div className="create-card__section">
+                    <label className="create-card__label" htmlFor="numGames">Games</label>
+                    <select
+                        id="numGames"
+                        className="form-select"
+                        value={numGamesValue}
+                        onChange={e => setNumGames(e.target.value)}
+                    >
+                        {Array.from({ length: 10 }, (_, n) => (
                             <option value={n + 1} key={`numGames-${n + 1}`}>{n + 1}</option>
-                        )
-                    })}
-                </Form.Select>
-            </Form.Group>
+                        ))}
+                    </select>
+                </div>
 
-            <Row>
-                <Col>
-                    <Form.Group className="mb-3" controlId="playerOne">
-                        <Form.Label className="h5">Player One</Form.Label>
-                        <Form.Select value={playerOneValue} onChange={handlePlayerOneValueChange}>
-                            {players?.map((player, i) => {
-                                return renderPlayer(player, 'playerOne');
-                            })}
-                        </Form.Select>
-                    </Form.Group>
-                </Col>
-                <Col>
-                <Form.Group className="mb-3" controlId="playerTwo">
-                        <Form.Label className="h5">Player Two</Form.Label>
-                        <Form.Select value={playerTwoValue} onChange={handlePlayerTwoValueChange}>
-                            {players?.map((player, i) => {
-                                return renderPlayer(player, 'playerTwo');
-                            })}
-                        </Form.Select>
-                    </Form.Group>
-                </Col>
-            </Row>
+                <hr className="create-card__divider" />
 
-            <Button variant="success" type="submit">
-                <FaUserPlus className="me-2"></FaUserPlus>Create
-            </Button>
+                <div className="create-card__row">
+                    <div className="create-card__section">
+                        <label className="create-card__label" htmlFor="playerOne">Player 1</label>
+                        <select
+                            id="playerOne"
+                            className="form-select"
+                            value={playerOneValue}
+                            onChange={e => handlePlayerOneValueChange(e.target.value)}
+                        >
+                            {players?.map(player => renderPlayerOption(player, 'playerOne'))}
+                        </select>
+                    </div>
+                    <div className="create-card__section">
+                        <label className="create-card__label" htmlFor="playerTwo">Player 2</label>
+                        <select
+                            id="playerTwo"
+                            className="form-select"
+                            value={playerTwoValue}
+                            onChange={e => handlePlayerTwoValueChange(e.target.value)}
+                        >
+                            {players?.map(player => renderPlayerOption(player, 'playerTwo'))}
+                        </select>
+                    </div>
+                </div>
 
-            {renderAlerts()}
-        </Form>
-        </>
-      );
+                <div className="create-card__footer">
+                    <button className="create-card__submit" type="submit">
+                        <FaPlus size={12} />
+                        Create match
+                    </button>
+                </div>
+
+                {hasApiResponse && (
+                    <Alert variant={alertVariant} className="create-card__alert">
+                        {alertText}
+                    </Alert>
+                )}
+            </form>
+        </div>
+    );
 }
 
 export default CreateMatch;

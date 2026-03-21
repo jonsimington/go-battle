@@ -1,0 +1,207 @@
+.create-page {
+    width: 100%;
+    max-width: 560px;
+    padding: 0 16px;
+}
+
+.create-page--wide {
+    max-width: 1100px;
+}
+
+.create-page__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 16px 0;
+}
+
+.create-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+}
+
+.create-card__section {
+    margin-bottom: 20px;
+}
+
+.create-card__section:last-child {
+    margin-bottom: 0;
+}
+
+.create-card__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.create-card__hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.create-card__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.create-card__divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+    border: none;
+}
+
+.create-card__footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.create-card__submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--success);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+}
+
+.create-card__submit:hover {
+    background: #36a148;
+}
+
+.create-card__submit:active {
+    background: #2e8b3d;
+}
+
+.create-card__alert {
+    margin-top: 16px;
+}
+
+/* Player grid for tournament */
+.create-card__player-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 8px;
+}
+
+.create-card__player-slot {
+    background: var(--bg);
+    border: 1px solid var(--border-muted);
+    border-radius: 6px;
+    padding: 10px 12px;
+    transition: border-color 150ms ease;
+}
+
+.create-card__player-slot:hover {
+    border-color: var(--border);
+}
+
+.create-card__player-slot-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.create-card__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.create-card__action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.create-card__action-btn:hover {
+    background: var(--primary-muted);
+    color: var(--text-primary);
+    border-color: var(--primary);
+}
+
+.create-card__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.create-card__section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.create-card__stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.create-card__stepper-btn {
+    background: var(--surface);
+    color: var(--text-secondary);
+    border: none;
+    border-right: 1px solid var(--border);
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+    line-height: 1;
+}
+
+.create-card__stepper-btn:last-child {
+    border-right: none;
+}
+
+.create-card__stepper-btn:hover:not(:disabled) {
+    background: var(--primary-muted);
+    color: var(--text-primary);
+}
+
+.create-card__stepper-btn:disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+.create-card__stepper-value {
+    background: var(--bg);
+    color: var(--text-primary);
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    border-right: 1px solid var(--border);
+    min-width: 40px;
+    text-align: center;
+}

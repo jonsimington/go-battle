@@ -1,8 +1,9 @@
 import React, { FC, useEffect, useState } from 'react';
-import { Alert, Button, Form } from 'react-bootstrap';
-import { FaUserPlus } from 'react-icons/fa6';
+import { Alert } from 'react-bootstrap';
+import { FaPlus } from 'react-icons/fa6';
 import { ClientsResult } from '../../../models/ClientsResult';
 import { getApiUrl, translateClientLanguage } from '../../../utils/utils';
+import '../../shared/CreateForm.css';
 
 interface CreatePlayerProps {}
 
@@ -17,16 +18,6 @@ const CreatePlayer: FC<CreatePlayerProps> = () => {
     const [hasApiResponse, setHasApiResponse] = useState(false);
     const [alertText, setAlertText] = useState('');
     
-    const handleNameValueChange = (event: { target: { value: React.SetStateAction<string>; }; }) => {
-        setNameValue(event.target.value);
-    }
-
-    const handleClientIdValueChange = (event: { target: { value: React.SetStateAction<string>; }; }) => {
-        setClientIdValue(event.target.value);
-    }
-    
-    
-    // fetch list of clients to populate dropdown
     useEffect(() => {
         const apiUrl = getApiUrl();
 
@@ -42,7 +33,7 @@ const CreatePlayer: FC<CreatePlayerProps> = () => {
         })
     }, []);
 
-    const handleSubmit = (event: any) => {
+    const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
 
         const requestOptions = {
@@ -72,52 +63,54 @@ const CreatePlayer: FC<CreatePlayerProps> = () => {
             })
     }
 
-    const renderAlerts = () => {
-        return (
-            <>
-            {hasApiResponse && hasError &&
-                <Alert key="danger" variant="danger" className="mt-2">
-                    {alertText}
-                </Alert>
-            }
-            {hasApiResponse && hasWarning &&
-                <Alert key="warning" variant="warning" className="mt-2">
-                    {alertText}
-                </Alert>
-            }
-            {hasApiResponse && !hasError && !hasWarning &&
-                <Alert key="success" variant="success" className="mt-2">
-                    {alertText}
-                </Alert>
-            }
-            </>
-        )
-    }
+    const alertVariant = hasError ? 'danger' : hasWarning ? 'warning' : 'success';
 
     return (
-        <>
-        <Form className="w-50" onSubmit={handleSubmit}>
-            <Form.Group className="mb-3" controlId="repositoryUrl">
-                <Form.Label className="h5">Player Name</Form.Label>
-                <Form.Control type="text" value={nameValue} onChange={handleNameValueChange} />
-            </Form.Group>
+        <div className="create-page">
+            <h2 className="create-page__title">New player</h2>
+            <form className="create-card" onSubmit={handleSubmit}>
+                <div className="create-card__section">
+                    <label className="create-card__label" htmlFor="playerName">Name</label>
+                    <input
+                        id="playerName"
+                        className="form-control"
+                        type="text"
+                        value={nameValue}
+                        onChange={e => setNameValue(e.target.value)}
+                        placeholder="Enter player name"
+                    />
+                </div>
 
-            <Form.Group className="mb-3" controlId="repositoryLanguage">
-                <Form.Label className="h5">Client</Form.Label>
-                <Form.Select value={clientIdValue} onChange={handleClientIdValueChange}>
-                    {clients?.map((client, i) => {
-                        return <option value={client.ID} key={client.ID}>{client.game} | {translateClientLanguage(client.language)} | {client.repo}</option>
-                    })}
-                </Form.Select>
-            </Form.Group>
+                <div className="create-card__section">
+                    <label className="create-card__label" htmlFor="playerClient">Client</label>
+                    <select
+                        id="playerClient"
+                        className="form-select"
+                        value={clientIdValue}
+                        onChange={e => setClientIdValue(e.target.value)}
+                    >
+                        {clients?.map((client) => (
+                            <option value={client.ID} key={client.ID}>
+                                {client.game} &middot; {translateClientLanguage(client.language)} &middot; {client.repo}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
-            <Button variant="success" type="submit">
-                <FaUserPlus className="me-2"></FaUserPlus>Create
-            </Button>
+                <div className="create-card__footer">
+                    <button className="create-card__submit" type="submit">
+                        <FaPlus size={12} />
+                        Create player
+                    </button>
+                </div>
 
-            {renderAlerts()}
-        </Form>
-        </>
+                {hasApiResponse && (
+                    <Alert variant={alertVariant} className="create-card__alert">
+                        {alertText}
+                    </Alert>
+                )}
+            </form>
+        </div>
     );
 }
 
