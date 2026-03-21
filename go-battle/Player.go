@@ -26,21 +26,28 @@ func getPlayers(ids []int) []Player {
 	if len(ids) > 0 {
 		db.Preload("Client").
 			Preload("EloHistory").
-			Preload("Games").
-			Preload("Games.Winner").
-			Preload("Games.Loser").
+			Preload("Games", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
+			}).
 			Where("id = ANY(?)", pq.Array(ids)).
 			Find(&players)
 	} else {
 		db.Preload("Client").
 			Preload("EloHistory").
-			Preload("Games").
-			Preload("Games.Winner").
-			Preload("Games.Loser").
+			Preload("Games", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
+			}).
 			Find(&players)
 	}
 
 	return players
+}
+
+// getPlayerIDs returns just the IDs of all players (lightweight query for random selection)
+func getPlayerIDs() []int {
+	var ids []int
+	db.Model(&Player{}).Pluck("id", &ids)
+	return ids
 }
 
 func getPlayer(id int) Player {

@@ -392,22 +392,20 @@ func randomMatchHandler(c *fiber.Ctx) error {
 		return c.Status(400).SendString("`num_games` query parameter must be an integer")
 	}
 
-	allPlayers := getPlayers([]int{})
+	allPlayerIDs := getPlayerIDs()
 
 	// Check if we have any players at all
-	if len(allPlayers) < 2 {
+	if len(allPlayerIDs) < 2 {
 		return c.Status(400).SendString("Not enough players available to create a match (minimum 2 required)")
 	}
-
-	// log.Infof("All players: %v\n", allPlayers)
 
 	var matchPlayerIds [2]int
 	matchPlayerIds[0] = -1
 	matchPlayerIds[1] = -1
 
 	for matchPlayerIds[0] == matchPlayerIds[1] {
-		matchPlayerIds[0] = int(allPlayers[rand.Intn(len(allPlayers))].ID)
-		matchPlayerIds[1] = int(allPlayers[rand.Intn(len(allPlayers))].ID)
+		matchPlayerIds[0] = allPlayerIDs[rand.Intn(len(allPlayerIDs))]
+		matchPlayerIds[1] = allPlayerIDs[rand.Intn(len(allPlayerIDs))]
 	}
 
 	log.Infof("Going to pair player %d against %d", matchPlayerIds[0], matchPlayerIds[1])

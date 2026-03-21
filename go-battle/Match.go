@@ -112,11 +112,11 @@ func getMatches(ids []int) []Match {
 
 	if len(ids) > 0 {
 		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-			return db.Order("games.id ASC") // Consistently order games by ID
+			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id").Order("games.id ASC")
 		}).
-			Preload("Games.Winner").
-			Preload("Games.Loser").
-			Preload("Players").
+			Preload("Players", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name, elo, client_id")
+			}).
 			Preload("Players.EloHistory", func(db *gorm.DB) *gorm.DB {
 				return db.Order("created_at DESC").Limit(100)
 			}).
@@ -124,11 +124,11 @@ func getMatches(ids []int) []Match {
 			Find(&matches)
 	} else {
 		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-			return db.Order("games.id ASC") // Consistently order games by ID
+			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id").Order("games.id ASC")
 		}).
-			Preload("Games.Winner").
-			Preload("Games.Loser").
-			Preload("Players").
+			Preload("Players", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name, elo, client_id")
+			}).
 			Preload("Players.EloHistory", func(db *gorm.DB) *gorm.DB {
 				return db.Order("created_at DESC").Limit(100)
 			}).
@@ -147,11 +147,11 @@ func getMatchesWithPlayers(players []int) []Match {
 		db.Table("match_players").Where("player_id = ANY(?)", pq.Array(players)).Select("match_id").Find(&matchesWithPlayers)
 
 		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-			return db.Order("games.id ASC") // Consistently order games by ID
+			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id").Order("games.id ASC")
 		}).
-			Preload("Games.Winner").
-			Preload("Games.Loser").
-			Preload("Players").
+			Preload("Players", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name, elo, client_id")
+			}).
 			Preload("Players.EloHistory", func(db *gorm.DB) *gorm.DB {
 				return db.Order("created_at DESC").Limit(100)
 			}).
@@ -159,11 +159,11 @@ func getMatchesWithPlayers(players []int) []Match {
 			Find(&matches)
 	} else {
 		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-			return db.Order("games.id ASC") // Consistently order games by ID
+			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id").Order("games.id ASC")
 		}).
-			Preload("Games.Winner").
-			Preload("Games.Loser").
-			Preload("Players").
+			Preload("Players", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name, elo, client_id")
+			}).
 			Preload("Players.EloHistory", func(db *gorm.DB) *gorm.DB {
 				return db.Order("created_at DESC").Limit(100)
 			}).

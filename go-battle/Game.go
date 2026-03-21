@@ -96,19 +96,27 @@ func getGamesWithPlayers(players []int) []Game {
 
 		db.Table("game_players").Where("player_id = ANY(?)", pq.Array(players)).Select("game_id").Find(&gamesWithPlayers)
 
-		db.Preload("Match").
-			Preload("Match.Players").
-			Preload("Players").
-			Preload("Winner").
-			Preload("Loser").
+		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name")
+		}).
+			Preload("Winner", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name")
+			}).
+			Preload("Loser", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name")
+			}).
 			Where("id = ANY(?)", pq.Array(gamesWithPlayers)).
 			Find(&games)
 	} else {
-		db.Preload("Match").
-			Preload("Match.Players").
-			Preload("Players").
-			Preload("Winner").
-			Preload("Loser").
+		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name")
+		}).
+			Preload("Winner", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name")
+			}).
+			Preload("Loser", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name")
+			}).
 			Find(&games)
 	}
 
@@ -119,19 +127,27 @@ func getGamesById(ids []int) []Game {
 	var games []Game
 
 	if len(ids) > 0 {
-		db.Preload("Match").
-			Preload("Match.Players").
-			Preload("Players").
-			Preload("Winner").
-			Preload("Loser").
+		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name")
+		}).
+			Preload("Winner", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name")
+			}).
+			Preload("Loser", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name")
+			}).
 			Where("id = ANY(?)", pq.Array(ids)).
 			Find(&games)
 	} else {
-		db.Preload("Match").
-			Preload("Match.Players").
-			Preload("Players").
-			Preload("Winner").
-			Preload("Loser").
+		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name")
+		}).
+			Preload("Winner", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name")
+			}).
+			Preload("Loser", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name")
+			}).
 			Find(&games)
 	}
 

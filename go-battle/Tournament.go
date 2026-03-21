@@ -84,32 +84,52 @@ func getTournaments(ids []int) []Tournament {
 	var tournaments []Tournament
 
 	if len(ids) > 0 {
-		db.Preload("Games").
-			Preload("Games.Winner").
-			Preload("Games.Loser").
-			Preload("Players").
+		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
+		}).
+			Preload("Games.Winner", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name")
+			}).
+			Preload("Games.Loser", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name")
+			}).
+			Preload("Players", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name, elo, client_id")
+			}).
 			Preload("Players.Client").
-			Preload("Players.Games").
 			Preload("Matches").
-			Preload("Matches.Games").
-			Preload("Matches.Players").
-			Preload("Matches.Players.Games").
+			Preload("Matches.Games", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
+			}).
+			Preload("Matches.Players", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name, elo, client_id")
+			}).
 			Preload("Matches.Players.EloHistory", func(db *gorm.DB) *gorm.DB {
 				return db.Order("created_at DESC").Limit(100)
 			}).
 			Where("id = ANY(?)", pq.Array(ids)).
 			Find(&tournaments)
 	} else {
-		db.Preload("Games").
-			Preload("Games.Winner").
-			Preload("Games.Loser").
-			Preload("Players").
+		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
+		}).
+			Preload("Games.Winner", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name")
+			}).
+			Preload("Games.Loser", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name")
+			}).
+			Preload("Players", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name, elo, client_id")
+			}).
 			Preload("Players.Client").
-			Preload("Players.Games").
 			Preload("Matches").
-			Preload("Matches.Games").
-			Preload("Matches.Players").
-			Preload("Matches.Players.Games").
+			Preload("Matches.Games", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
+			}).
+			Preload("Matches.Players", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name, elo, client_id")
+			}).
 			Preload("Matches.Players.EloHistory", func(db *gorm.DB) *gorm.DB {
 				return db.Order("created_at DESC").Limit(100)
 			}).
