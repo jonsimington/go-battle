@@ -507,6 +507,9 @@ func ProgressTournament(db *gorm.DB, tournamentID int) {
 
 	if shouldComplete {
 		winner := determineSwissTournamentWinner(tournament)
+		// Unlock before calling helper functions that also acquire tournamentLock
+		// to avoid deadlock (sync.Mutex is not reentrant)
+		tournamentLock.Unlock()
 		if winner != nil && winner.ID > 0 {
 			updateTournamentWinner(db, tournament, winner)
 			log.Infof("Tournament %d winner: %s (ID: %d)", tournamentID, winner.Name, winner.ID)
@@ -515,7 +518,6 @@ func ProgressTournament(db *gorm.DB, tournamentID int) {
 		}
 		updateTournamentStatus(db, tournament, "Completed")
 		updateTournamentEndTime(db, tournament, time.Now())
-		tournamentLock.Unlock()
 		return
 	}
 
