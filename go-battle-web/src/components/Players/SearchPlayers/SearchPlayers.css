@@ -5,113 +5,137 @@
   margin-bottom: 24px;
 }
 
-/* Rank column styling */
-.player-rank-container {
+/* ── Name column ── */
+.player-name-cell {
+  width: 100%;
+  min-width: 180px;
+}
+
+.player-card {
   display: flex;
   align-items: center;
-}
-
-.player-rank {
-  font-weight: 600;
-  margin-right: 8px;
-  font-size: 13px;
-}
-
-.rank-1 {
-  color: #d29922;
-}
-
-.rank-2 {
-  color: #8b949e;
-}
-
-.rank-3 {
-  color: #f78166;
-}
-
-/* Player name styling */
-.player-name-container {
-  display: flex;
-  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
 }
 
 .player-name {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary, #c9d1d9);
-  font-size: 14px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
-.player-activity {
-  margin-left: 8px;
+.player-links {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
 }
 
+.player-link {
+  font-size: 12px;
+  color: var(--text-secondary, #8b949e);
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.player-link:hover {
+  color: var(--primary, #58a6ff);
+  background: var(--primary-muted, rgba(88, 166, 255, 0.1));
+}
+
+/* ── W / L / D column ── */
+.wld-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 100px;
+}
+
+.wld-numbers {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.wld-w { color: var(--success, #3fb950); }
+.wld-l { color: var(--danger, #f85149); }
+.wld-d { color: var(--text-muted, #484f58); }
+.wld-sep { color: var(--text-muted, #484f58); font-weight: 400; }
+
+.wld-bar {
+  display: flex;
+  height: 3px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--border-muted, #21262d);
+}
+
+.wld-bar-w { background: var(--success, #3fb950); }
+.wld-bar-l { background: var(--danger, #f85149); }
+.wld-bar-d { background: var(--text-muted, #484f58); }
+
+/* ── Streak column ── */
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+.streak-win {
+  color: var(--success, #3fb950);
+  background: var(--success-muted, rgba(63, 185, 80, 0.15));
+}
+
+.streak-lose {
+  color: var(--danger, #f85149);
+  background: var(--danger-muted, rgba(248, 81, 73, 0.15));
+}
+
+.streak-draw {
+  color: var(--warning, #d29922);
+  background: var(--warning-muted, rgba(210, 153, 34, 0.15));
+}
+
+.streak-fire {
+  font-size: 11px;
+  color: var(--warning, #d29922);
+}
+
+.streak-none {
+  color: var(--text-muted, #484f58);
+}
+
+/* ── Win % column ── */
+.win-pct {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.wp-high { color: var(--success, #3fb950); }
+.wp-mid  { color: var(--text-primary, #c9d1d9); }
+.wp-low  { color: var(--danger, #f85149); }
+
+/* ── Activity badges ── */
 .activity-badge {
   font-size: 11px;
   padding: 2px 6px;
   border-radius: 4px;
 }
 
-/* Stats styling */
-.player-stats-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.player-stats {
-  font-weight: 500;
-  font-size: 13px;
-}
-
-.win-count {
-  color: var(--success, #3fb950);
-}
-
-.loss-count {
-  color: var(--danger, #f85149);
-}
-
-.draw-count {
-  color: var(--text-muted, #484f58);
-}
-
-.stats-progress {
-  width: 40px;
-  height: 4px;
-  margin-left: 8px;
-  border-radius: 2px;
-}
-
-/* Streak styling */
-.streak-badge {
-  padding: 2px 8px;
-  display: inline-flex;
-  align-items: center;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.hot-streak-icon {
-  margin-left: 4px;
-  color: #d29922;
-}
-
-/* ELO history chart styling */
-.elo-history-container {
-  display: flex;
-  align-items: center;
-}
-
-.elo-chart {
-  flex-grow: 1;
-}
-
-.elo-diff-badge {
-  margin-left: 8px;
-  font-size: 12px;
-}
-
-/* Filter and search controls */
+/* ── Filter and search controls ── */
 .filters-container {
   margin-bottom: 16px;
 }
@@ -130,25 +154,18 @@
   width: 100%;
 }
 
-/* Responsive adjustments */
+/* ── Responsive ── */
 @media (max-width: 768px) {
   .filters-container {
     flex-direction: column;
   }
-  
+
   .search-container, .elo-filter-container, .sort-container {
     margin-bottom: 8px;
     width: 100%;
   }
-}
 
-/* Tooltip enhancements */
-.stats-tooltip {
-  font-size: 12px;
-}
-
-/* Player row hover */
-.player-row:hover {
-  background-color: rgba(88, 166, 255, 0.06);
-  transition: background-color 150ms ease;
+  .player-links {
+    display: none;
+  }
 }

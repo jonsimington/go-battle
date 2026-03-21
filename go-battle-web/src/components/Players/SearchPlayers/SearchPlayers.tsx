@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button, Badge, Card, Form, InputGroup, Row, Col, Dropdown, DropdownButton, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { calculateGameResult, calculateStreak, pluck } from '../../../utils/utils';
 import { Sparklines, SparklinesLine, SparklinesSpots } from 'react-sparklines';
-import { FaInfinity, FaMagnifyingGlass, FaSort, FaSortDown, FaSortUp, FaMedal, FaTrophy, FaFire } from 'react-icons/fa6';
+import { FaMagnifyingGlass, FaSort, FaSortDown, FaSortUp, FaMedal, FaTrophy, FaFire } from 'react-icons/fa6';
 import EloBadge from '../../Common/ELO/ELOBadge';
 import { Link, useNavigate } from 'react-router-dom';
 import './SearchPlayers.css';
@@ -92,7 +92,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
 
     const calculateWinPercentage = (player: PlayersResult): number => {
         const completeGames = (player.games || []).filter(g => g.status === "Complete");
-        const wins = completeGames.filter(g => g.winner?.ID === player.ID).length;
+        const wins = completeGames.filter(g => (g.winner_id || g.winner?.ID) === player.ID).length;
         const draws = completeGames.filter(g => g.draw).length;
         const numGames = completeGames.length;
         
@@ -150,61 +150,14 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
                 const { name, ID, games } = item;
                 return (
-                    <div className="player-name-button-container" style={{ width: '100%', minWidth: '200px' }}>
-                        <div className="bg-dark player-card" style={{ 
-                            display: 'flex', 
-                            borderRadius: '5px', 
-                            overflow: 'hidden',
-                            border: '1px solid #30363d',
-                            width: '100%',
-                            height: '42px'  // Increased from 38px to 42px for more height
-                        }}>
-                            <div className="name-section" style={{ 
-                                flex: '1', 
-                                padding: '10px 12px',  // Increased vertical padding from 8px to 10px
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backgroundColor: '#161b22',
-                                textAlign: 'center'
-                            }}>
-                                <span className="fw-bold">{name}</span>
-                                {renderPlayerActivity(games)}
-                            </div>
-                            <div style={{ display: 'flex' }}>
-                                <Link 
-                                    to={`/games/search?players=${ID}`}
-                                    className="action-link" 
-                                    style={{ 
-                                        padding: '10px 12px',
-                                        backgroundColor: 'transparent',
-                                        color: '#79c0ff',
-                                        borderLeft: '1px solid #30363d',
-                                        textDecoration: 'none',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}
-                                >
-                                    Games
-                                </Link>
-                                <Link 
-                                    to={`/matches/search?players=${ID}`}
-                                    className="action-link" 
-                                    style={{ 
-                                        padding: '10px 12px',
-                                        backgroundColor: 'transparent',
-                                        color: '#79c0ff',
-                                        borderLeft: '1px solid #30363d',
-                                        textDecoration: 'none',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}
-                                >
-                                    Matches
-                                </Link>
-                            </div>
+                    <div className="player-name-cell">
+                        <div className="player-card">
+                            <span className="player-name">{name}</span>
+                            {renderPlayerActivity(games)}
+                            <span className="player-links">
+                                <Link to={`/games/search?players=${ID}`} className="player-link">Games</Link>
+                                <Link to={`/matches/search?players=${ID}`} className="player-link">Matches</Link>
+                            </span>
                         </div>
                     </div>
                 )
@@ -213,42 +166,40 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
         {
             key: "wins",
             title: "W / L / D",
-            width: 120,
+            width: 160,
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
                 const { ID } = item;
                 const safeGames = item.games || [];
                 const completeGames = safeGames.filter((g) => g.status === "Complete")
-                const wins = completeGames.filter((g) => g.winner?.ID === ID).length;
-                const losses = completeGames.filter((g) => g.loser?.ID === ID).length;
+                const wins = completeGames.filter((g) => (g.winner_id || g.winner?.ID) === ID).length;
+                const losses = completeGames.filter((g) => (g.loser_id || g.loser?.ID) === ID).length;
                 const draws = completeGames.filter((g) => g.draw).length;
                 const total = completeGames.length;
+                const wPct = total > 0 ? (wins / total) * 100 : 0;
+                const lPct = total > 0 ? (losses / total) * 100 : 0;
+                const dPct = total > 0 ? (draws / total) * 100 : 0;
 
                 return (
                     <OverlayTrigger
                         placement="top"
                         overlay={
                             <Tooltip id={`tooltip-${ID}-stats`}>
-                                Total Games: {total}<br/>
-                                Wins: {wins} ({Math.round((wins/Math.max(1, total))*100)}%)<br/>
-                                Losses: {losses} ({Math.round((losses/Math.max(1, total))*100)}%)<br/>
-                                Draws: {draws} ({Math.round((draws/Math.max(1, total))*100)}%)
+                                {total} games: {wins}W / {losses}L / {draws}D
                             </Tooltip>
                         }
                     >
-                        <div className="d-flex justify-content-between align-items-center">
-                            <div>
-                                <span className="text-success fw-bold">{wins}</span>{" / "}
-                                <span className="text-danger fw-bold">{losses}</span>{" / "}
-                                <span className="text-secondary fw-bold">{draws}</span>
+                        <div className="wld-cell">
+                            <div className="wld-numbers">
+                                <span className="wld-w">{wins}</span>
+                                <span className="wld-sep">/</span>
+                                <span className="wld-l">{losses}</span>
+                                <span className="wld-sep">/</span>
+                                <span className="wld-d">{draws}</span>
                             </div>
-                            <div className="progress ms-2" style={{width: '40px', height: '5px'}}>
-                                <div 
-                                    className="progress-bar bg-success" 
-                                    role="progressbar" 
-                                    style={{width: `${total > 0 ? (wins/total)*100 : 0}%`}} 
-                                    aria-valuenow={(wins/Math.max(1, total))*100} 
-                                    aria-valuemin={0} 
-                                    aria-valuemax={100}></div>
+                            <div className="wld-bar">
+                                <div className="wld-bar-w" style={{ width: `${wPct}%` }} />
+                                <div className="wld-bar-l" style={{ width: `${lPct}%` }} />
+                                <div className="wld-bar-d" style={{ width: `${dPct}%` }} />
                             </div>
                         </div>
                     </OverlayTrigger>
@@ -258,71 +209,44 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
         {
             key: "streak",
             title: "Streak",
-            width: 100,
+            width: 80,
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
                 const { ID } = item;
                 const safeGames = item.games || [];
                 let sortedGames = safeGames.filter(g => g.status === "Complete").sort((a, b) => a.UpdatedAt > b.UpdatedAt ? -1 : a.UpdatedAt < b.UpdatedAt ? 1 : 0);
-                let streakResult = calculateStreak(sortedGames, ID);
-                let streakType = streakResult.streakType;
-                let streakCount = streakResult.streakCount;
+                let { streakType, streakCount } = calculateStreak(sortedGames, ID);
                 
                 if (streakCount === 0) {
-                    return <span className="text-secondary">-</span>;
+                    return <span className="streak-none">—</span>;
                 }
+
+                const label = streakType === "win" ? "W" : streakType === "lose" ? "L" : "D";
+                const cls = streakType === "win" ? "streak-win" : streakType === "lose" ? "streak-lose" : "streak-draw";
                 
-                if (streakType === "win" && streakCount > 0) {
-                    return (
-                        <div className="d-flex align-items-center">
-                            <Badge bg="success" className="d-flex align-items-center">
-                                <span className="me-1">{streakCount}W</span>
-                                {streakCount >= 3 && <FaFire title="Hot streak!" />}
-                            </Badge>
-                        </div>
-                    );
-                }
-                else if (streakType === "lose" && streakCount > 0) {
-                    return (
-                        <Badge bg="danger">{streakCount}L</Badge>
-                    );
-                }
-                else if (streakType === "draw" && streakCount > 0) {
-                    return (
-                        <Badge bg="warning" text="dark">{streakCount}D</Badge>
-                    );
-                }
-                
-                return <span className="text-secondary">-</span>;
+                return (
+                    <span className={`streak-badge ${cls}`}>
+                        {streakCount}{label}
+                        {streakType === "win" && streakCount >= 3 && <FaFire className="streak-fire" />}
+                    </span>
+                );
             }
         },
         {
             key: "win_percent",
             title: "Win %",
-            width: 100,
+            width: 80,
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
                 const { ID } = item;
                 const safeGames = item.games || [];
                 const completeGames = safeGames.filter((g) => g.status === "Complete")
-                const wins = completeGames.filter((g) => g.winner?.ID === ID).length;
+                const wins = completeGames.filter((g) => (g.winner_id || g.winner?.ID) === ID).length;
                 const draws = completeGames.filter((g) => g.draw).length;
                 const numGames = completeGames.length;
-                const winPercent = Math.round(((2 * wins + draws) / (2 * numGames) * 100) * 100) / 100;
+                if (numGames === 0) return <span className="streak-none">—</span>;
+                const winPercent = Math.round(((2 * wins + draws) / (2 * numGames)) * 1000) / 10;
 
-                if (!Number.isNaN(winPercent) && isFinite(winPercent)) {
-                    return (
-                        <div className="d-flex align-items-center">
-                            <span className={winPercent >= 60 ? 'text-success fw-bold' : 
-                                             winPercent >= 40 ? 'text-light' : 'text-danger'}>
-                                {winPercent}%
-                            </span>
-                        </div>
-                    );
-                }
-                else if (!Number.isNaN(winPercent) && !isFinite(winPercent)) {
-                    return <FaInfinity></FaInfinity>
-                }
-
-                return "";
+                const cls = winPercent >= 60 ? 'wp-high' : winPercent >= 45 ? 'wp-mid' : 'wp-low';
+                return <span className={`win-pct ${cls}`}>{winPercent.toFixed(1)}%</span>;
             }
         },
         {

@@ -184,11 +184,11 @@ export const calculateGameResult = (game: GamesResult, playerID: number): string
         return "draw";
     }
 
-    if (game.winner?.ID === playerID) {
+    if ((game.winner_id || game.winner?.ID) === playerID) {
         return "win";
     }
 
-    if (game.loser?.ID === playerID) {
+    if ((game.loser_id || game.loser?.ID) === playerID) {
         return "lose";
     }
 
