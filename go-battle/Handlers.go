@@ -244,6 +244,79 @@ func getGamesHandler(c *fiber.Ctx) error {
 	return c.Status(200).SendString(string(jsonGames))
 }
 
+func deleteGamesHandler(c *fiber.Ctx) error {
+	gameId := c.Query("game_id")
+	gameIdInt, gameIdIntErr := strconv.Atoi(gameId)
+
+	if gameId == "" {
+		return c.Status(400).SendString("The `game_id` query param value must be provided")
+	}
+
+	if gameIdIntErr != nil {
+		return c.Status(400).SendString("`game_id` query parameter must be an integer")
+	}
+
+	var game Game
+	result := db.First(&game, gameIdInt)
+	if result.Error != nil {
+		return c.Status(400).SendString(fmt.Sprintf("Game %d not found", gameIdInt))
+	}
+
+	db.Delete(&Game{}, gameIdInt)
+
+	return c.Status(200).SendString(fmt.Sprintf("Deleted game %d", gameIdInt))
+}
+
+func stopGameHandler(c *fiber.Ctx) error {
+	gameId := c.Query("game_id")
+	gameIdInt, gameIdIntErr := strconv.Atoi(gameId)
+
+	if gameId == "" {
+		return c.Status(400).SendString("The `game_id` query param value must be provided")
+	}
+
+	if gameIdIntErr != nil {
+		return c.Status(400).SendString("`game_id` query parameter must be an integer")
+	}
+
+	var game Game
+	result := db.First(&game, gameIdInt)
+	if result.Error != nil {
+		return c.Status(400).SendString(fmt.Sprintf("Game %d not found", gameIdInt))
+	}
+
+	if game.Status != "In Progress" {
+		return c.Status(400).SendString(fmt.Sprintf("Game %d is not running (status: %s)", gameIdInt, game.Status))
+	}
+
+	err := StopGame(db, gameIdInt)
+	if err != nil {
+		return c.Status(400).SendString(err.Error())
+	}
+
+	return c.Status(200).SendString(fmt.Sprintf("Game %d stopped", gameIdInt))
+}
+
+func restartGameHandler(c *fiber.Ctx) error {
+	gameId := c.Query("game_id")
+	gameIdInt, gameIdIntErr := strconv.Atoi(gameId)
+
+	if gameId == "" {
+		return c.Status(400).SendString("The `game_id` query param value must be provided")
+	}
+
+	if gameIdIntErr != nil {
+		return c.Status(400).SendString("`game_id` query parameter must be an integer")
+	}
+
+	err := RestartGame(db, gameIdInt)
+	if err != nil {
+		return c.Status(400).SendString(err.Error())
+	}
+
+	return c.Status(200).SendString(fmt.Sprintf("Game %d restarting", gameIdInt))
+}
+
 // /////////////////////////////////////////////////////////////////////////
 // MATCHES
 // /////////////////////////////////////////////////////////////////////////
@@ -419,19 +492,76 @@ func startMatchHandler(c *fiber.Ctx) error {
 
 	// If the match isn't already started, start it
 	if match.Status == "Pending" {
-		match.StartMatch(db)
+		// Start match in a goroutine so the HTTP response returns immediately,
+		// allowing the user to stop/control the match from the web UI
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Errorf("Panic recovered in startMatchHandler goroutine for match %d: %v", matchIdInt, r)
+					updateMatchStatus(db, match, "Error")
+				}
+			}()
+			match.StartMatch(db)
+		}()
 
-		match = getMatch(matchIdInt)
-		winner, draw := getPlayerWithMostWins(match)
-
-		if draw {
-			return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Draw!", matchIdInt))
-		} else {
-			return c.Status(200).SendString(fmt.Sprintf("Match %d finished, Winner: %s", matchIdInt, winner.Name))
-		}
+		return c.Status(200).SendString(fmt.Sprintf("Match %d started", matchIdInt))
 	} else {
 		return c.Status(200).SendString(fmt.Sprintf("Match %d is already %s", matchIdInt, match.Status))
 	}
+}
+
+func stopMatchHandler(c *fiber.Ctx) error {
+	matchId := c.Query("match_id")
+	matchIdInt, matchIdIntErr := strconv.Atoi(matchId)
+
+	if matchId == "" {
+		return c.Status(400).SendString("The `match_id` query param value must be provided")
+	}
+
+	if matchIdIntErr != nil {
+		return c.Status(400).SendString("`match_id` query parameter must be an integer")
+	}
+
+	match := getMatch(matchIdInt)
+	if match.ID == 0 {
+		return c.Status(400).SendString(fmt.Sprintf("Match %d not found", matchIdInt))
+	}
+
+	if match.Status != "In Progress" {
+		return c.Status(400).SendString(fmt.Sprintf("Match %d is not running (status: %s)", matchIdInt, match.Status))
+	}
+
+	err := StopMatch(db, matchIdInt)
+	if err != nil {
+		return c.Status(400).SendString(err.Error())
+	}
+
+	return c.Status(200).SendString(fmt.Sprintf("Match %d stopped", matchIdInt))
+}
+
+func restartMatchHandler(c *fiber.Ctx) error {
+	matchId := c.Query("match_id")
+	matchIdInt, matchIdIntErr := strconv.Atoi(matchId)
+
+	if matchId == "" {
+		return c.Status(400).SendString("The `match_id` query param value must be provided")
+	}
+
+	if matchIdIntErr != nil {
+		return c.Status(400).SendString("`match_id` query parameter must be an integer")
+	}
+
+	match := getMatch(matchIdInt)
+	if match.ID == 0 {
+		return c.Status(400).SendString(fmt.Sprintf("Match %d not found", matchIdInt))
+	}
+
+	err := RestartMatch(db, matchIdInt)
+	if err != nil {
+		return c.Status(400).SendString(err.Error())
+	}
+
+	return c.Status(200).SendString(fmt.Sprintf("Match %d restarting", matchIdInt))
 }
 
 func randomMatchHandler(c *fiber.Ctx) error {

@@ -240,6 +240,10 @@ func getGamesById(ids []int) []Game {
 
 var gameLock = &sync.Mutex{}
 
+// gameCancelFuncs stores context.CancelFunc for each running game,
+// keyed by game ID. Used to stop individual running games from the web UI.
+var gameCancelFuncs sync.Map
+
 func insertGame(db *gorm.DB, game *Game) {
 	gameLock.Lock()
 	defer gameLock.Unlock()
@@ -325,7 +329,15 @@ func updateGameErrorMessage(db *gorm.DB, game Game, errorMessage string) {
 	db.Save(&g)
 }
 
-func (g Game) PlayGame(gameSession int) bool {
+func (g Game) PlayGame(ctx context.Context, gameSession int) bool {
+	// Create a per-game cancellable context (child of match context)
+	gameCtx, gameCancel := context.WithCancel(ctx)
+	gameCancelFuncs.Store(g.ID, gameCancel)
+	defer func() {
+		gameCancelFuncs.Delete(g.ID)
+		gameCancel()
+	}()
+
 	updateGameStatus(db, g, "In Progress")
 	g.Status = "In Progress"
 
@@ -344,7 +356,7 @@ func (g Game) PlayGame(gameSession int) bool {
 		go func(player Player) {
 			playerDir := matchDir + "/" + player.Name + "/"
 
-			g.playGame(player, playerDir, &gameplayWG, gameSession)
+			g.playGame(gameCtx, player, playerDir, &gameplayWG, gameSession)
 
 			gameplayWG.Done()
 		}(player)
@@ -354,6 +366,89 @@ func (g Game) PlayGame(gameSession int) bool {
 	gameplayWG.Wait()
 
 	return true
+}
+
+// StopGame cancels a running game by invoking its cancel function.
+func StopGame(db *gorm.DB, gameID int) error {
+	cancelVal, ok := gameCancelFuncs.Load(uint(gameID))
+	if !ok {
+		return fmt.Errorf("game %d is not currently running", gameID)
+	}
+
+	cancel := cancelVal.(context.CancelFunc)
+	cancel()
+
+	var game Game
+	db.First(&game, gameID)
+	if game.ID != 0 {
+		updateGameStatus(db, game, "Canceled")
+		updateGameErrorMessage(db, game, "Game was stopped by user")
+	}
+
+	log.Infof("Game %d stopped by user", gameID)
+	return nil
+}
+
+// getGame fetches a single game with full preloads
+func getGame(id int) Game {
+	var game Game
+	db.Preload("Players").
+		Preload("Players.Client").
+		Preload("Match").
+		Preload("Match.Players").
+		Preload("Match.Players.Client").
+		Preload("Winner").
+		Preload("Loser").
+		First(&game, id)
+	return game
+}
+
+// RestartGame resets a completed/errored/canceled game and re-runs it.
+func RestartGame(db *gorm.DB, gameID int) error {
+	game := getGame(gameID)
+	if game.ID == 0 {
+		return fmt.Errorf("game %d not found", gameID)
+	}
+
+	if game.Status != "Complete" && game.Status != "Error" && game.Status != "Canceled" {
+		return fmt.Errorf("game %d has status '%s' and cannot be restarted", gameID, game.Status)
+	}
+
+	// Create a new session for the restarted game
+	insertSession(db, &Session{})
+	newSession := getCurrentSessionID(db)
+
+	// Reset game fields
+	gameLock.Lock()
+	var g Game
+	db.Where("id = ?", game.ID).First(&g)
+	g.Status = "Pending"
+	g.WinnerID = nil
+	g.LoserID = nil
+	g.Draw = false
+	g.GamelogUrl = ""
+	g.ErrorMessage = ""
+	g.SessionID = newSession
+	db.Save(&g)
+	gameLock.Unlock()
+
+	// Reload with preloads
+	freshGame := getGame(gameID)
+
+	// Run the game in a goroutine
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("Panic recovered in RestartGame goroutine for game %d: %v", gameID, r)
+				updateGameStatus(db, freshGame, "Error")
+				updateGameErrorMessage(db, freshGame, fmt.Sprintf("Panic: %v", r))
+			}
+		}()
+		freshGame.PlayGame(context.Background(), newSession)
+	}()
+
+	log.Infof("Game %d restarted by user with new session %d", gameID, newSession)
+	return nil
 }
 
 // findOpponent finds the opponent player in a game given the current player
@@ -370,9 +465,16 @@ func (g Game) findOpponent(player Player) Player {
 	return Player{}
 }
 
-func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession int) {
+func (g Game) playGame(ctx context.Context, player Player, playerDir string, wg *sync.WaitGroup, gameSession int) {
 	playerLanguage := player.Client.Language
 	gameType := player.Client.Game
+
+	// Check if cancelled before building
+	if ctx.Err() != nil {
+		updateGameStatus(db, g, "Canceled")
+		updateGameErrorMessage(db, g, "Game was stopped by user")
+		return
+	}
 
 	// Build the client first
 	buildErr := makeClient(playerDir, playerLanguage)
@@ -396,7 +498,7 @@ func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, game
 	}
 
 	errorOccurred := false
-	g.runGame(playerLanguage, playerDir, gameType, gameSession, &player, &errorOccurred)
+	g.runGame(ctx, playerLanguage, playerDir, gameType, gameSession, &player, &errorOccurred)
 
 	// If the player's code caused an error, mark this player as loser and opponent as winner
 	if errorOccurred {
@@ -412,7 +514,7 @@ func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, game
 	}
 }
 
-func (g Game) runGame(playerLanguage string, playerDir string, gameType string, gameSession int, player *Player, errorOccurred *bool) {
+func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir string, gameType string, gameSession int, player *Player, errorOccurred *bool) {
 	m := make(map[string]string)
 	m["js"] = "node"
 	m["cpp"] = "./build/cpp-client"
@@ -459,7 +561,7 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 		log.Warnf(fmt.Sprintf("`%s` doesn't exist!", exePath))
 	}
 
-	gameTimeoutContext, cancel := context.WithTimeout(context.Background(), 90*time.Minute)
+	gameTimeoutContext, cancel := context.WithTimeout(ctx, 90*time.Minute)
 	defer cancel()
 
 	var runCmd *exec.Cmd

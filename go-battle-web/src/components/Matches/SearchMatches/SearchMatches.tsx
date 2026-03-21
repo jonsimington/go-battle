@@ -1,6 +1,6 @@
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
-import { FaCirclePlay, FaSpinner, FaTrash } from 'react-icons/fa6';
+import { FaCirclePlay, FaCircleStop, FaArrowRotateRight, FaSpinner, FaTrash } from 'react-icons/fa6';
 import { Toast } from 'react-bootstrap';
 import { allPlayersHaveSameScore, calculatePlayerScores, delay, elapsedTime, getApiUrl, pluck, prettyTimeAgo } from '../../../utils/utils';
 import { useState } from 'react';
@@ -29,6 +29,8 @@ const toastStyles = {
 export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): JSX.Element {
     const [matchesPlaying, setMatchesPlaying] = useState<number[]>([]);
     const [matchStartTimes, setMatchStartTimes] = useState<MatchStartTime[]>([]);
+    const [matchesStopping, setMatchesStopping] = useState<number[]>([]);
+    const [matchesRestarting, setMatchesRestarting] = useState<number[]>([]);
     const [matchIdToDelete, setMatchIdToDelete] = useState<number | null>(null);
 
     const [hasError, setHasError] = useState(false);
@@ -109,6 +111,8 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                 const elapsed = (start_time && end_time) ? prettyTimeAgo(elapsedTime(start_time, end_time)) : '';
                 const statusClass = status === "Complete" ? styles.statusComplete
                     : status === "In Progress" ? styles.statusInProgress
+                    : status === "Stopped" ? styles.statusStopped
+                    : status === "Error" ? styles.statusError
                     : styles.statusPending;
                 return (
                     <span
@@ -131,9 +135,11 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         {
             key: "actions",
             title: "",
-            width: 140,
+            width: 160,
             render: (_, { ID, status, start_time }) => {
                 start_time = !start_time || start_time.toString() === "0001-01-01T00:00:00Z" ? new Date() : start_time;
+                const isStopping = matchesStopping.includes(ID);
+                const isRestarting = matchesRestarting.includes(ID);
 
                 return (
                     <div className={styles.actions}>
@@ -142,8 +148,23 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                                 <FaCirclePlay />
                             </button>
                         )}
-                        {(status === "In Progress" || matchesPlaying.includes(ID)) && (
-                            <span className={styles.spinning} title="In progress">
+                        {(status === "In Progress" || matchesPlaying.includes(ID)) && !isStopping && (
+                            <button className={`${styles.actionBtn} ${styles.actionStop}`} onClick={() => stopMatch(ID)} title="Stop match">
+                                <FaCircleStop />
+                            </button>
+                        )}
+                        {isStopping && (
+                            <span className={styles.spinning} title="Stopping...">
+                                <FaSpinner className="icon-spin" />
+                            </span>
+                        )}
+                        {(status === "Complete" || status === "Error" || status === "Stopped") && !isRestarting && (
+                            <button className={`${styles.actionBtn} ${styles.actionRestart}`} onClick={() => restartMatch(ID)} title="Restart match">
+                                <FaArrowRotateRight />
+                            </button>
+                        )}
+                        {isRestarting && (
+                            <span className={styles.spinning} title="Restarting...">
                                 <FaSpinner className="icon-spin" />
                             </span>
                         )}
@@ -195,6 +216,55 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             .then(() => {
                 refreshData();
                 setMatchesPlaying(prev => prev.filter((mID) => mID !== matchID));
+            });
+    }
+
+    const stopMatch = (matchID: number) => {
+        setMatchesStopping(prev => [...prev, matchID]);
+
+        const requestOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        };
+
+        const apiUrl = getApiUrl();
+
+        fetch(`${apiUrl}/matches/stop?match_id=${matchID}`, requestOptions)
+            .then(async response => handleFetchResponse(response))
+            .then(async () => {
+                await delay(1000);
+            })
+            .then(() => {
+                refreshData();
+                setMatchesStopping(prev => prev.filter((mID) => mID !== matchID));
+                setMatchesPlaying(prev => prev.filter((mID) => mID !== matchID));
+            })
+            .catch(() => {
+                setMatchesStopping(prev => prev.filter((mID) => mID !== matchID));
+            });
+    }
+
+    const restartMatch = (matchID: number) => {
+        setMatchesRestarting(prev => [...prev, matchID]);
+
+        const requestOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        };
+
+        const apiUrl = getApiUrl();
+
+        fetch(`${apiUrl}/matches/restart?match_id=${matchID}`, requestOptions)
+            .then(async response => handleFetchResponse(response))
+            .then(async () => {
+                await delay(1000);
+            })
+            .then(() => {
+                refreshData();
+                setMatchesRestarting(prev => prev.filter((mID) => mID !== matchID));
+            })
+            .catch(() => {
+                setMatchesRestarting(prev => prev.filter((mID) => mID !== matchID));
             });
     }
 

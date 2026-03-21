@@ -3,7 +3,7 @@ import { Toast } from 'react-bootstrap';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
 import { delay, getApiUrl, getVisUrl, pluck } from '../../../utils/utils';
-import { FaTv, FaTrash } from 'react-icons/fa6';
+import { FaTv, FaTrash, FaCircleStop, FaArrowRotateRight, FaSpinner } from 'react-icons/fa6';
 import TimeAgo from 'timeago-react';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../../Common/Modal';
@@ -22,6 +22,8 @@ const toastStyles = {
 
 export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.Element {
     const [gameToDelete, setGameToDelete] = useState<number | null>(null);
+    const [gamesStopping, setGamesStopping] = useState<number[]>([]);
+    const [gamesRestarting, setGamesRestarting] = useState<number[]>([]);
     const [hasError, setHasError] = useState(false);
     const [hasWarning, setHasWarning] = useState(false);
     const [showToast, setShowToast] = useState(false);
@@ -105,6 +107,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                 }
                 const statusClass = status === "Complete" ? styles.statusComplete
                     : status === "In Progress" ? styles.statusInProgress
+                    : status === "Canceled" ? styles.statusCanceled
                     : styles.statusPending;
                 return <span className={`${styles.status} ${statusClass}`}>{status || "Unknown"}</span>;
             }
@@ -120,31 +123,62 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
         {
             key: "actions",
             title: "",
-            width: 100,
-            render: (_, { gamelog_url, ID }) => (
-                <div className={styles.actions}>
-                    {gamelog_url && gamelog_url !== "" ? (
-                        <a
-                            className={styles.actionBtn}
-                            href={`${visUrl}/?log=${encodeURI(gamelog_url)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Visualize">
-                            <FaTv />
-                        </a>
-                    ) : (
-                        <span className={`${styles.actionBtn} ${styles.actionDisabled}`} title="No gamelog">
-                            <FaTv />
-                        </span>
-                    )}
-                    <button
-                        className={`${styles.actionBtn} ${styles.actionDelete}`}
-                        onClick={() => confirmDeleteGame(ID)}
-                        title="Delete game">
-                        <FaTrash />
-                    </button>
-                </div>
-            )
+            width: 120,
+            render: (_, { gamelog_url, ID, status }) => {
+                const isStopping = gamesStopping.includes(ID);
+                const isRestarting = gamesRestarting.includes(ID);
+
+                return (
+                    <div className={styles.actions}>
+                        {gamelog_url && gamelog_url !== "" ? (
+                            <a
+                                className={styles.actionBtn}
+                                href={`${visUrl}/?log=${encodeURI(gamelog_url)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Visualize">
+                                <FaTv />
+                            </a>
+                        ) : (
+                            <span className={`${styles.actionBtn} ${styles.actionDisabled}`} title="No gamelog">
+                                <FaTv />
+                            </span>
+                        )}
+                        {status === "In Progress" && !isStopping && (
+                            <button
+                                className={`${styles.actionBtn} ${styles.actionStop}`}
+                                onClick={() => stopGame(ID)}
+                                title="Stop game">
+                                <FaCircleStop />
+                            </button>
+                        )}
+                        {isStopping && (
+                            <span className={styles.spinning} title="Stopping...">
+                                <FaSpinner className="icon-spin" />
+                            </span>
+                        )}
+                        {(status === "Complete" || status === "Error" || status === "Canceled") && !isRestarting && (
+                            <button
+                                className={`${styles.actionBtn} ${styles.actionRestart}`}
+                                onClick={() => restartGame(ID)}
+                                title="Restart game">
+                                <FaArrowRotateRight />
+                            </button>
+                        )}
+                        {isRestarting && (
+                            <span className={styles.spinning} title="Restarting...">
+                                <FaSpinner className="icon-spin" />
+                            </span>
+                        )}
+                        <button
+                            className={`${styles.actionBtn} ${styles.actionDelete}`}
+                            onClick={() => confirmDeleteGame(ID)}
+                            title="Delete game">
+                            <FaTrash />
+                        </button>
+                    </div>
+                );
+            }
         },
     ];
 
@@ -168,6 +202,54 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
     const confirmDeleteGame = (gameID: number) => {
         setGameToDelete(gameID);
         setShowConfirmDeleteModal(true);
+    }
+
+    const stopGame = (gameID: number) => {
+        setGamesStopping(prev => [...prev, gameID]);
+
+        const requestOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        };
+
+        const apiUrl = getApiUrl();
+
+        fetch(`${apiUrl}/games/stop?game_id=${gameID}`, requestOptions)
+            .then(async response => handleFetchResponse(response))
+            .then(async () => {
+                await delay(1000);
+            })
+            .then(() => {
+                refreshData();
+                setGamesStopping(prev => prev.filter((gID) => gID !== gameID));
+            })
+            .catch(() => {
+                setGamesStopping(prev => prev.filter((gID) => gID !== gameID));
+            });
+    }
+
+    const restartGame = (gameID: number) => {
+        setGamesRestarting(prev => [...prev, gameID]);
+
+        const requestOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        };
+
+        const apiUrl = getApiUrl();
+
+        fetch(`${apiUrl}/games/restart?game_id=${gameID}`, requestOptions)
+            .then(async response => handleFetchResponse(response))
+            .then(async () => {
+                await delay(1000);
+            })
+            .then(() => {
+                refreshData();
+                setGamesRestarting(prev => prev.filter((gID) => gID !== gameID));
+            })
+            .catch(() => {
+                setGamesRestarting(prev => prev.filter((gID) => gID !== gameID));
+            });
     }
 
     const deleteGame = () => {

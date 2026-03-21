@@ -125,10 +125,15 @@ func main() {
 
 	app.Post("/games", postGamesHandler)
 	app.Get("/games", getGamesHandler)
+	app.Delete("/games", deleteGamesHandler)
+	app.Post("/games/stop", stopGameHandler)
+	app.Post("/games/restart", restartGameHandler)
 
 	app.Post("/matches", postMatchesHandler)
 	app.Delete("/matches", deleteMatchesHandler)
 	app.Post("/matches/start", startMatchHandler)
+	app.Post("/matches/stop", stopMatchHandler)
+	app.Post("/matches/restart", restartMatchHandler)
 	app.Get("/matches", getMatchesHandler)
 	app.Post("/matches/random", randomMatchHandler)
 

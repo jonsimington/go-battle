@@ -101,6 +101,22 @@
     background-color: var(--success);
 }
 
+.statusStopped::before {
+    background-color: var(--warning);
+}
+
+.statusStopped {
+    color: var(--warning);
+}
+
+.statusError::before {
+    background-color: var(--danger);
+}
+
+.statusError {
+    color: var(--danger);
+}
+
 .actions {
     display: inline-flex;
     align-items: center;
@@ -136,6 +152,28 @@
     background-color: var(--success-muted);
     color: var(--success);
     border-color: var(--success);
+}
+
+.actionStop {
+    color: var(--warning);
+    border-color: var(--warning);
+}
+
+.actionStop:hover {
+    background-color: var(--warning-muted, rgba(234, 179, 8, 0.1));
+    color: var(--warning);
+    border-color: var(--warning);
+}
+
+.actionRestart {
+    color: var(--secondary);
+    border-color: var(--secondary);
+}
+
+.actionRestart:hover {
+    background-color: var(--surface);
+    color: var(--secondary);
+    border-color: var(--secondary);
 }
 
 .actionDelete {

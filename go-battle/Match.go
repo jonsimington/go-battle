@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,6 +30,10 @@ var matchLock = &sync.Mutex{}
 
 // Add a dedicated mutex for match-game associations
 var matchGameLock = &sync.Mutex{}
+
+// matchCancelFuncs stores context.CancelFunc for each running match,
+// keyed by match ID. Used to stop running matches from the web UI.
+var matchCancelFuncs sync.Map
 
 func insertMatch(db *gorm.DB, match *Match) {
 	matchLock.Lock()
@@ -265,8 +270,16 @@ func getMatch(id int) Match {
 	return match
 }
 
-// StartMatch begins a match between two players for n games
+// StartMatch begins a match between two players for n games.
+// It creates a cancellable context so the match can be stopped from the web UI.
 func (m Match) StartMatch(db *gorm.DB) {
+	ctx, cancel := context.WithCancel(context.Background())
+	matchCancelFuncs.Store(m.ID, cancel)
+	defer func() {
+		matchCancelFuncs.Delete(m.ID)
+		cancel()
+	}()
+
 	if len(m.Players) < 2 {
 		log.Errorf("Cannot start match %d: expected 2 players but found %d", m.ID, len(m.Players))
 		updateMatchStatus(db, m, "Error")
@@ -295,6 +308,13 @@ func (m Match) StartMatch(db *gorm.DB) {
 	log.Infof("Cloning %s's repo: %s to %s", player2.Name, player2.Client.Repo, matchDir)
 	player2.Client.CloneRepo(matchDir + "/" + player2.Name)
 
+	// Check if cancelled during cloning
+	if ctx.Err() != nil {
+		log.Infof("Match %d was stopped during repo cloning", m.ID)
+		cleanUpMatchDirectory(m)
+		return
+	}
+
 	var matchWG sync.WaitGroup
 	matchWG.Add(m.NumGames)
 
@@ -312,6 +332,11 @@ func (m Match) StartMatch(db *gorm.DB) {
 		go func(currentSession int) {
 			defer matchWG.Done()
 
+			// Skip starting new games if match was cancelled
+			if ctx.Err() != nil {
+				return
+			}
+
 			g := Game{
 				Players:   players,
 				Match:     m,
@@ -323,7 +348,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 			addGameToPlayer(db, player1, g)
 			addGameToPlayer(db, player2, g)
 
-			g.PlayGame(currentSession)
+			g.PlayGame(ctx, currentSession)
 		}(session)
 	}
 
@@ -337,6 +362,18 @@ func (m Match) StartMatch(db *gorm.DB) {
 	// Games should either complete with a winner/loser/draw or fail with an error
 	log.Infof("Waiting for all %d games in match %d to complete naturally", m.NumGames, m.ID)
 	<-gameCompletionChan
+
+	// If the match was stopped, don't mark it complete
+	if ctx.Err() != nil {
+		log.Infof("Match %d was stopped, skipping completion logic", m.ID)
+		cleanUpMatchDirectory(m)
+		playerDirs := []string{
+			matchDir + "/" + player1.Name + "/",
+			matchDir + "/" + player2.Name + "/",
+		}
+		cleanupGameSyncMaps(m.ID, matchSessions, playerDirs)
+		return
+	}
 
 	// Refresh game data from database to get final statuses
 	refreshedMatch := getMatch(int(m.ID))
@@ -392,6 +429,88 @@ func (m Match) StartMatch(db *gorm.DB) {
 	cleanupGameSyncMaps(m.ID, matchSessions, playerDirs)
 	updateMatchStatus(db, m, "Complete")
 	updateMatchEndTime(db, m, time.Now())
+}
+
+// StopMatch cancels a running match by invoking its cancel function.
+// This kills all running game processes and marks remaining games as Canceled.
+func StopMatch(db *gorm.DB, matchID int) error {
+	cancelVal, ok := matchCancelFuncs.Load(uint(matchID))
+	if !ok {
+		return fmt.Errorf("match %d is not currently running", matchID)
+	}
+
+	cancel := cancelVal.(context.CancelFunc)
+	cancel()
+
+	// Mark any in-progress games as canceled
+	match := getMatch(matchID)
+	for _, game := range match.Games {
+		if game.Status == "In Progress" || game.Status == "" {
+			updateGameStatus(db, game, "Canceled")
+			updateGameErrorMessage(db, game, "Match was stopped by user")
+		}
+	}
+
+	updateMatchStatus(db, match, "Stopped")
+	updateMatchEndTime(db, match, time.Now())
+
+	log.Infof("Match %d stopped by user", matchID)
+	return nil
+}
+
+// RestartMatch resets a match and starts it again.
+// Clears existing games, resets status, and re-runs the match.
+func RestartMatch(db *gorm.DB, matchID int) error {
+	// If still running, stop it first
+	if cancelVal, ok := matchCancelFuncs.Load(uint(matchID)); ok {
+		cancel := cancelVal.(context.CancelFunc)
+		cancel()
+		// Give goroutines a moment to clean up
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	match := getMatch(matchID)
+	if match.ID == 0 {
+		return fmt.Errorf("match %d not found", matchID)
+	}
+
+	// Only allow restart from Complete, Error, or Stopped states
+	if match.Status != "Complete" && match.Status != "Error" && match.Status != "Stopped" {
+		return fmt.Errorf("match %d has status '%s' and cannot be restarted", matchID, match.Status)
+	}
+
+	// Remove existing game associations and soft-delete games
+	for _, game := range match.Games {
+		db.Delete(&Game{}, game.ID)
+	}
+	db.Model(&match).Association("Games").Clear()
+
+	// Reset match fields
+	updateMatchStatus(db, match, "Pending")
+	updateMatchDraw(db, match, false)
+
+	matchLock.Lock()
+	var m Match
+	db.Where("id = ?", match.ID).First(&m)
+	m.StartTime = time.Time{}
+	m.EndTime = time.Time{}
+	db.Save(&m)
+	matchLock.Unlock()
+
+	// Start the match in a goroutine
+	freshMatch := getMatch(matchID)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("Panic recovered in RestartMatch goroutine for match %d: %v", matchID, r)
+				updateMatchStatus(db, freshMatch, "Error")
+			}
+		}()
+		freshMatch.StartMatch(db)
+	}()
+
+	log.Infof("Match %d restarted by user", matchID)
+	return nil
 }
 
 func cleanUpMatchDirectory(match Match) {
@@ -687,7 +806,7 @@ func createGamesForMatchWithOptions(db *gorm.DB, matchID uint, isPartOfProgressi
 			log.Infof("Created game %d for match %d, session %d", g.ID, match.ID, currentSession)
 
 			// Launch the game
-			g.PlayGame(currentSession)
+			g.PlayGame(context.Background(), currentSession)
 
 			log.Infof("Game %d for match %d session %d has completed", g.ID, match.ID, currentSession)
 		}(session)

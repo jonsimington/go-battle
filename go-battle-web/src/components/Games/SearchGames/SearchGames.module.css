@@ -89,6 +89,14 @@
     background-color: var(--success);
 }
 
+.statusCanceled::before {
+    background-color: var(--warning);
+}
+
+.statusCanceled {
+    color: var(--warning);
+}
+
 .statusError::before {
     background-color: var(--danger);
 }
@@ -131,6 +139,28 @@
     pointer-events: none;
 }
 
+.actionStop {
+    color: var(--warning);
+    border-color: var(--warning);
+}
+
+.actionStop:hover {
+    background-color: var(--warning-muted, rgba(234, 179, 8, 0.1));
+    color: var(--warning);
+    border-color: var(--warning);
+}
+
+.actionRestart {
+    color: var(--secondary);
+    border-color: var(--secondary);
+}
+
+.actionRestart:hover {
+    background-color: var(--surface);
+    color: var(--secondary);
+    border-color: var(--secondary);
+}
+
 .actionDelete {
     color: var(--danger);
     border-color: transparent;
@@ -145,4 +175,12 @@
     font-size: 13px;
     color: var(--text-secondary);
     white-space: nowrap;
+}
+
+.spinning {
+    color: var(--secondary);
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
 }
