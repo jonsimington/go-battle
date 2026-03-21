@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
-import { pluck, prettyDate } from '../../../utils/utils';
+import { getVisUrl, pluck, prettyDate } from '../../../utils/utils';
 import { Button, OverlayTrigger, Tooltip, Badge } from 'react-bootstrap';
 import { FaTv } from 'react-icons/fa6';
 import moment from 'moment';
@@ -15,7 +15,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
     const [data, setData] = useState(tableData);
     const [sortType, setSortType] = useState("created-desc");
 
-    const visUrl = process.env.REACT_APP_VIS_URL;
+    const visUrl = getVisUrl();
 
     useEffect(() => {
         const sortData = (sortType: any) => {

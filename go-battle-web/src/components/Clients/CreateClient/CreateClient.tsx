@@ -2,6 +2,7 @@ import React, { FC, useState } from 'react';
 import './CreateClient.css';
 import { Alert, Button, Form } from 'react-bootstrap';
 import { FaUserPlus } from 'react-icons/fa6';
+import { getApiUrl } from '../../../utils/utils';
 
 interface CreateClientProps {}
 
@@ -24,7 +25,7 @@ const CreateClient: FC<CreateClientProps> = (props) => {
         setGameValue(event.target.value);
     }
 
-    const apiUrl = process.env.REACT_APP_API_URL;
+    const apiUrl = getApiUrl();
 
     const handleSubmit = (event: any) => {
         event.preventDefault();

@@ -2,7 +2,7 @@ import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaSpinner, FaTrash } from 'react-icons/fa6';
 import { Button, Col, Container, Dropdown, OverlayTrigger, Row, Toast, Tooltip } from 'react-bootstrap';
-import { allPlayersHaveSameScore, delay, elapsedTime, pluck, prettyDate, prettyTimeAgo, slugify } from '../../../utils/utils';
+import { allPlayersHaveSameScore, delay, elapsedTime, getApiUrl, pluck, prettyDate, prettyTimeAgo, slugify } from '../../../utils/utils';
 import { useState } from 'react';
 import moment from 'moment';
 import TimeAgo from 'timeago-react';
@@ -246,7 +246,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             headers: { 'Content-Type': 'application/json' },
         };
 
-        const apiUrl = process.env.REACT_APP_API_URL;
+        const apiUrl = getApiUrl();
 
         fetch(`${apiUrl}/matches/start?match_id=${matchID}`, requestOptions)
             .then(async response => handleFetchResponse(response))
@@ -270,7 +270,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             headers: { 'Content-Type': 'application/json' },
         };
 
-        const apiUrl = process.env.REACT_APP_API_URL;
+        const apiUrl = getApiUrl();
 
         fetch(`${apiUrl}/matches?match_id=${matchID}`, requestOptions)
             .then(async response => handleFetchResponse(response))

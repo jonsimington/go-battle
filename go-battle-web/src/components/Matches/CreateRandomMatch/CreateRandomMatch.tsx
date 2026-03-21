@@ -1,6 +1,7 @@
 import React, { FC, useState } from 'react';
 import { Alert, Button, Form } from 'react-bootstrap';
 import { FaUserPlus } from 'react-icons/fa6';
+import { getApiUrl } from '../../../utils/utils';
 
 interface CreateRandomMatchProps {}
 
@@ -16,7 +17,7 @@ const CreateRandomMatch: FC<CreateRandomMatchProps> = () => {
         setNumGamesValue(event.target.value);
     }
 
-    const apiUrl = process.env.REACT_APP_API_URL;
+    const apiUrl = getApiUrl();
 
     const handleSubmit = (event: any) => {
         event.preventDefault();

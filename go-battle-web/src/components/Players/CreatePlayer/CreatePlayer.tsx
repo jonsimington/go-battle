@@ -2,7 +2,7 @@ import React, { FC, useEffect, useState } from 'react';
 import { Alert, Button, Form } from 'react-bootstrap';
 import { FaUserPlus } from 'react-icons/fa6';
 import { ClientsResult } from '../../../models/ClientsResult';
-import { translateClientLanguage } from '../../../utils/utils';
+import { getApiUrl, translateClientLanguage } from '../../../utils/utils';
 
 interface CreatePlayerProps {}
 
@@ -28,7 +28,7 @@ const CreatePlayer: FC<CreatePlayerProps> = () => {
     
     // fetch list of clients to populate dropdown
     useEffect(() => {
-        const apiUrl = process.env.REACT_APP_API_URL;
+        const apiUrl = getApiUrl();
 
         fetch(`${apiUrl}/clients`, {mode:'cors'})
           .then(response => response.json())
@@ -53,7 +53,7 @@ const CreatePlayer: FC<CreatePlayerProps> = () => {
         const name = encodeURI(nameValue);
         const clientId = encodeURI(clientIdValue);
 
-        const apiUrl = process.env.REACT_APP_API_URL;
+        const apiUrl = getApiUrl();
 
         fetch(`${apiUrl}/players?name=${name}&client_id=${clientId}`, requestOptions)
             .then(async response => {

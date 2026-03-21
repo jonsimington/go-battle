@@ -9,7 +9,7 @@ import { ApiResult } from '../../models/ApiResult';
 import { SearchTournaments } from '../Tournaments/SearchTournaments/SearchTournaments';
 import { Col, Container, Dropdown, Pagination, Row } from 'react-bootstrap';
 import { range } from 'lodash';
-import { getPagesToDisplay } from '../../utils/utils';
+import { getApiUrl, getPagesToDisplay } from '../../utils/utils';
 
 interface DbTableViewProps {
     context: string;
@@ -30,7 +30,7 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
 
     const [shouldShowPagination, setShouldShowPagination] = useState(false);
 
-    const apiUrl = process.env.REACT_APP_API_URL;
+    const apiUrl = getApiUrl();
 
     const resultsPerPageOptions = [5, 10, 15, 20];
     

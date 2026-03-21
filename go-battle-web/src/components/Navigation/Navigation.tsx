@@ -5,12 +5,13 @@ import Nav from 'react-bootstrap/Nav';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 import Navbar from 'react-bootstrap/Navbar';
 import { FaChessBishop, FaPlus, FaMagnifyingGlass, FaShuffle } from "react-icons/fa6";
+import { getCerveauUrl, getVisUrl } from '../../utils/utils';
 
 interface NavigationProps {}
 
 const Navigation: FC<NavigationProps> = () => {
-    const cerveauUrl = process.env.REACT_APP_CERVEAU_URL;
-    const visUrl = process.env.REACT_APP_VIS_URL;
+    const cerveauUrl = getCerveauUrl();
+    const visUrl = getVisUrl();
 
     return (
         <div className={styles.Navigation} data-testid="Navigation">

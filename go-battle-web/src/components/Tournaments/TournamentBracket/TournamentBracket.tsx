@@ -8,6 +8,7 @@ import { PlayersResult } from '../../../models/PlayersResult';
 import moment from 'moment';
 import { Timer } from '../../Common/Timer';
 import ELOBadge from '../../Common/ELO';
+import { getApiUrl } from '../../../utils/utils';
 import { RefreshButton } from '../../Common';
 import { HistoricalElo } from '../../../models/HistoricalElo';
 import { FaTrophy, FaMedal } from 'react-icons/fa';
@@ -72,7 +73,7 @@ export function TournamentBracket(): JSX.Element {
     const [playerStatus, setPlayerStatus] = useState<Map<number, PlayerStatus>>(new Map());
     const [matchesWithDetailedGames, setMatchesWithDetailedGames] = useState<Map<number, MatchesResult>>(new Map());
     
-    const apiUrl = process.env.REACT_APP_API_URL;
+    const apiUrl = getApiUrl();
 
     // fetch tournament data when component mounts
     useEffect(() => {

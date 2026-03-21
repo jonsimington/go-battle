@@ -3,6 +3,7 @@ import { Alert, Button, Col, Form, Row, Container } from 'react-bootstrap';
 import { FaUserPlus, FaDice } from 'react-icons/fa6';
 import { PlayersResult } from '../../../models/PlayersResult';
 import './CreateTournament.css';
+import { getApiUrl } from '../../../utils/utils';
 
 interface CreateTournamentProps {}
 
@@ -183,7 +184,7 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
 
     // fetch list of clients to populate dropdown and select random players
     useEffect(() => {
-        const apiUrl = process.env.REACT_APP_API_URL;
+        const apiUrl = getApiUrl();
 
         fetch(`${apiUrl}/players`, {mode:'cors'})
           .then(response => response.json())
@@ -214,7 +215,7 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
         const typeQuery = encodeURI(typeValue);
         const playersQuery = encodeURI(playersValue);
 
-        const apiUrl = process.env.REACT_APP_API_URL;
+        const apiUrl = getApiUrl();
 
         fetch(`${apiUrl}/tournaments?type=${typeQuery}&players=${playersQuery}`, requestOptions)
             .then(async response => {

@@ -9,5 +9,5 @@
     "DB_NAME": "go-battle",
     "DB_HOST": "db",
     "DB_PORT": 5432,
-    "ALLOWED_ORIGINS": "http://localhost:3001"
+    "ALLOWED_ORIGINS": "*"
 }

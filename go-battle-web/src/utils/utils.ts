@@ -2,6 +2,22 @@ import { GamesResult } from "../models/GamesResult";
 import { PlayerScore } from "../models/PlayerScore"
 import { range } from 'lodash';
 
+/**
+ * Builds a service URL using the browser's current hostname so the app
+ * works when accessed from a remote machine (e.g. http://192.168.0.239:3001).
+ * Falls back to the env var value when running on localhost.
+ */
+export const getServiceUrl = (envVar: string | undefined, defaultPort: number): string => {
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        return `http://${window.location.hostname}:${defaultPort}`;
+    }
+    return envVar || `http://localhost:${defaultPort}`;
+};
+
+export const getApiUrl = () => getServiceUrl(process.env.REACT_APP_API_URL, 3000);
+export const getCerveauUrl = () => getServiceUrl(process.env.REACT_APP_CERVEAU_URL, 3080);
+export const getVisUrl = () => getServiceUrl(process.env.REACT_APP_VIS_URL, 8080);
+
 export const translateClientLanguage = (languageCode: string) => {
     switch(languageCode) {
         case "py":

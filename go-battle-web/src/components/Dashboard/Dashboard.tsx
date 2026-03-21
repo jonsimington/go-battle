@@ -4,7 +4,7 @@ import { ApiResult } from '../../models/ApiResult';
 import { PlayersResult } from '../../models/PlayersResult';
 import { MatchesResult } from '../../models/MatchesResult';
 import { GamesResult } from '../../models/GamesResult';
-import { average, elapsedTime, prettyTimeAgo } from '../../utils/utils';
+import { average, elapsedTime, getApiUrl, prettyTimeAgo } from '../../utils/utils';
 import EloBadge from '../Common/ELO/ELOBadge';
 
 interface DashboardProps {}
@@ -16,7 +16,7 @@ const Dashboard: FC<DashboardProps> = () => {
     let [games, setGames] = useState<GamesResult[]>([]);
     let [avgMatchLength, setAvgMatchLength] = useState<number>(0);
 
-    const apiUrl = process.env.REACT_APP_API_URL;
+    const apiUrl = getApiUrl();
 
     useEffect(() => {
         fetchFromApi("/games");

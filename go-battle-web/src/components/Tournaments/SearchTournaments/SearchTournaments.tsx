@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, OverlayTrigger, Toast, Tooltip } from 'react-bootstrap';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
-import { allPlayersHaveSameScore, delay, pluck, slugify } from '../../../utils/utils';
+import { allPlayersHaveSameScore, delay, getApiUrl, pluck, slugify } from '../../../utils/utils';
 import { TournamentsResult } from '../../../models/TournamentsResult';
 import { PlayerScore } from '../../../models/PlayerScore';
 import { FaCirclePlay, FaSpinner, FaDiagramProject, FaTrash } from 'react-icons/fa6';
@@ -313,7 +313,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             headers: { 'Content-Type': 'application/json' },
         };
 
-        const apiUrl = process.env.REACT_APP_API_URL;
+        const apiUrl = getApiUrl();
 
         fetch(`${apiUrl}/tournaments/start?tournament_id=${tournamentID}`, requestOptions)
             .then(async response => handleFetchResponse(response))
@@ -339,7 +339,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             headers: { 'Content-Type': 'application/json' },
         };
 
-        const apiUrl = process.env.REACT_APP_API_URL;
+        const apiUrl = getApiUrl();
 
         fetch(`${apiUrl}/tournaments?tournament_id=${tournamentToDelete}`, requestOptions)
             .then(async response => handleFetchResponse(response))
