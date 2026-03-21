@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -11,6 +12,35 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 )
+
+// PaginatedResponse wraps a page of results with pagination metadata
+type PaginatedResponse struct {
+	Data       interface{} `json:"data"`
+	Page       int         `json:"page"`
+	PageSize   int         `json:"pageSize"`
+	TotalCount int64       `json:"totalCount"`
+	TotalPages int         `json:"totalPages"`
+}
+
+const defaultPageSize = 10
+const maxPageSize = 100
+
+func parsePaginationParams(c *fiber.Ctx) (int, int) {
+	page := parseIntWithDefault(c.Query("page"), 1)
+	pageSize := parseIntWithDefault(c.Query("page_size"), defaultPageSize)
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = defaultPageSize
+	}
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
+	}
+
+	return page, pageSize
+}
 
 // /////////////////////////////////////////////////////////////////////////
 // CLIENTS
@@ -177,6 +207,7 @@ func postGamesHandler(c *fiber.Ctx) error {
 func getGamesHandler(c *fiber.Ctx) error {
 	players := c.Query("players")
 	ids := c.Query("ids")
+	page, pageSize := parsePaginationParams(c)
 
 	playersList, _ := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
@@ -186,16 +217,25 @@ func getGamesHandler(c *fiber.Ctx) error {
 	}))
 
 	var games []Game
+	var totalCount int64
 
 	if len(playersList) > 0 {
-		games = getGamesWithPlayers(playersList)
+		games, totalCount = getGamesWithPlayersPaginated(playersList, page, pageSize)
 	} else if len(idList) > 0 {
-		games = getGamesById(idList)
+		games, totalCount = getGamesByIdPaginated(idList, page, pageSize)
 	} else {
-		games = getGamesById([]int{})
+		games, totalCount = getGamesByIdPaginated([]int{}, page, pageSize)
 	}
 
-	jsonGames, err := json.Marshal(games)
+	response := PaginatedResponse{
+		Data:       games,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalCount: totalCount,
+		TotalPages: int(math.Ceil(float64(totalCount) / float64(pageSize))),
+	}
+
+	jsonGames, err := json.Marshal(response)
 
 	if err != nil {
 		log.Errorln(fmt.Sprintf("Error marshalling list of games: %s", err))
@@ -270,6 +310,7 @@ func deleteMatchesHandler(c *fiber.Ctx) error {
 func getMatchesHandler(c *fiber.Ctx) error {
 	ids := c.Query("ids")
 	players := c.Query("players")
+	page, pageSize := parsePaginationParams(c)
 
 	playersList, _ := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
@@ -279,13 +320,14 @@ func getMatchesHandler(c *fiber.Ctx) error {
 	}))
 
 	var matches []Match
+	var totalCount int64
 
 	if len(playersList) > 0 {
-		matches = getMatchesWithPlayers(playersList)
+		matches, totalCount = getMatchesWithPlayersPaginated(playersList, page, pageSize)
 	} else if len(idList) > 0 {
-		matches = getMatches(idList)
+		matches, totalCount = getMatchesPaginated(idList, page, pageSize)
 	} else {
-		matches = getMatches([]int{})
+		matches, totalCount = getMatchesPaginated([]int{}, page, pageSize)
 	}
 
 	// Check and update status for all in-progress matches
@@ -295,16 +337,24 @@ func getMatchesHandler(c *fiber.Ctx) error {
 		}
 	}
 
-	// Reload the matches to reflect any status updates
+	// Reload the current page to reflect any status updates
 	if len(playersList) > 0 {
-		matches = getMatchesWithPlayers(playersList)
+		matches, totalCount = getMatchesWithPlayersPaginated(playersList, page, pageSize)
 	} else if len(idList) > 0 {
-		matches = getMatches(idList)
+		matches, totalCount = getMatchesPaginated(idList, page, pageSize)
 	} else {
-		matches = getMatches([]int{})
+		matches, totalCount = getMatchesPaginated([]int{}, page, pageSize)
 	}
 
-	jsonMatches, err := json.Marshal(matches)
+	response := PaginatedResponse{
+		Data:       matches,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalCount: totalCount,
+		TotalPages: int(math.Ceil(float64(totalCount) / float64(pageSize))),
+	}
+
+	jsonMatches, err := json.Marshal(response)
 
 	if err != nil {
 		log.Errorln(fmt.Sprintf("Error marshalling list of matches: %s", err))
@@ -510,14 +560,23 @@ func postTournamentsHandler(c *fiber.Ctx) error {
 
 func getTournamentsHandler(c *fiber.Ctx) error {
 	ids := c.Query("ids")
+	page, pageSize := parsePaginationParams(c)
 
 	idList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
 	}))
 
-	tournaments := getTournaments(idList)
+	tournaments, totalCount := getTournamentsPaginated(idList, page, pageSize)
 
-	jsonTournaments, err := json.Marshal(tournaments)
+	response := PaginatedResponse{
+		Data:       tournaments,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalCount: totalCount,
+		TotalPages: int(math.Ceil(float64(totalCount) / float64(pageSize))),
+	}
+
+	jsonTournaments, err := json.Marshal(response)
 
 	if err != nil {
 		log.Errorln(fmt.Sprintf("Error marshalling list of tournaments: %s", err))

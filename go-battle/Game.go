@@ -123,6 +123,78 @@ func getGamesWithPlayers(players []int) []Game {
 	return games
 }
 
+func getGamesByIdPaginated(ids []int, page int, pageSize int) ([]Game, int64) {
+	var games []Game
+	var totalCount int64
+	offset := (page - 1) * pageSize
+
+	query := db.Model(&Game{})
+	if len(ids) > 0 {
+		query = query.Where("id = ANY(?)", pq.Array(ids))
+	}
+	query.Count(&totalCount)
+
+	preloaded := db.Preload("Players", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, name, elo")
+	}).
+		Preload("Winner", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, elo")
+		}).
+		Preload("Loser", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, elo")
+		})
+
+	if len(ids) > 0 {
+		preloaded = preloaded.Where("id = ANY(?)", pq.Array(ids))
+	}
+
+	preloaded.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&games)
+
+	return games, totalCount
+}
+
+func getGamesWithPlayersPaginated(players []int, page int, pageSize int) ([]Game, int64) {
+	var games []Game
+	var totalCount int64
+	offset := (page - 1) * pageSize
+
+	if len(players) > 0 {
+		var gameIDs []int
+		db.Table("game_players").Where("player_id = ANY(?)", pq.Array(players)).Select("game_id").Find(&gameIDs)
+
+		db.Model(&Game{}).Where("id = ANY(?)", pq.Array(gameIDs)).Count(&totalCount)
+
+		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, elo")
+		}).
+			Preload("Winner", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name, elo")
+			}).
+			Preload("Loser", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name, elo")
+			}).
+			Where("id = ANY(?)", pq.Array(gameIDs)).
+			Order("created_at DESC").Offset(offset).Limit(pageSize).
+			Find(&games)
+	} else {
+		db.Model(&Game{}).Count(&totalCount)
+
+		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, elo")
+		}).
+			Preload("Winner", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name, elo")
+			}).
+			Preload("Loser", func(db *gorm.DB) *gorm.DB {
+				return db.Select("id, name, elo")
+			}).
+			Order("created_at DESC").Offset(offset).Limit(pageSize).
+			Find(&games)
+	}
+
+	return games, totalCount
+}
+
 func getGamesById(ids []int) []Game {
 	var games []Game
 

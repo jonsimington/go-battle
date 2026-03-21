@@ -80,6 +80,50 @@ func insertTournament(db *gorm.DB, tournament *Tournament) {
 	}
 }
 
+func getTournamentsPaginated(ids []int, page int, pageSize int) ([]Tournament, int64) {
+	var tournaments []Tournament
+	var totalCount int64
+	offset := (page - 1) * pageSize
+
+	query := db.Model(&Tournament{})
+	if len(ids) > 0 {
+		query = query.Where("id = ANY(?)", pq.Array(ids))
+	}
+	query.Count(&totalCount)
+
+	preloaded := db.Preload("Games", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
+	}).
+		Preload("Games.Winner", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name")
+		}).
+		Preload("Games.Loser", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name")
+		}).
+		Preload("Players", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, elo, client_id")
+		}).
+		Preload("Players.Client").
+		Preload("Matches").
+		Preload("Matches.Games", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
+		}).
+		Preload("Matches.Players", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, elo, client_id")
+		}).
+		Preload("Matches.Players.EloHistory", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at DESC").Limit(100)
+		})
+
+	if len(ids) > 0 {
+		preloaded = preloaded.Where("id = ANY(?)", pq.Array(ids))
+	}
+
+	preloaded.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&tournaments)
+
+	return tournaments, totalCount
+}
+
 func getTournaments(ids []int) []Tournament {
 	var tournaments []Tournament
 
