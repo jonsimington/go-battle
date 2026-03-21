@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TournamentsResult } from '../../../models/TournamentsResult';
 import { MatchesResult } from '../../../models/MatchesResult';
@@ -74,6 +74,9 @@ export function TournamentBracket(): JSX.Element {
     const [playerStatus, setPlayerStatus] = useState<Map<number, PlayerStatus>>(new Map());
     const [matchesWithDetailedGames, setMatchesWithDetailedGames] = useState<Map<number, MatchesResult>>(new Map());
     const [activeTab, setActiveTab] = useState<TabId>('standings');
+    const [hoveredRoundPlayerId, setHoveredRoundPlayerId] = useState<number | null>(null);
+    const roundsContainerRef = useRef<HTMLDivElement>(null);
+    const matchCardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
     const apiUrl = getApiUrl();
 
@@ -485,6 +488,27 @@ export function TournamentBracket(): JSX.Element {
         </table>
     );
 
+    // Build lookup: playerId -> sorted list of matchIds the player is in
+    const playerMatchIds = useMemo(() => {
+        const map = new Map<number, number[]>();
+        bracketMatches
+            .slice()
+            .sort((a, b) => a.roundNumber - b.roundNumber)
+            .forEach(m => {
+                for (const pid of [m.player1.id, m.player2.id]) {
+                    if (pid === 0) continue;
+                    if (!map.has(pid)) map.set(pid, []);
+                    map.get(pid)!.push(m.id);
+                }
+            });
+        return map;
+    }, [bracketMatches]);
+
+    const registerMatchCard = useCallback((matchId: number, el: HTMLDivElement | null) => {
+        if (el) matchCardRefs.current.set(matchId, el);
+        else matchCardRefs.current.delete(matchId);
+    }, []);
+
     const renderMatchCard = (match: BracketMatch) => {
         const isBye = match.player2.id === 0;
         const detailedMatch = matchesWithDetailedGames.get(match.id);
@@ -509,13 +533,22 @@ export function TournamentBracket(): JSX.Element {
 
         const statusClass = match.status === "Complete" ? "complete" : match.status === "In Progress" ? "active" : "pending";
 
+        const isHighlighted = hoveredRoundPlayerId !== null &&
+            (match.player1.id === hoveredRoundPlayerId || match.player2.id === hoveredRoundPlayerId);
+        const isDimmed = hoveredRoundPlayerId !== null && !isHighlighted;
+
         return (
             <div
                 key={match.id}
-                className={`tb-match-card ${isBye ? 'tb-match-card-bye' : ''}`}
+                ref={(el) => registerMatchCard(match.id, el)}
+                className={`tb-match-card ${isBye ? 'tb-match-card-bye' : ''} ${isDimmed ? 'tb-match-dimmed' : ''} ${isHighlighted ? 'tb-match-highlighted' : ''}`}
                 onClick={() => navigate(`/matches/search?ids=${match.id}`)}
             >
-                <div className={`tb-match-row ${p1Class}`}>
+                <div
+                    className={`tb-match-row ${p1Class}`}
+                    onMouseEnter={() => setHoveredRoundPlayerId(match.player1.id)}
+                    onMouseLeave={() => setHoveredRoundPlayerId(null)}
+                >
                     <span className="tb-match-player">{match.player1.name}</span>
                     {match.player1.elo !== undefined && (
                         <ELOBadge elo={match.player1.elo} eloHistory={match.player1.elo_history} />
@@ -525,7 +558,11 @@ export function TournamentBracket(): JSX.Element {
                         <span className="tb-match-score">{(match.player1.score ?? 0).toFixed(1)}</span>
                     )}
                 </div>
-                <div className={`tb-match-row ${p2Class}`}>
+                <div
+                    className={`tb-match-row ${p2Class}`}
+                    onMouseEnter={() => { if (!isBye) setHoveredRoundPlayerId(match.player2.id); }}
+                    onMouseLeave={() => setHoveredRoundPlayerId(null)}
+                >
                     <span className="tb-match-player">{match.player2.name}</span>
                     {!isBye && (
                         <>
@@ -559,31 +596,106 @@ export function TournamentBracket(): JSX.Element {
         );
     };
 
-    const renderRounds = () => (
-        <div className="tb-rounds">
-            {rounds.map(round => {
-                const roundMatches = bracketMatches
-                    .filter(m => m.roundNumber === round.roundNumber)
-                    .sort((a, b) => {
-                        const aS = (a.player1.wins || 0) + (a.player2.wins || 0);
-                        const bS = (b.player1.wins || 0) + (b.player2.wins || 0);
-                        return bS - aS;
-                    });
-                return (
-                    <div className="tb-round-col" key={round.roundNumber}>
-                        <div className="tb-round-header">Round {round.roundNumber}</div>
-                        <div className="tb-match-list">
-                            {roundMatches.length === 0 ? (
-                                <div className="tb-empty-round">No matches</div>
-                            ) : (
-                                roundMatches.map(match => renderMatchCard(match))
-                            )}
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
+    /** Compute SVG connector lines between a hovered player's match cards */
+    const getConnectorLines = (): { x1: number; y1: number; x2: number; y2: number }[] => {
+        if (!hoveredRoundPlayerId || !roundsContainerRef.current) return [];
+        const matchIds = playerMatchIds.get(hoveredRoundPlayerId);
+        if (!matchIds || matchIds.length < 2) return [];
+
+        const containerRect = roundsContainerRef.current.getBoundingClientRect();
+        const scrollLeft = roundsContainerRef.current.scrollLeft;
+
+        const points: { x: number; y: number }[] = [];
+        for (const mid of matchIds) {
+            const el = matchCardRefs.current.get(mid);
+            if (!el) continue;
+            const r = el.getBoundingClientRect();
+            points.push({
+                x: r.left - containerRect.left + scrollLeft + r.width / 2,
+                y: r.top - containerRect.top + r.height / 2,
+            });
+        }
+
+        const lines: { x1: number; y1: number; x2: number; y2: number }[] = [];
+        for (let i = 0; i < points.length - 1; i++) {
+            lines.push({
+                x1: points[i].x,
+                y1: points[i].y,
+                x2: points[i + 1].x,
+                y2: points[i + 1].y,
+            });
+        }
+        return lines;
+    };
+
+    const renderRounds = () => {
+        const lines = getConnectorLines();
+        return (
+            <div className="tb-rounds-wrapper">
+                <div className="tb-rounds" ref={roundsContainerRef}>
+                    {rounds.map(round => {
+                        const roundMatches = bracketMatches
+                            .filter(m => m.roundNumber === round.roundNumber)
+                            .sort((a, b) => {
+                                const aS = (a.player1.wins || 0) + (a.player2.wins || 0);
+                                const bS = (b.player1.wins || 0) + (b.player2.wins || 0);
+                                return bS - aS;
+                            });
+                        return (
+                            <div className="tb-round-col" key={round.roundNumber}>
+                                <div className="tb-round-header">
+                                    <span>Round {round.roundNumber}</span>
+                                    {(() => {
+                                        const started = roundMatches.filter(m => m.startedAt);
+                                        if (started.length === 0) return null;
+                                        const earliest = started.reduce(
+                                            (min, m) => m.startedAt! < min ? m.startedAt! : min,
+                                            started[0].startedAt!
+                                        );
+                                        const allComplete = roundMatches.length > 0 &&
+                                            roundMatches.every(m => m.status === 'Complete' || m.player2.id === 0);
+                                        if (allComplete) {
+                                            const completed = started.filter(m => m.endedAt);
+                                            if (completed.length === 0) return null;
+                                            const latest = completed.reduce(
+                                                (max, m) => m.endedAt! > max ? m.endedAt! : max,
+                                                completed[0].endedAt!
+                                            );
+                                            return <Timer startTime={earliest} endTime={latest} />;
+                                        }
+                                        return <Timer startTime={earliest} />;
+                                    })()}
+                                </div>
+                                <div className="tb-match-list">
+                                    {roundMatches.length === 0 ? (
+                                        <div className="tb-empty-round">No matches</div>
+                                    ) : (
+                                        roundMatches.map(match => renderMatchCard(match))
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {/* SVG overlay for connector lines */}
+                    {lines.length > 0 && (
+                        <svg className="tb-connector-svg">
+                            {lines.map((l, i) => (
+                                <line
+                                    key={i}
+                                    x1={l.x1} y1={l.y1}
+                                    x2={l.x2} y2={l.y2}
+                                    stroke="var(--accent, #58a6ff)"
+                                    strokeWidth={1.5}
+                                    strokeDasharray="6,4"
+                                    opacity={0.6}
+                                />
+                            ))}
+                        </svg>
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     const renderFlow = () => {
         if (flowData.length === 0 || flowRoundCount === 0) {
