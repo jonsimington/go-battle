@@ -310,19 +310,90 @@ a:hover {
 }
 
 /* Modal overrides */
-.modal-content {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
+.modal-backdrop {
+  background-color: #010409 !important;
+}
+
+.modal-backdrop.show {
+  opacity: 0.7 !important;
+}
+
+.modal .modal-content {
+  background-color: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  overflow: hidden;
+}
+
+.modal .modal-header {
+  background-color: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 12px 16px !important;
+}
+
+.modal .modal-header .modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary) !important;
+}
+
+.modal .modal-header .btn-close {
+  opacity: 0.5;
+  padding: 8px;
+  margin: -4px -4px -4px auto;
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.modal .modal-header .btn-close:hover {
+  opacity: 1;
+}
+
+.modal .modal-body {
+  background-color: var(--surface) !important;
+  color: var(--text-secondary) !important;
+  padding: 16px !important;
+  font-size: 14px;
+}
+
+.modal .modal-body p {
+  margin: 0;
+}
+
+.modal .modal-footer {
+  background-color: var(--surface) !important;
+  border-top: 1px solid var(--border) !important;
+  padding: 12px 16px !important;
+  gap: 8px;
+}
+
+.modal .modal-footer .btn {
+  margin: 0;
+  font-size: 13px;
+  padding: 5px 12px;
   border-radius: 6px;
-  color: var(--text-primary);
 }
 
-.modal-header {
-  border-bottom: 1px solid var(--border);
+.modal .modal-footer .btn-secondary {
+  background-color: var(--bg) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
 }
 
-.modal-footer {
-  border-top: 1px solid var(--border);
+.modal .modal-footer .btn-secondary:hover {
+  background-color: var(--border-muted) !important;
+  border-color: var(--border) !important;
+}
+
+.modal .modal-footer .btn-danger {
+  background-color: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+
+.modal .modal-footer .btn-danger:hover {
+  background-color: #da4540 !important;
+  border-color: #da4540 !important;
 }
 
 /* Table overrides */
