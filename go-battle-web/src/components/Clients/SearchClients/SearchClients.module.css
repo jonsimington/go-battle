@@ -1,1 +1,51 @@
-.SearchClients {}
+.muted {
+    color: var(--text-muted);
+}
+
+.repoLink {
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-decoration: none;
+    transition: color 150ms ease;
+    word-break: break-all;
+}
+
+.repoLink:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.langCell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.langIcon {
+    font-size: 16px;
+    color: var(--text-muted);
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.gameCell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-transform: capitalize;
+}
+
+.gameIcon {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.timeAgo {
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}

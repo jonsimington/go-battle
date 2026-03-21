@@ -1,37 +1,22 @@
-import { useEffect, useState } from 'react';
-import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
+import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { ClientsResult } from '../../../models/ClientsResult';
-import moment from 'moment';
-import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { prettyDate } from '../../../utils/utils';
 import { FaChessBishop, FaPython, FaJs } from 'react-icons/fa6';
-import { SiCplusplus } from 'react-icons/si'
+import { SiCplusplus } from 'react-icons/si';
+import TimeAgo from 'timeago-react';
+import styles from './SearchClients.module.css';
 
 interface SearchClientsProps {
     tableData: any[]
     refreshData: Function
 }
 
+const languageLabels: Record<string, string> = {
+    py: 'Python',
+    js: 'JavaScript',
+    cpp: 'C++',
+};
+
 export function SearchClients({ tableData, refreshData }: SearchClientsProps): JSX.Element {
-    const [data, setData] = useState(tableData);
-    const [sortType, setSortType] = useState("created");
-
-    useEffect(() => {
-        const sortData = (sortType: any) => {
-            let sortedData = [...data] as ClientsResult[];
-    
-            if(sortType === "created") {
-                sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
-            }
-            else if(sortType === "created-desc") {
-                sortedData.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
-            }
-    
-            setData(sortedData);
-        }
-
-        sortData("created");
-    }, [sortType]);
 
     const columns: IColumnType<ClientsResult>[] = [
         {
@@ -42,16 +27,17 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
         {
             key: "repo",
             title: "Repo",
-            render: (_, { repo, ID }) => {
+            render: (_, { repo }) => {
+                if (!repo) return <span className={styles.muted}>—</span>;
                 return (
-                    <Button 
-                        variant="outline-info" 
-                        size="sm" 
-                        key={`repo-${ID}`}
-                        href={repo}>
-                            {repo}
-                    </Button>
-                )
+                    <a
+                        className={styles.repoLink}
+                        href={repo}
+                        target="_blank"
+                        rel="noopener noreferrer">
+                        {repo.replace(/^https?:\/\/(www\.)?github\.com\//, '')}
+                    </a>
+                );
             }
         },
         {
@@ -59,17 +45,16 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
             title: "Language",
             width: 100,
             render: (_, { language }) => {
-
-                switch(language) {
-                    case "py":
-                        return (<h4><FaPython></FaPython></h4>)
-                    case "js":
-                        return (<h4><FaJs></FaJs></h4>)
-                    case "cpp":
-                        return (<h4><SiCplusplus></SiCplusplus></h4>)
-                    default:
-                        return "Unknown Language"
-                }
+                const icon = language === 'py' ? <FaPython />
+                    : language === 'js' ? <FaJs />
+                    : language === 'cpp' ? <SiCplusplus />
+                    : null;
+                return (
+                    <span className={styles.langCell}>
+                        {icon && <span className={styles.langIcon}>{icon}</span>}
+                        {languageLabels[language] || language}
+                    </span>
+                );
             }
         },
         {
@@ -77,39 +62,28 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
             title: "Game",
             width: 100,
             render: (_, { game }) => {
-                if (game === "chess") {
-                    return <h4><FaChessBishop /></h4>
-                } else {
-                    return game
-                }
+                return (
+                    <span className={styles.gameCell}>
+                        {game === 'chess' && <FaChessBishop className={styles.gameIcon} />}
+                        {game}
+                    </span>
+                );
             }
         },
         {
             key: "CreatedAt",
             title: "Created",
-            width: 200,
+            width: 120,
             render: (_, { CreatedAt }) => {
-                return (
-                    <OverlayTrigger placement="top" overlay={renderDateTooltip(CreatedAt)}>
-                        <span>{moment(CreatedAt.toString()).fromNow()}</span>
-                    </OverlayTrigger>
-                )
+                return <TimeAgo datetime={CreatedAt} className={styles.timeAgo} />;
             }
         },
     ];
 
-    const renderDateTooltip = (date: Date) => {
-        return (
-            <Tooltip id={`tooltip-date-${date}`} style={{position:"fixed"}}>
-                {prettyDate(date.toString())}
-            </Tooltip>
-        )
-    }
-
     return (
         <>
-        <h3>Clients</h3>
-        <DynamicTable data={data} columns={columns} />
+            <h3>Clients</h3>
+            <DynamicTable data={tableData} columns={columns} />
         </>
     );
 }

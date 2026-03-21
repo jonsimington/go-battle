@@ -7,6 +7,7 @@ import { FaTv, FaTrash } from 'react-icons/fa6';
 import TimeAgo from 'timeago-react';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../../Common/Modal';
+import EloBadge from '../../Common/ELO/ELOBadge';
 import styles from './SearchGames.module.css';
 
 interface SearchGamesProps {
@@ -65,6 +66,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                                     onClick={() => navigate(`/players/search?ids=${encodeURI(playerIds)}`)}
                                 >
                                     {p.name}
+                                    {p.elo > 0 && <EloBadge elo={p.elo} eloHistory={p.elo_history} />}
                                     {label && <span className={styles.resultTag}>{label}</span>}
                                 </span>
                             );

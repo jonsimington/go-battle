@@ -157,9 +157,9 @@ export const calculatePlayerScores = (games: GamesResult[], players: any[]): Pla
         const playerID = player.ID;
         const playerElo = player.elo;
         
-        // Count wins, losses, and draws
-        const playerWins = games.filter(g => g.winner?.name === playerName).length;
-        const playerLosses = games.filter(g => g.loser?.name === playerName).length;
+        // Count wins, losses, and draws (check both nested object and _id fields)
+        const playerWins = games.filter(g => g.winner?.name === playerName || g.winner_id === playerID).length;
+        const playerLosses = games.filter(g => g.loser?.name === playerName || g.loser_id === playerID).length;
         const playerDraws = games.filter(g => g.draw === true).length * 0.5;
         
         playerScores.push({

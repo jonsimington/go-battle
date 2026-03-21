@@ -76,7 +76,12 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                     <div className={styles.playerList}>
                         {playerScores.map((score) => {
                             const isLeader = !allSame && playerScores[0]?.name === score.name;
-                            const colorClass = allSame ? '' : isLeader ? styles.playerWinning : styles.playerLosing;
+                            const colorClass = allSame ? styles.playerDraw
+                                : isLeader ? styles.playerWinning
+                                : styles.playerLosing;
+                            const label = allSame ? 'draw'
+                                : isLeader ? 'W'
+                                : 'L';
 
                             return (
                                 <span
@@ -88,6 +93,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                                     {score.name}
                                     <EloBadge elo={score.elo} eloHistory={score.elo_history} />
                                     <span className={styles.scoreValue}>{score.wins + score.draws}</span>
+                                    <span className={styles.resultTag}>{label}</span>
                                 </span>
                             );
                         })}
