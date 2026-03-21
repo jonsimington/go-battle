@@ -97,25 +97,25 @@ func getGamesWithPlayers(players []int) []Game {
 		db.Table("game_players").Where("player_id = ANY(?)", pq.Array(players)).Select("game_id").Find(&gamesWithPlayers)
 
 		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name")
+			return db.Select("id, name, elo")
 		}).
 			Preload("Winner", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name")
+				return db.Select("id, name, elo")
 			}).
 			Preload("Loser", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name")
+				return db.Select("id, name, elo")
 			}).
 			Where("id = ANY(?)", pq.Array(gamesWithPlayers)).
 			Find(&games)
 	} else {
 		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name")
+			return db.Select("id, name, elo")
 		}).
 			Preload("Winner", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name")
+				return db.Select("id, name, elo")
 			}).
 			Preload("Loser", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name")
+				return db.Select("id, name, elo")
 			}).
 			Find(&games)
 	}
@@ -128,25 +128,25 @@ func getGamesById(ids []int) []Game {
 
 	if len(ids) > 0 {
 		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name")
+			return db.Select("id, name, elo")
 		}).
 			Preload("Winner", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name")
+				return db.Select("id, name, elo")
 			}).
 			Preload("Loser", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name")
+				return db.Select("id, name, elo")
 			}).
 			Where("id = ANY(?)", pq.Array(ids)).
 			Find(&games)
 	} else {
 		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name")
+			return db.Select("id, name, elo")
 		}).
 			Preload("Winner", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name")
+				return db.Select("id, name, elo")
 			}).
 			Preload("Loser", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name")
+				return db.Select("id, name, elo")
 			}).
 			Find(&games)
 	}

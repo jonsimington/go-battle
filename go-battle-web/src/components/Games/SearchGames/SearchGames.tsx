@@ -66,7 +66,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                                     onClick={() => navigate(`/players/search?ids=${encodeURI(playerIds)}`)}
                                 >
                                     {p.name}
-                                    {p.elo > 0 && <EloBadge elo={p.elo} eloHistory={p.elo_history} />}
+                                    <EloBadge elo={p.elo} eloHistory={p.elo_history} />
                                     {label && <span className={styles.resultTag}>{label}</span>}
                                 </span>
                             );
