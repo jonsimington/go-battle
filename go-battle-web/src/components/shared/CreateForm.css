@@ -114,7 +114,43 @@
     font-size: 11px;
     font-weight: 500;
     color: var(--text-muted);
+}
+
+.create-card__player-slot-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 4px;
+}
+
+.create-card__lock-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 150ms ease;
+}
+
+.create-card__lock-btn:hover {
+    color: var(--text-secondary);
+}
+
+.create-card__lock-btn--active {
+    color: var(--warning, #d29922);
+}
+
+.create-card__lock-btn--active:hover {
+    color: var(--warning, #d29922);
+}
+
+.create-card__player-slot--locked {
+    border-color: var(--warning, #d29922);
+    border-width: 1px;
 }
 
 .create-card__actions {

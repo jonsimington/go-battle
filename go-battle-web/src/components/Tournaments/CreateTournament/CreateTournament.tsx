@@ -1,6 +1,6 @@
 import React, { FC, useEffect, useState } from 'react';
 import { Alert } from 'react-bootstrap';
-import { FaPlus, FaDice, FaArrowUpWideShort, FaArrowDownWideShort } from 'react-icons/fa6';
+import { FaPlus, FaDice, FaArrowUpWideShort, FaArrowDownWideShort, FaLock, FaLockOpen } from 'react-icons/fa6';
 import { PlayersResult } from '../../../models/PlayersResult';
 import '../../shared/CreateForm.css';
 import { getApiUrl } from '../../../utils/utils';
@@ -14,6 +14,8 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
     const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<string>>(new Set());
     const [maxPlayers, setMaxPlayers] = useState(24);
     const [playerValues, setPlayerValues] = useState<string[]>(Array(24).fill(''));
+
+    const [lockedSlots, setLockedSlots] = useState<Set<number>>(new Set());
 
     const [hasError, setHasError] = useState(false);
     const [hasWarning, setHasWarning] = useState(false);
@@ -41,18 +43,44 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
         return newArray;
     };
 
+    const toggleLock = (index: number) => {
+        setLockedSlots(prev => {
+            const next = new Set(prev);
+            if (next.has(index)) next.delete(index);
+            else if (playerValues[index]) next.add(index);
+            return next;
+        });
+    };
+
     const applyPlayerSelection = (selectedPlayers: PlayersResult[], count: number) => {
         const newSelectedIds = new Set<string>();
         const newPlayerValues = Array(count).fill('');
-        
-        selectedPlayers.forEach((player, index) => {
-            newPlayerValues[index] = player.ID.toString();
-            newSelectedIds.add(player.ID.toString());
+
+        // Preserve locked slots
+        const lockedIds = new Set<string>();
+        lockedSlots.forEach(i => {
+            if (i < count && playerValues[i]) {
+                newPlayerValues[i] = playerValues[i];
+                newSelectedIds.add(playerValues[i]);
+                lockedIds.add(playerValues[i]);
+            }
         });
-        
+
+        // Fill unlocked slots with non-locked players
+        const available = selectedPlayers.filter(p => !lockedIds.has(p.ID.toString()));
+        let ai = 0;
+        for (let i = 0; i < count; i++) {
+            if (lockedSlots.has(i) && newPlayerValues[i]) continue;
+            if (ai < available.length) {
+                newPlayerValues[i] = available[ai].ID.toString();
+                newSelectedIds.add(available[ai].ID.toString());
+                ai++;
+            }
+        }
+
         setPlayerValues(newPlayerValues);
         setSelectedPlayerIds(newSelectedIds);
-        setPlayersValue(selectedPlayers.map(p => p.ID.toString()).join(','));
+        setPlayersValue(newPlayerValues.filter(val => val !== '').join(','));
     };
 
     const selectTopPlayers = () => {
@@ -234,9 +262,23 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
                 </div>
 
                 <div className="create-card__player-grid">
-                    {Array.from({ length: maxPlayers }, (_, i) => (
-                        <div key={`player-select-${i}`} className="create-card__player-slot">
-                            <div className="create-card__player-slot-label">Player {i + 1}</div>
+                    {Array.from({ length: maxPlayers }, (_, i) => {
+                        const isLocked = lockedSlots.has(i) && !!playerValues[i];
+                        return (
+                        <div key={`player-select-${i}`} className={`create-card__player-slot${isLocked ? ' create-card__player-slot--locked' : ''}`}>
+                            <div className="create-card__player-slot-header">
+                                <div className="create-card__player-slot-label">Player {i + 1}</div>
+                                {playerValues[i] && (
+                                    <button
+                                        type="button"
+                                        className={`create-card__lock-btn${isLocked ? ' create-card__lock-btn--active' : ''}`}
+                                        onClick={() => toggleLock(i)}
+                                        title={isLocked ? 'Unlock' : 'Lock'}
+                                    >
+                                        {isLocked ? <FaLock size={9} /> : <FaLockOpen size={9} />}
+                                    </button>
+                                )}
+                            </div>
                             <select
                                 className="form-select"
                                 value={playerValues[i]}
@@ -258,7 +300,8 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
                                 })}
                             </select>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 <div className="create-card__footer">

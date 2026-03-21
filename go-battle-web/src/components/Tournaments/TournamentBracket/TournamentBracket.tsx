@@ -1,18 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, Badge, Button, Card, Col, Container, Row, Spinner } from 'react-bootstrap';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TournamentsResult } from '../../../models/TournamentsResult';
 import { MatchesResult } from '../../../models/MatchesResult';
-import './TournamentBracket.css';
 import { PlayersResult } from '../../../models/PlayersResult';
+import { HistoricalElo } from '../../../models/HistoricalElo';
 import { Timer } from '../../Common/Timer';
 import ELOBadge from '../../Common/ELO';
 import { getApiUrl } from '../../../utils/utils';
 import { RefreshButton } from '../../Common';
-import { HistoricalElo } from '../../../models/HistoricalElo';
-import { FaTrophy, FaMedal } from 'react-icons/fa';
-
-interface TournamentBracketProps {}
+import { SwissFlowChart, PlayerFlowData } from './SwissFlowChart';
+import './TournamentBracket.css';
 
 interface Round {
     roundNumber: number;
@@ -53,17 +50,21 @@ interface PlayerStatus {
     score: number;
 }
 
-interface GamelogPlayer {
-    id: string;
-    index: number;
-    name: string;
-    reason: string;
-    disconnected: boolean;
-    timeout: boolean;
+interface StandingsEntry extends PlayerStatus {
+    elo?: number;
+    elo_history?: HistoricalElo[];
 }
 
+type TabId = 'standings' | 'rounds' | 'flow';
+
+const TABS: { id: TabId; label: string }[] = [
+    { id: 'standings', label: 'Standings' },
+    { id: 'rounds', label: 'Rounds' },
+    { id: 'flow', label: 'Score Flow' },
+];
+
 export function TournamentBracket(): JSX.Element {
-    const { id } = useParams<{id: string}>();
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [tournament, setTournament] = useState<TournamentsResult | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
@@ -72,7 +73,8 @@ export function TournamentBracket(): JSX.Element {
     const [bracketMatches, setBracketMatches] = useState<BracketMatch[]>([]);
     const [playerStatus, setPlayerStatus] = useState<Map<number, PlayerStatus>>(new Map());
     const [matchesWithDetailedGames, setMatchesWithDetailedGames] = useState<Map<number, MatchesResult>>(new Map());
-    
+    const [activeTab, setActiveTab] = useState<TabId>('standings');
+
     const apiUrl = getApiUrl();
 
     // fetch tournament data when component mounts
@@ -99,7 +101,9 @@ export function TournamentBracket(): JSX.Element {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
             
-            const data = await response.json();
+            const json = await response.json();
+            // Handle paginated response format: { data: [...], page, pageSize, totalCount, totalPages }
+            const data = Array.isArray(json) ? json : json.data;
             if (data && data.length > 0) {
                 setTournament(data[0]);
                 
@@ -123,16 +127,18 @@ export function TournamentBracket(): JSX.Element {
         if (!matchIds) return;
         
         try {
-            const response = await fetch(`${apiUrl}/matches?ids=${matchIds}`, {mode:'cors'});
+            const response = await fetch(`${apiUrl}/matches?ids=${matchIds}&page_size=100`, {mode:'cors'});
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
             
-            const matchesData = await response.json();
+            const matchesJson = await response.json();
+            // Handle paginated response format: { data: [...], page, pageSize, totalCount, totalPages }
+            const matchesData = Array.isArray(matchesJson) ? matchesJson : matchesJson.data;
             console.log("Detailed matches data fetched:", matchesData);
             
             const detailedMatchesMap = new Map<number, MatchesResult>();
-            matchesData.forEach((match: MatchesResult) => {
+            (matchesData ?? []).forEach((match: MatchesResult) => {
                 detailedMatchesMap.set(match.ID, match);
             });
             
@@ -269,389 +275,372 @@ export function TournamentBracket(): JSX.Element {
         const matchGames = matchesWithDetailedGames.get(match.ID)?.games || match.games;
         const wins = matchGames.filter((g: any) => g.winner_id === player.ID && g.status === "Complete").length;
         const draws = matchGames.filter((g: any) => g.draw && g.status === "Complete").length;
-
         return wins + (draws * 0.5);
-    }
-
-    const renderMatch = (match: BracketMatch) => {
-        const matchUrl = `/matches/search?ids=${match.id}`;
-        
-        return (
-            <Card className="bracket-match" key={`match-${match.id}`}>
-                <Card.Header 
-                    className="clickable-header"
-                    onClick={() => navigate(matchUrl)}
-                >
-                    <div className="d-flex justify-content-between align-items-center">
-                        <small>
-                            Match {match.id}
-                            {match.completedGames > 0 && 
-                             <span className="ms-1 text-muted">
-                                ({match.completedGames}/{match.numGames || 0} games)
-                             </span>
-                            }
-                        </small>
-                        <Badge bg={match.status === "Complete" ? "success" : match.status === "In Progress" ? "primary" : "secondary"}>
-                            {match.status}
-                        </Badge>
-                    </div>
-                </Card.Header>
-                <Card.Body>
-                    <div className={`player ${match.player1.isWinner ? 'winner' : ''}`}>
-                        <span>{match.player1.name}</span>
-                        {match.status !== "Pending" && (
-                            <span className="score">
-                                {match.player1.score != null ? (match.player1.score % 1 === 0 ? match.player1.score : match.player1.score.toFixed(1)) : 0}
-                            </span>
-                        )}
-                    </div>
-                    <div className={`player ${match.player2.isWinner ? 'winner' : ''}`}>
-                        <span>{match.player2.name}</span>
-                        {match.status !== "Pending" && (
-                            <span className="score">
-                                {match.player2.score != null ? (match.player2.score % 1 === 0 ? match.player2.score : match.player2.score.toFixed(1)) : 0}
-                            </span>
-                        )}
-                    </div>
-                </Card.Body>
-            </Card>
-        );
     };
 
-    // New component for Swiss tournament visualization — extracted as a proper component
-    // instead of being defined inline (which caused full remount on every parent re-render)
-    const swissTournamentContent = (
-            <div className="swiss-tournament-container">
-                {rounds.map((round, roundIndex) => (
-                    <div className="swiss-round" key={`round-${round.roundNumber}`}>
-                        <h4 className="round-title">Round {round.roundNumber}</h4>
-                        <div className="matches-container">
-                            {bracketMatches
-                                .filter(match => match.roundNumber === round.roundNumber)
-                                .sort((a, b) => {
-                                    // Sort by total score of players to show top matches first
-                                    const aScore = (a.player1.wins || 0) + (a.player2.wins || 0);
-                                    const bScore = (b.player1.wins || 0) + (b.player2.wins || 0);
-                                    return bScore - aScore;
-                                })
-                                .map(match => (
-                                    <div key={`match-${match.id}`}>
-                                        {renderSwissMatch(match)}
-                                    </div>
-                                ))}
-                            {bracketMatches.filter(match => match.roundNumber === round.roundNumber).length === 0 && (
-                                <div className="text-muted text-center small">No matches</div>
-                            )}
-                        </div>
-                    </div>
-                ))}
-                
-                {/* Display current standings */}
-                <div className="tournament-standings mt-4">
-                    <h4>Current Standings</h4>
-                    <div className="standings-container">
-                        {Array.from(bracketMatches
-                            .reduce((standings, match) => {
-                                // Only count completed matches
-                                if (match.status === "Complete") {
-                                    // Update player 1 stats
-                                    const player1 = standings.get(match.player1.id) || {
-                                        id: match.player1.id,
-                                        name: match.player1.name,
-                                        wins: 0,
-                                        losses: 0,
-                                        draws: 0,
-                                        score: 0
-                                    };
-                                    // Update player 2 stats
-                                    const player2 = standings.get(match.player2.id) || {
-                                        id: match.player2.id,
-                                        name: match.player2.name,
-                                        wins: 0,
-                                        losses: 0,
-                                        draws: 0,
-                                        score: 0
-                                    };
-
-                                    // Get detailed match data
-                                    const detailedMatch = matchesWithDetailedGames.get(match.id);
-                                    const games = detailedMatch?.games || [];
-                                    
-                                    // Count games
-                                    games.filter(g => g.status === "Complete").forEach(game => {
-                                        if (game.draw) {
-                                            player1.draws++;
-                                            player2.draws++;
-                                        } else if (game.winner_id === player1.id) {
-                                            player1.wins++;
-                                            player2.losses++;
-                                        } else if (game.winner_id === player2.id) {
-                                            player2.wins++;
-                                            player1.losses++;
-                                        }
-                                    });
-
-                                    // Update scores
-                                    player1.score = player1.wins + (player1.draws * 0.5);
-                                    player2.score = player2.wins + (player2.draws * 0.5);
-
-                                    standings.set(player1.id, player1);
-                                    standings.set(player2.id, player2);
-                                }
-                                return standings;
-                            }, new Map<number, PlayerStatus>())
-                            .values())
-                            .sort((a, b) => b.score - a.score)
-                            .map((player: PlayerStatus, index: number) => (
-                                <div key={`standing-${player.id}`} className="player-standing">
-                                    <span className="player-name">
-                                        {index === 0 && <FaTrophy className="text-warning me-2" title="1st Place" />}
-                                        {index === 1 && <FaMedal className="text-light me-2" title="2nd Place" />}
-                                        {index === 2 && <FaMedal className="text-bronze me-2" title="3rd Place" style={{color: '#f78166'}} />}
-                                        {player.name}
-                                    </span>
-                                    <div className="player-score">
-                                        <span className="score-value">{player.score.toFixed(1)}</span>
-                                        <span className="score-details">
-                                            {player.wins}-{player.losses}-{player.draws}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                    </div>
-                </div>
-            </div>
-        );
-
-    // Render a match specifically for the Swiss tournament visualization
-    const renderSwissMatch = (match: BracketMatch) => {
-        const matchUrl = `/matches/search?ids=${match.id}`;
-        
-        // Get match-specific stats for players
-        const detailedMatch = matchesWithDetailedGames.get(match.id);
-        const matchGames = detailedMatch?.games || [];
-        
-        // Calculate match-specific stats for player 1
-        const player1MatchWins = matchGames.filter(g => g.winner_id === match.player1.id && g.status === "Complete").length;
-        const player1MatchLosses = matchGames.filter(g => g.loser_id === match.player1.id && g.status === "Complete").length;
-        const player1MatchDraws = matchGames.filter(g => g.draw && g.status === "Complete").length;
-        
-        // Calculate match-specific stats for player 2 if not a bye
-        const player2MatchWins = match.player2.id !== 0 ? matchGames.filter(g => g.winner_id === match.player2.id && g.status === "Complete").length : 0;
-        const player2MatchLosses = match.player2.id !== 0 ? matchGames.filter(g => g.loser_id === match.player2.id && g.status === "Complete").length : 0;
-        const player2MatchDraws = match.player2.id !== 0 ? matchGames.filter(g => g.draw && g.status === "Complete").length : 0;
-
-        const player1FullStats = `Overall Record: ${match.player1.wins}-${match.player1.losses}-${match.player1.draws}`;
-        const player2FullStats = match.player2.id !== 0 ? `Overall Record: ${match.player2.wins}-${match.player2.losses}-${match.player2.draws}` : 'Bye';
-        
-        const isByeMatch = match.player2.id === 0;
-        
-        return (
-            <Card className="bracket-match">
-                <Card.Header 
-                    className="clickable-header"
-                    onClick={() => navigate(matchUrl)}
-                >
-                    <div className="d-flex justify-content-between align-items-center">
-                        <small>
-                            Match {match.id}
-                            {!isByeMatch && match.completedGames > 0 && 
-                             <span className="ms-1 text-muted">
-                                ({match.completedGames}/{match.numGames || 0} games)
-                             </span>
-                            }
-                        </small>
-                        <div className="d-flex align-items-center">
-                            {/* Show elapsed timer for in-progress matches */}
-                            {!isByeMatch && match.status === "In Progress" && match.startedAt && (
-                                <div className="me-2">
-                                    <Timer startTime={match.startedAt} />
-                                </div>
-                            )}
-                            {/* Show static elapsed time for completed matches */}
-                            {!isByeMatch && match.status === "Complete" && match.startedAt && match.endedAt && (
-                                <div className="me-2">
-                                    <Timer startTime={match.startedAt} endTime={match.endedAt} />
-                                </div>
-                            )}
-                            {isByeMatch ? (
-                                <Badge bg="warning">Bye</Badge>
-                            ) : (
-                                <Badge bg={match.isDraw && match.status === "Complete" ? "warning" : match.status === "Complete" ? "success" : match.status === "In Progress" ? "primary" : "secondary"}>
-                                    {match.isDraw && match.status === "Complete" ? "Draw" : match.status}
-                                </Badge>
-                            )}
-                        </div>
-                    </div>
-                </Card.Header>
-                <Card.Body>
-                    <div className={`player ${
-                        !isByeMatch ? (
-                            match.status === "Complete" 
-                                ? (match.isDraw ? 'draw' : match.player1.isWinner ? 'winner' : '')
-                                : match.status === "In Progress" && match.player1.score != null && match.player2.score != null && match.player1.score > match.player2.score
-                                    ? 'projected-winner'
-                                    : ''
-                        ) : 'winner'
-                    }`}>
-                        <div className="player-info">
-                            <div className="player-name">{match.player1.name}</div>
-                            <div className="player-stats-row">
-                                <span className="player-stats" title={player1FullStats}>
-                                    ({player1MatchWins}-{player1MatchLosses}-{player1MatchDraws})
-                                </span>
-                                {match.player1.elo !== undefined && (
-                                    <ELOBadge elo={match.player1.elo} eloHistory={match.player1.elo_history} />
-                                )}
-                            </div>
-                        </div>
-                        {match.status !== "Pending" && (
-                            <span className="score">
-                                {match.player1.score != null ? match.player1.score.toFixed(1) : '0.0'}
-                            </span>
-                        )}
-                    </div>
-                    <div className={`player ${
-                        isByeMatch ? 'bye' : (
-                            match.status === "Complete"
-                                ? (match.isDraw ? 'draw' : match.player2.isWinner ? 'winner' : '')
-                                : match.status === "In Progress" && match.player1.score != null && match.player2.score != null && match.player2.score > match.player1.score
-                                    ? 'projected-winner'
-                                    : ''
-                        )
-                    }`}>
-                        <div className="player-info">
-                            <div className="player-name">{match.player2.name}</div>
-                            {!isByeMatch && (
-                                <div className="player-stats-row">
-                                    <span className="player-stats" title={player2FullStats}>
-                                        ({player2MatchWins}-{player2MatchLosses}-{player2MatchDraws})
-                                    </span>
-                                    {match.player2.elo !== undefined && (
-                                        <ELOBadge elo={match.player2.elo} eloHistory={match.player2.elo_history} />
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                        {!isByeMatch && match.status !== "Pending" && (
-                            <span className="score">
-                                {match.player2.score != null ? match.player2.score.toFixed(1) : '0.0'}
-                            </span>
-                        )}
-                    </div>
-                </Card.Body>
-            </Card>
-        );
-    };
-
-    // Function to refresh tournament data
     const refreshTournamentData = async () => {
         if (!id) return;
-        
         try {
-            // Clear existing data first
             setMatchesWithDetailedGames(new Map());
-            
-            // Fetch fresh tournament data
-            const response = await fetch(`${apiUrl}/tournaments?ids=${id}`, {mode:'cors'});
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            
-            const data = await response.json();
+            const response = await fetch(`${apiUrl}/tournaments?ids=${id}`, { mode: 'cors' });
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            const json = await response.json();
+            const data = Array.isArray(json) ? json : json.data;
             if (data && data.length > 0) {
-                console.log("Tournament data refreshed:", data[0]);
                 setTournament(data[0]);
-                
-                // Get all match IDs
                 const matchIds = data[0].matches.map((m: MatchesResult) => m.ID).join(',');
-                
-                // Get detailed match data that includes properly populated games
                 if (matchIds) {
-                    const matchResponse = await fetch(`${apiUrl}/matches?ids=${matchIds}`, {mode:'cors'});
-                    if (!matchResponse.ok) {
-                        throw new Error(`HTTP error! Status: ${matchResponse.status}`);
-                    }
-                    
-                    const matchesData = await matchResponse.json();
-                    
-                    // Create a map of match ID to detailed match data
+                    const matchResponse = await fetch(`${apiUrl}/matches?ids=${matchIds}&page_size=100`, { mode: 'cors' });
+                    if (!matchResponse.ok) throw new Error(`HTTP error! Status: ${matchResponse.status}`);
+                    const matchesJson = await matchResponse.json();
+                    const matchesData = Array.isArray(matchesJson) ? matchesJson : matchesJson.data;
                     const detailedMatchesMap = new Map<number, MatchesResult>();
-                    matchesData.forEach((match: MatchesResult) => {
+                    (matchesData ?? []).forEach((match: MatchesResult) => {
                         detailedMatchesMap.set(match.ID, match);
                     });
-                    
                     setMatchesWithDetailedGames(detailedMatchesMap);
                 }
             } else {
                 setError('Tournament not found');
             }
         } catch (err) {
-            setError(`Failed to refresh tournament data: ${err instanceof Error ? err.message : String(err)}`);
+            setError(`Failed to refresh: ${err instanceof Error ? err.message : String(err)}`);
         }
     };
 
+    // ── Derived data ──
+
+    const standings: StandingsEntry[] = useMemo(() => {
+        const map = new Map<number, StandingsEntry>();
+        tournament?.players.forEach(p => {
+            map.set(p.ID, {
+                id: p.ID, name: p.name,
+                wins: 0, losses: 0, draws: 0, score: 0,
+                elo: p.elo, elo_history: p.elo_history,
+            });
+        });
+
+        bracketMatches.forEach(match => {
+            if (match.status === "Pending") return;
+            const p1 = map.get(match.player1.id);
+            const p2 = map.get(match.player2.id);
+            if (!p1) return;
+
+            const detailedMatch = matchesWithDetailedGames.get(match.id);
+            const games = detailedMatch?.games || [];
+            games.filter(g => g.status === "Complete").forEach(game => {
+                if (game.draw) {
+                    p1.draws++;
+                    if (p2) p2.draws++;
+                } else if (game.winner_id === p1.id) {
+                    p1.wins++;
+                    if (p2) p2.losses++;
+                } else if (p2 && game.winner_id === p2.id) {
+                    p2.wins++;
+                    p1.losses++;
+                }
+            });
+            p1.score = p1.wins + (p1.draws * 0.5);
+            if (p2) p2.score = p2.wins + (p2.draws * 0.5);
+        });
+
+        return Array.from(map.values()).sort((a, b) => b.score - a.score);
+    }, [bracketMatches, matchesWithDetailedGames, tournament]);
+
+    const flowRoundCount = useMemo(() => {
+        let max = 0;
+        for (const m of bracketMatches) {
+            if (m.roundNumber > max) max = m.roundNumber;
+        }
+        return max;
+    }, [bracketMatches]);
+
+    const gamesPerRound = useMemo(() => {
+        let max = 0;
+        for (const m of bracketMatches) {
+            if (m.numGames > max) max = m.numGames;
+        }
+        return Math.max(max, 1);
+    }, [bracketMatches]);
+
+    const flowData: PlayerFlowData[] = useMemo(() => {
+        if (!tournament || flowRoundCount === 0) return [];
+        const totalTicks = 1 + gamesPerRound * flowRoundCount;
+
+        // Build player -> round -> match lookup
+        const playerRoundMatch = new Map<number, Map<number, BracketMatch>>();
+        bracketMatches.forEach(match => {
+            const roundIdx = match.roundNumber - 1;
+            [match.player1.id, match.player2.id].forEach(pid => {
+                if (pid === 0) return;
+                if (!playerRoundMatch.has(pid)) playerRoundMatch.set(pid, new Map());
+                playerRoundMatch.get(pid)!.set(roundIdx, match);
+            });
+        });
+
+        return tournament.players.map(p => {
+            const scores = new Array(totalTicks).fill(0);
+            let cumulative = 0;
+
+            for (let roundIdx = 0; roundIdx < flowRoundCount; roundIdx++) {
+                const match = playerRoundMatch.get(p.ID)?.get(roundIdx);
+                const startTick = 1 + roundIdx * gamesPerRound;
+
+                if (match) {
+                    const detailedMatch = matchesWithDetailedGames.get(match.id);
+                    const games = (detailedMatch?.games || [])
+                        .filter(g => g.status === "Complete")
+                        .sort((a, b) => new Date(a.CreatedAt).getTime() - new Date(b.CreatedAt).getTime());
+
+                    for (let g = 0; g < gamesPerRound; g++) {
+                        if (g < games.length) {
+                            const game = games[g];
+                            if (game.draw) cumulative += 0.5;
+                            else if (game.winner_id === p.ID) cumulative += 1;
+                        }
+                        scores[startTick + g] = cumulative;
+                    }
+                } else {
+                    for (let g = 0; g < gamesPerRound; g++) {
+                        scores[startTick + g] = cumulative;
+                    }
+                }
+            }
+
+            return {
+                playerId: p.ID,
+                playerName: p.name,
+                cumulativeScores: scores,
+                elo: p.elo,
+            };
+        });
+    }, [tournament, flowRoundCount, gamesPerRound, bracketMatches, matchesWithDetailedGames]);
+
+    // ── Sub-renderers ──
+
+    const renderStandings = () => (
+        <table className="tb-standings">
+            <thead>
+                <tr>
+                    <th className="tb-th-rank">#</th>
+                    <th>Player</th>
+                    <th className="tb-th-num">Score</th>
+                    <th className="tb-th-num">W</th>
+                    <th className="tb-th-num">L</th>
+                    <th className="tb-th-num">D</th>
+                    <th className="tb-th-elo">ELO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {standings.map((entry, idx) => (
+                    <tr
+                        key={entry.id}
+                        className="tb-standings-row"
+                        onClick={() => navigate(`/players/search?ids=${entry.id}`)}
+                    >
+                        <td className={`tb-rank ${idx < 3 ? `tb-rank-${idx + 1}` : ''}`}>{idx + 1}</td>
+                        <td className="tb-player-cell">{entry.name}</td>
+                        <td className="tb-score-cell">{entry.score % 1 === 0 ? entry.score : entry.score.toFixed(1)}</td>
+                        <td className="tb-num-cell">{entry.wins}</td>
+                        <td className="tb-num-cell">{entry.losses}</td>
+                        <td className="tb-num-cell">{entry.draws}</td>
+                        <td className="tb-elo-cell">
+                            {entry.elo !== undefined && (
+                                <ELOBadge elo={entry.elo} eloHistory={entry.elo_history} />
+                            )}
+                        </td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    );
+
+    const renderMatchCard = (match: BracketMatch) => {
+        const isBye = match.player2.id === 0;
+        const detailedMatch = matchesWithDetailedGames.get(match.id);
+        const games = detailedMatch?.games || [];
+
+        const p1W = games.filter(g => g.winner_id === match.player1.id && g.status === "Complete").length;
+        const p1L = games.filter(g => g.loser_id === match.player1.id && g.status === "Complete").length;
+        const p1D = games.filter(g => g.draw && g.status === "Complete").length;
+        const p2W = !isBye ? games.filter(g => g.winner_id === match.player2.id && g.status === "Complete").length : 0;
+        const p2L = !isBye ? games.filter(g => g.loser_id === match.player2.id && g.status === "Complete").length : 0;
+        const p2D = !isBye ? games.filter(g => g.draw && g.status === "Complete").length : 0;
+
+        const p1Class = isBye ? 'tb-row-win'
+            : match.status === "Complete"
+                ? (match.player1.isWinner ? 'tb-row-win' : match.isDraw ? 'tb-row-draw' : '')
+                : match.status === "In Progress" && (match.player1.score ?? 0) > (match.player2.score ?? 0) ? 'tb-row-leading' : '';
+
+        const p2Class = isBye ? 'tb-row-bye'
+            : match.status === "Complete"
+                ? (match.player2.isWinner ? 'tb-row-win' : match.isDraw ? 'tb-row-draw' : '')
+                : match.status === "In Progress" && (match.player2.score ?? 0) > (match.player1.score ?? 0) ? 'tb-row-leading' : '';
+
+        const statusClass = match.status === "Complete" ? "complete" : match.status === "In Progress" ? "active" : "pending";
+
+        return (
+            <div
+                key={match.id}
+                className={`tb-match-card ${isBye ? 'tb-match-card-bye' : ''}`}
+                onClick={() => navigate(`/matches/search?ids=${match.id}`)}
+            >
+                <div className={`tb-match-row ${p1Class}`}>
+                    <span className="tb-match-player">{match.player1.name}</span>
+                    {match.player1.elo !== undefined && (
+                        <ELOBadge elo={match.player1.elo} eloHistory={match.player1.elo_history} />
+                    )}
+                    <span className="tb-match-record">({p1W}-{p1L}-{p1D})</span>
+                    {match.status !== "Pending" && (
+                        <span className="tb-match-score">{(match.player1.score ?? 0).toFixed(1)}</span>
+                    )}
+                </div>
+                <div className={`tb-match-row ${p2Class}`}>
+                    <span className="tb-match-player">{match.player2.name}</span>
+                    {!isBye && (
+                        <>
+                            {match.player2.elo !== undefined && (
+                                <ELOBadge elo={match.player2.elo} eloHistory={match.player2.elo_history} />
+                            )}
+                            <span className="tb-match-record">({p2W}-{p2L}-{p2D})</span>
+                            {match.status !== "Pending" && (
+                                <span className="tb-match-score">{(match.player2.score ?? 0).toFixed(1)}</span>
+                            )}
+                        </>
+                    )}
+                </div>
+                <div className="tb-match-footer">
+                    <span className="tb-match-id">M{match.id}</span>
+                    {!isBye && match.completedGames > 0 && (
+                        <span className="tb-match-progress">{match.completedGames}/{match.numGames}</span>
+                    )}
+                    {!isBye && match.status === "In Progress" && match.startedAt && (
+                        <Timer startTime={match.startedAt} />
+                    )}
+                    {!isBye && match.status === "Complete" && match.startedAt && match.endedAt && (
+                        <Timer startTime={match.startedAt} endTime={match.endedAt} />
+                    )}
+                    <span className={`tb-match-status tb-ms-${statusClass}`}>
+                        <span className={`tb-dot tb-dot-${statusClass}`} />
+                        {isBye ? 'Bye' : match.status}
+                    </span>
+                </div>
+            </div>
+        );
+    };
+
+    const renderRounds = () => (
+        <div className="tb-rounds">
+            {rounds.map(round => {
+                const roundMatches = bracketMatches
+                    .filter(m => m.roundNumber === round.roundNumber)
+                    .sort((a, b) => {
+                        const aS = (a.player1.wins || 0) + (a.player2.wins || 0);
+                        const bS = (b.player1.wins || 0) + (b.player2.wins || 0);
+                        return bS - aS;
+                    });
+                return (
+                    <div className="tb-round-col" key={round.roundNumber}>
+                        <div className="tb-round-header">Round {round.roundNumber}</div>
+                        <div className="tb-match-list">
+                            {roundMatches.length === 0 ? (
+                                <div className="tb-empty-round">No matches</div>
+                            ) : (
+                                roundMatches.map(match => renderMatchCard(match))
+                            )}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+
+    const renderFlow = () => {
+        if (flowData.length === 0 || flowRoundCount === 0) {
+            return <div className="tb-empty">No completed round data to display.</div>;
+        }
+        return (
+            <div className="tb-flow-wrap">
+                <SwissFlowChart players={flowData} roundCount={flowRoundCount} gamesPerRound={gamesPerRound} />
+            </div>
+        );
+    };
+
+    // ── Status helper ──
+
+    const statusDotClass = tournament?.status === "Complete" ? "complete"
+        : tournament?.status === "In Progress" ? "active"
+        : "pending";
+
+    // ── Render ──
+
     if (loading) {
         return (
-            <Container className="mt-4 text-center">
-                <Spinner animation="border" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </Spinner>
-            </Container>
+            <div className="tb-page">
+                <div className="tb-loading"><div className="tb-spinner" /></div>
+            </div>
         );
     }
 
     if (error) {
         return (
-            <Container className="mt-4">
-                <Alert variant="danger">
-                    {error}
-                </Alert>
-                <Button variant="primary" onClick={() => navigate('/tournaments/search')}>Back to Tournaments</Button>
-            </Container>
+            <div className="tb-page">
+                <div className="tb-error">
+                    <p>{error}</p>
+                    <button className="tb-btn" onClick={() => navigate('/tournaments/search')}>
+                        Back to Tournaments
+                    </button>
+                </div>
+            </div>
         );
     }
 
     return (
-        <Container className="mt-4 tournament-bracket-container">
-            <div className="d-flex justify-content-between mb-3">
-                <h2>
-                    {tournament?.name || "Tournament"} Bracket
-                    <Badge bg="info" className="ms-2">{tournament?.type}</Badge>
-                    <Badge bg={tournament?.status === "Complete" ? "success" : tournament?.status === "In Progress" ? "primary" : "secondary"} className="ms-2">
-                        {tournament?.status}
-                    </Badge>
-                </h2>
-                <div>
-                    <RefreshButton 
-                        onRefresh={refreshTournamentData} 
-                        className="me-2"
-                    />
-                    <Button variant="outline-secondary" onClick={() => navigate('/tournaments/search')}>Back to Tournaments</Button>
+        <div className="tb-page">
+            <div className="tb-header">
+                <div className="tb-header-left">
+                    <h1 className="tb-title">{tournament?.name || 'Tournament'}</h1>
+                    <span className={`tb-dot tb-dot-${statusDotClass}`} />
+                    <span className="tb-meta">{tournament?.status}</span>
+                    <span className="tb-type-tag">{tournament?.type}</span>
+                    {tournament?.winner && tournament.winner.ID !== 0 && (
+                        <span className="tb-winner-tag">Winner: {tournament.winner.name}</span>
+                    )}
+                </div>
+                <div className="tb-header-right">
+                    <RefreshButton onRefresh={refreshTournamentData} />
+                    <button className="tb-link-btn" onClick={() => navigate('/tournaments/search')}>
+                        ← Back
+                    </button>
                 </div>
             </div>
 
-            {tournament?.players.length === 0 ? (
-                <Alert variant="warning">
-                    This tournament has no players.
-                </Alert>
-            ) : bracketMatches.length === 0 ? (
-                <Alert variant="info">
-                    No matches have been created for this tournament yet.
-                </Alert>
-            ) : (
-                swissTournamentContent
-            )}
+            <div className="tb-tabs">
+                {TABS.map(tab => (
+                    <button
+                        key={tab.id}
+                        className={`tb-tab ${activeTab === tab.id ? 'tb-tab-active' : ''}`}
+                        onClick={() => setActiveTab(tab.id)}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
 
-            {tournament?.winner && (
-                <Card className="mt-4 winner-card">
-                    <Card.Header className="text-center">Tournament Winner</Card.Header>
-                    <Card.Body className="text-center">
-                        <h3>{tournament.winner.name}</h3>
-                    </Card.Body>
-                </Card>
-            )}
-        </Container>
+            <div className="tb-content">
+                {tournament?.players.length === 0 ? (
+                    <div className="tb-empty">This tournament has no players.</div>
+                ) : bracketMatches.length === 0 ? (
+                    <div className="tb-empty">No matches have been created for this tournament yet.</div>
+                ) : (
+                    <>
+                        {activeTab === 'standings' && renderStandings()}
+                        {activeTab === 'rounds' && renderRounds()}
+                        {activeTab === 'flow' && renderFlow()}
+                    </>
+                )}
+            </div>
+        </div>
     );
 }
 
