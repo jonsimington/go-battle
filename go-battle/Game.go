@@ -264,7 +264,10 @@ func (g Game) findOpponent(player Player) Player {
 		}
 	}
 	// This should never happen in a two-player game, but return the first player as fallback
-	return g.Players[0]
+	if len(g.Players) > 0 {
+		return g.Players[0]
+	}
+	return Player{}
 }
 
 func (g Game) playGame(player Player, playerDir string, wg *sync.WaitGroup, gameSession int) {

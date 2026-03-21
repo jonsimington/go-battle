@@ -98,6 +98,11 @@ func checkPythonVersionOnHost(pythonCommandName string) int {
 
 	match := re.FindStringSubmatch(cmdOutput)
 
+	if len(match) < 2 {
+		log.Errorf("Failed to parse Python version from output: %s", cmdOutput)
+		return 0
+	}
+
 	hostPythonVersionStr := match[1]
 
 	// try to convert parsed version into an int

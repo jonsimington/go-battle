@@ -195,6 +195,12 @@ func getMatch(id int) Match {
 
 // StartMatch begins a match between two players for n games
 func (m Match) StartMatch(db *gorm.DB) {
+	if len(m.Players) < 2 {
+		log.Errorf("Cannot start match %d: expected 2 players but found %d", m.ID, len(m.Players))
+		updateMatchStatus(db, m, "Error")
+		return
+	}
+
 	updateMatchStatus(db, m, "In Progress")
 	updateMatchStartTime(db, m, time.Now())
 
@@ -328,6 +334,14 @@ func compareMatches(matchOne Match, matchTwo Match) bool {
 }
 
 func getPlayerWithMostWins(match Match) (Player, bool) {
+	if len(match.Players) < 2 {
+		log.Errorf("Cannot determine winner for match %d: expected 2 players but found %d", match.ID, len(match.Players))
+		if len(match.Players) == 1 {
+			return match.Players[0], false
+		}
+		return Player{}, true
+	}
+
 	player1 := match.Players[0]
 	player2 := match.Players[1]
 
