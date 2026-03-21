@@ -9,15 +9,18 @@ interface TableHeaderProps<T> {
 const TableHeaderCell = styled("th", {
     backgroundColor: COLORS.dark.secondary,
     padding: 12,
-    fontWeight: 500,
+    fontWeight: 600,
     textAlign: "center",
-    fontSize: 14,
-    color: "white",
+    fontSize: 12,
+    color: COLORS.dark.text.secondary,
+    textTransform: "uppercase",
+    letterSpacing: "0.02em",
+    borderBottom: `1px solid ${COLORS.dark.border}`,
     "&:first-child": {
-        borderTopLeftRadius: 12,
+        borderTopLeftRadius: 6,
     },
     "&:last-child": {
-        borderTopRightRadius: 12,
+        borderTopRightRadius: 6,
     },
     position: "sticky",
     top: 0,

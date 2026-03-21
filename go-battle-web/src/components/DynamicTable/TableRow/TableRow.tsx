@@ -14,8 +14,8 @@ const TableRowItem = styled("tr", {
         backgroundColor: COLORS.dark.primary,
     },
     "&:last-child": {
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 12,
+        borderBottomLeftRadius: 6,
+        borderBottomRightRadius: 6,
     },
     "&:hover": {
         backgroundColor: COLORS.dark.secondary,

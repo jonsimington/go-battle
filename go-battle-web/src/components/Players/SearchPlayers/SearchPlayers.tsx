@@ -100,7 +100,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
     const renderRankBadge = (index: number) => {
         if (index === 0) return <FaTrophy className="text-warning" title="Top Ranked Player" />;
         if (index === 1) return <FaMedal className="text-light" title="2nd Place" />;
-        if (index === 2) return <FaMedal className="text-orange" title="3rd Place" style={{color: '#CD7F32'}} />;
+        if (index === 2) return <FaMedal className="text-orange" title="3rd Place" style={{color: '#f78166'}} />;
         return null;
     };
 
@@ -151,7 +151,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                             display: 'flex', 
                             borderRadius: '5px', 
                             overflow: 'hidden',
-                            border: '1px solid #495057',
+                            border: '1px solid #30363d',
                             width: '100%',
                             height: '42px'  // Increased from 38px to 42px for more height
                         }}>
@@ -161,7 +161,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                backgroundColor: '#212529',
+                                backgroundColor: '#161b22',
                                 textAlign: 'center'
                             }}>
                                 <span className="fw-bold">{name}</span>
@@ -174,8 +174,8 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                                     style={{ 
                                         padding: '10px 12px',  // Increased vertical padding from 8px to 10px
                                         backgroundColor: 'transparent',
-                                        color: '#0dcaf0',  // info color
-                                        borderLeft: '1px solid #495057',
+                                        color: '#79c0ff',  // info color
+                                        borderLeft: '1px solid #30363d',
                                         textDecoration: 'none',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -190,8 +190,8 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                                     style={{ 
                                         padding: '10px 12px',  // Increased vertical padding from 8px to 10px
                                         backgroundColor: 'transparent',
-                                        color: '#0dcaf0',  // info color
-                                        borderLeft: '1px solid #495057',
+                                        color: '#79c0ff',  // info color
+                                        borderLeft: '1px solid #30363d',
                                         textDecoration: 'none',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -345,13 +345,13 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                     let sortedHistory = elo_history.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 0 : 1);
                     let sortedElos = sortedHistory.map(pluck('elo'));
 
-                    let sparklineColor = "#dc3545"; // danger
+                    let sparklineColor = "#f85149"; // danger
 
                     let firstElo = sortedElos[0];
                     let lastElo = sortedElos[sortedElos.length - 1];
     
                     if (firstElo < lastElo) {
-                        sparklineColor = "#28a745"; // success
+                        sparklineColor = "#3fb950"; // success
                     }
 
                     return (

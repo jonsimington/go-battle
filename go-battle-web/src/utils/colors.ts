@@ -1,14 +1,18 @@
 export const COLORS = {
     dark: {
         text: {
-            primary: "white",
-            secondary: "grey", 
+            primary: "#c9d1d9",
+            secondary: "#8b949e",
+            muted: "#484f58",
         },
-        primary: "#212529",
-        secondary:"#343a40",
-        success: "#198754",
-        info: "#0dcaf0",
-        warning: "#ffc107",
-        danger: "#dc3545",
+        bg: "#0d1117",
+        primary: "#161b22",
+        secondary: "#21262d",
+        border: "#30363d",
+        accent: "#58a6ff",
+        success: "#3fb950",
+        info: "#79c0ff",
+        warning: "#d29922",
+        danger: "#f85149",
     }
 }

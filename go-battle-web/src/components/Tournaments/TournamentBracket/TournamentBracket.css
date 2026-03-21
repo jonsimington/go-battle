@@ -1,46 +1,50 @@
 .tournament-bracket-container {
-    padding: 20px 0;
+    padding: 24px 0;
 }
 
 .swiss-tournament-container {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 24px;
 }
 
 .swiss-round {
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    padding: 1rem;
+    background-color: var(--surface, #161b22);
+    border: 1px solid var(--border, #30363d);
+    border-radius: 6px;
+    padding: 16px;
 }
 
 .round-title {
     text-align: center;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border, #30363d);
+    color: var(--text-primary, #c9d1d9);
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .matches-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1rem;
+    gap: 12px;
 }
 
 .bracket-match {
-    background-color: #222;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: transform 0.2s ease;
+    background-color: var(--bg, #0d1117);
+    border: 1px solid var(--border, #30363d);
+    border-radius: 6px;
 }
 
 .bracket-match:hover {
-    transform: translateY(-2px);
+    border-color: #484f58;
 }
 
 .bracket-match .card-header {
-    background-color: rgba(0, 0, 0, 0.2);
-    padding: 0.5rem 1rem;
+    background-color: rgba(0, 0, 0, 0.15);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border, #30363d);
 }
 
 .clickable-header {
@@ -48,44 +52,44 @@
 }
 
 .clickable-header:hover {
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(88, 166, 255, 0.06);
 }
 
 .player {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 0.75rem;
-    margin: 0.25rem 0;
+    padding: 8px 12px;
+    margin: 4px 0;
     border-radius: 4px;
-    background-color: #333;
-    transition: background-color 0.2s ease;
+    background-color: var(--surface, #161b22);
+    transition: background-color 150ms ease;
 }
 
 /* For completed matches */
 .player.winner {
-    background-color: rgba(40, 167, 69, 0.3);
-    border-left: 3px solid #28a745;
+    background-color: rgba(63, 185, 80, 0.1);
+    border-left: 2px solid var(--success, #3fb950);
 }
 
 /* For in-progress matches */
 .player.projected-winner {
-    border: 2px solid rgba(40, 167, 69, 0.5);
-    background-color: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(63, 185, 80, 0.3);
+    background-color: rgba(63, 185, 80, 0.06);
 }
 
 .player.draw {
-    background-color: rgba(255, 193, 7, 0.2);
-    border-left: 3px solid #ffc107;
+    background-color: rgba(210, 153, 34, 0.1);
+    border-left: 2px solid var(--warning, #d29922);
 }
 
 .player.bye {
-    background-color: rgba(255, 193, 7, 0.2);
-    border-left: 3px solid #ffc107;
+    background-color: rgba(210, 153, 34, 0.1);
+    border-left: 2px solid var(--warning, #d29922);
 }
 
 .player.bye .player-name {
-    color: #ffc107;
+    color: var(--warning, #d29922);
     font-style: italic;
 }
 
@@ -93,7 +97,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    min-width: 0;  /* Allow flex shrinking */
+    min-width: 0;
     flex: 1;
 }
 
@@ -102,23 +106,25 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-weight: 500;
+    font-size: 14px;
 }
 
 .player-stats-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.85em;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    color: var(--text-secondary, #8b949e);
     white-space: nowrap;
 }
 
 .score {
-    font-weight: bold;
+    font-weight: 600;
     min-width: 2.5em;
     text-align: right;
     margin-left: 12px;
     flex-shrink: 0;
+    font-size: 14px;
 }
 
 .elo-badge {
@@ -133,94 +139,93 @@
 }
 
 .tooltip .player-record {
-    font-size: 0.9em;
+    font-size: 12px;
     margin-top: 4px;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-secondary, #8b949e);
 }
 
 .tournament-standings {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-top: 2rem;
+    background-color: var(--surface, #161b22);
+    border: 1px solid var(--border, #30363d);
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 24px;
 }
 
 .tournament-standings h4 {
-    color: #fff;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary, #c9d1d9);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border, #30363d);
     text-align: center;
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .standings-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
+    gap: 12px;
 }
 
 .player-standing {
-    background-color: #2a2a2a;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--bg, #0d1117);
+    border: 1px solid var(--border, #30363d);
     border-radius: 6px;
-    padding: 1.25rem;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    transition: transform 0.2s ease, background-color 0.2s ease;
+    gap: 12px;
+    transition: background-color 150ms ease;
     height: 100%;
 }
 
 .player-standing:hover {
-    transform: translateY(-2px);
-    background-color: #333;
+    background-color: rgba(88, 166, 255, 0.04);
 }
 
 .player-standing .player-name {
     display: flex;
     align-items: center;
-    font-size: 1.1em;
+    font-size: 14px;
     font-weight: 500;
-    color: #fff;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary, #c9d1d9);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border, #30363d);
 }
 
 .player-standing .player-score {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 8px;
     align-items: center;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-primary, #c9d1d9);
 }
 
 .player-standing .score-value {
-    font-size: 1.75em;
+    font-size: 24px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-primary, #c9d1d9);
 }
 
 .player-standing .score-details {
-    font-size: 0.9em;
-    color: rgba(255, 255, 255, 0.7);
-    background-color: rgba(0, 0, 0, 0.2);
-    padding: 0.35rem 0.75rem;
+    font-size: 12px;
+    color: var(--text-secondary, #8b949e);
+    background-color: rgba(255, 255, 255, 0.04);
+    padding: 4px 8px;
     border-radius: 4px;
     text-align: center;
 }
 
-/* Add medal indicators for top 3 positions */
+/* Medal indicators for top 3 — subtle border only, no gradients */
 .player-standing:nth-child(1) {
-    background: linear-gradient(180deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 215, 0, 0.05) 100%);
-    border-color: rgba(255, 215, 0, 0.3);
+    border-color: rgba(210, 153, 34, 0.4);
 }
 
 .player-standing:nth-child(2) {
-    background: linear-gradient(180deg, rgba(192, 192, 192, 0.15) 0%, rgba(192, 192, 192, 0.05) 100%);
-    border-color: rgba(192, 192, 192, 0.3);
+    border-color: rgba(139, 148, 158, 0.4);
 }
 
 .player-standing:nth-child(3) {
-    background: linear-gradient(180deg, rgba(205, 127, 50, 0.15) 0%, rgba(205, 127, 50, 0.05) 100%);
-    border-color: rgba(205, 127, 50, 0.3);
+    border-color: rgba(247, 129, 102, 0.4);
 }

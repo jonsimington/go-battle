@@ -1,11 +1,12 @@
 import { FC, useEffect, useState } from 'react';
-import { Button, Card, Col, Container, ListGroup, Row } from 'react-bootstrap';
+import { Container } from 'react-bootstrap';
 import { ApiResult } from '../../models/ApiResult';
 import { PlayersResult } from '../../models/PlayersResult';
 import { MatchesResult } from '../../models/MatchesResult';
 import { GamesResult } from '../../models/GamesResult';
 import { average, elapsedTime, getApiUrl, prettyTimeAgo } from '../../utils/utils';
 import EloBadge from '../Common/ELO/ELOBadge';
+import styles from './Dashboard.module.css';
 
 interface DashboardProps {}
 
@@ -64,91 +65,35 @@ const Dashboard: FC<DashboardProps> = () => {
 
     return (
         <Container>
-            <Row>
-                <Col lg="5">
-                    <Card>
-                        <Card.Header className="text-center">
-                            <h3>Top 5 Players</h3>
-                        </Card.Header>
-                        <Card.Body>
-                            <Card.Text className="text-center" as="div">
-                                <ListGroup as="ol" numbered>
-                                    {topFivePlayers.map((p) => {
-                                        return (
-                                            <ListGroup.Item
-                                                as="li"
-                                                className="d-flex justify-content-between align-items-start"
-                                                variant="dark"
-                                                key={`top5-${p.ID}`}
-                                                action
-                                            >
-                                                <span className="ms-2 me-auto fw-bold">
-                                                    {p.name}
-                                                </span>
-                                                <EloBadge elo={p.elo} eloHistory={p.elo_history} />
-                                            </ListGroup.Item>
-                                        )
-                                    })}
-                                </ListGroup>
-                            </Card.Text>
-                        </Card.Body>
-                    </Card>
-                </Col>
-                <Col>
-                    <Row>
-                        <Col lg="6">
-                            <Card>
-                                <Card.Header className="text-center">
-                                    <h3># Players</h3>
-                                </Card.Header>
-                                <Card.Body>
-                                    <Card.Text className="text-center" as="div">
-                                        <h1>{players.length}</h1>
-                                    </Card.Text>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                        <Col lg="6">
-                            <Card>
-                                <Card.Header className="text-center">
-                                    <h3># Matches</h3>
-                                </Card.Header>
-                                <Card.Body>
-                                    <Card.Text className="text-center" as="div">
-                                        <h1>{matches.length}</h1>
-                                    </Card.Text>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                    </Row>
-                    <Row className="mt-4">
-                    <Col>
-                            <Card>
-                                <Card.Header className="text-center">
-                                    <h3># Games</h3>
-                                </Card.Header>
-                                <Card.Body>
-                                    <Card.Text className="text-center" as="div">
-                                        <h1>{games.length}</h1>
-                                    </Card.Text>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                        <Col>
-                            <Card>
-                                <Card.Header className="text-center">
-                                    <h3>Avg Match Length</h3>
-                                </Card.Header>
-                                <Card.Body>
-                                    <Card.Text className="text-center" as="div">
-                                        <h1>{prettyTimeAgo(avgMatchLength)}</h1>
-                                    </Card.Text>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
+            <div className={styles.statsGrid}>
+                <div className={styles.statCard}>
+                    <div className={styles.statLabel}>Players</div>
+                    <div className={styles.statValue}>{players.length}</div>
+                </div>
+                <div className={styles.statCard}>
+                    <div className={styles.statLabel}>Matches</div>
+                    <div className={styles.statValue}>{matches.length}</div>
+                </div>
+                <div className={styles.statCard}>
+                    <div className={styles.statLabel}>Games</div>
+                    <div className={styles.statValue}>{games.length}</div>
+                </div>
+                <div className={styles.statCard}>
+                    <div className={styles.statLabel}>Avg Match Length</div>
+                    <div className={styles.statValue}>{prettyTimeAgo(avgMatchLength)}</div>
+                </div>
+            </div>
+
+            <div className={styles.leaderboard}>
+                <div className={styles.leaderboardHeader}>Top 5 Players</div>
+                {topFivePlayers.map((p, i) => (
+                    <div className={styles.leaderboardRow} key={`top5-${p.ID}`}>
+                        <span className={styles.rank}>{i + 1}</span>
+                        <span className={styles.playerName}>{p.name}</span>
+                        <EloBadge elo={p.elo} eloHistory={p.elo_history} />
+                    </div>
+                ))}
+            </div>
         </Container>
     )
 }

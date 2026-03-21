@@ -1,15 +1,16 @@
 /* Timer component styles */
 .timer {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    font-size: 0.75rem;
-    color: #6c757d;
-    background-color: rgba(0, 0, 0, 0.1);
+    font-size: 12px;
+    color: var(--text-secondary, #8b949e);
+    font-family: 'SF Mono', 'Menlo', monospace;
     padding: 2px 6px;
-    border-radius: 3px;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.04);
 }
 
 .timer-icon {
     margin-right: 4px;
-    font-size: 0.7rem;
+    font-size: 11px;
 }

@@ -2,62 +2,60 @@
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.85rem;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 12px;
   color: #fff;
-  margin-left: 5px;
+  margin-left: 4px;
 }
 
 .elo-badge .elo-label {
-  font-size: 0.65rem;
-  opacity: 0.8;
+  font-size: 10px;
+  opacity: 0.7;
   margin-right: 3px;
 }
 
 .elo-badge .elo-trend {
   margin-left: 4px;
-  font-size: 14px;
-  filter: drop-shadow(0px 0px 1px rgba(0, 0, 0, 0.8));
-  transform: scale(1.2);
+  font-size: 12px;
 }
 
 .elo-badge .elo-trend-up {
-  color: #4dff4d;
+  color: #3fb950;
 }
 
 .elo-badge .elo-trend-down {
-  color: #ff9999;
+  color: #f85149;
 }
 
 .elo-badge .elo-trend-neutral {
-  color: #ffffff;
+  color: #8b949e;
 }
 
 .beginner {
-  background-color: rgba(108, 117, 125, 0.85);  /* Muted Gray */
+  background-color: #484f58;
 }
 
 .novice {
-  background-color: rgba(40, 167, 69, 0.75);  /* Muted Green */
+  background-color: rgba(63, 185, 80, 0.7);
 }
 
 .intermediate {
-  background-color: rgba(0, 123, 255, 0.75);  /* Muted Blue */
+  background-color: rgba(88, 166, 255, 0.6);
 }
 
 .advanced {
-  background-color: rgba(23, 162, 184, 0.75);  /* Muted Cyan */
+  background-color: rgba(121, 192, 255, 0.5);
 }
 
 .expert {
-  background-color: rgba(255, 193, 7, 0.75);  /* Muted Yellow */
+  background-color: rgba(210, 153, 34, 0.7);
 }
 
 .master {
-  background-color: rgba(253, 126, 20, 0.75);  /* Muted Orange */
+  background-color: rgba(247, 129, 102, 0.7);
 }
 
 .grandmaster {
-  background-color: rgba(220, 53, 69, 0.75);  /* Muted Red */
+  background-color: rgba(248, 81, 73, 0.7);
 }

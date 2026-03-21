@@ -1,14 +1,14 @@
 .create-tournament-container {
     max-width: 1400px;
-    padding: 2rem;
-    color: white;
+    padding: 24px;
+    color: var(--text-primary, #c9d1d9);
 }
 
 .tournament-form {
-    background: #212529;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: var(--surface, #161b22);
+    padding: 24px;
+    border-radius: 6px;
+    border: 1px solid var(--border, #30363d);
 }
 
 .tournament-type-select {
@@ -18,85 +18,91 @@
 .players-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
+    gap: 12px;
+    margin-bottom: 24px;
 }
 
 .player-select-container {
-    background: #2a2a2a;
-    padding: 1rem;
+    background: var(--bg, #0d1117);
+    padding: 12px;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.2s ease;
+    border: 1px solid var(--border, #30363d);
+    transition: border-color 150ms ease;
 }
 
 .player-select-container:hover {
-    background: #333;
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: #484f58;
 }
 
 .player-label {
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 0.5rem;
+    color: var(--text-secondary, #8b949e);
+    margin-bottom: 6px;
+    font-size: 13px;
 }
 
 .player-select {
-    background-color: #343a40;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    background-color: var(--surface, #161b22);
+    border: 1px solid var(--border, #30363d);
+    color: var(--text-primary, #c9d1d9);
+    border-radius: 6px;
 }
 
 .player-select option {
-    background-color: #343a40;
-    color: white;
+    background-color: var(--surface, #161b22);
+    color: var(--text-primary, #c9d1d9);
 }
 
 .player-select option:disabled {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted, #484f58);
 }
 
 .randomize-btn {
-    background-color: #0d6efd;
+    background-color: var(--primary, #58a6ff);
     border: none;
-    padding: 0.5rem 1rem;
+    padding: 6px 12px;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
+    gap: 6px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background-color 150ms ease;
 }
 
 .randomize-btn:hover {
-    background-color: #0b5ed7;
-    transform: translateY(-1px);
+    background-color: #4c94e6;
 }
 
 .submit-btn {
-    background-color: #198754;
+    background-color: var(--success, #3fb950);
     border: none;
-    padding: 0.75rem 1.5rem;
-    font-size: 1.1rem;
+    padding: 8px 16px;
+    font-size: 14px;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
+    gap: 6px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background-color 150ms ease;
 }
 
 .submit-btn:hover {
-    background-color: #157347;
-    transform: translateY(-1px);
+    background-color: #36a148;
 }
 
 /* Form control styles */
 .form-select, .form-control {
-    background-color: #343a40;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    background-color: var(--bg, #0d1117);
+    border: 1px solid var(--border, #30363d);
+    color: var(--text-primary, #c9d1d9);
+    border-radius: 6px;
 }
 
 .form-select:focus, .form-control:focus {
-    background-color: #343a40;
-    border-color: #0d6efd;
-    color: white;
+    background-color: var(--bg, #0d1117);
+    border-color: var(--primary, #58a6ff);
+    color: var(--text-primary, #c9d1d9);
+    box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }

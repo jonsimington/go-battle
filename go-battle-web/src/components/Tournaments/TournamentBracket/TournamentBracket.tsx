@@ -103,12 +103,13 @@ export function TournamentBracket(): JSX.Element {
             if (data && data.length > 0) {
                 setTournament(data[0]);
                 
-                const matchIds = data[0].matches.map((m: MatchesResult) => m.ID).join(',');
+                const matchIds = data[0].matches?.map((m: MatchesResult) => m.ID).join(',');
                 
                 if (matchIds) {
                     fetchDetailedMatches(matchIds);
+                } else {
+                    setLoading(false);
                 }
-                // We'll organize data in the useEffect after both data sources are loaded
             } else {
                 setError('Tournament not found');
                 setLoading(false);
@@ -154,9 +155,10 @@ export function TournamentBracket(): JSX.Element {
         // Initialize player status tracking
         const playerStatusMap = new Map<number, PlayerStatus>();
         tournament.players.forEach(player => {
-            let wins = player.games.filter(g => g.winner_id === player.ID).length;
-            let losses = player.games.filter(g => g.loser_id === player.ID).length;
-            let draws = player.games.filter(g => g.draw).length;
+            const games = player.games || [];
+            let wins = games.filter(g => g.winner_id === player.ID).length;
+            let losses = games.filter(g => g.loser_id === player.ID).length;
+            let draws = games.filter(g => g.draw).length;
 
             playerStatusMap.set(player.ID, {
                 id: player.ID,
@@ -405,7 +407,7 @@ export function TournamentBracket(): JSX.Element {
                                     <span className="player-name">
                                         {index === 0 && <FaTrophy className="text-warning me-2" title="1st Place" />}
                                         {index === 1 && <FaMedal className="text-light me-2" title="2nd Place" />}
-                                        {index === 2 && <FaMedal className="text-bronze me-2" title="3rd Place" style={{color: '#CD7F32'}} />}
+                                        {index === 2 && <FaMedal className="text-bronze me-2" title="3rd Place" style={{color: '#f78166'}} />}
                                         {player.name}
                                     </span>
                                     <div className="player-score">

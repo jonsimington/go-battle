@@ -13,9 +13,10 @@ interface TableRowCellProps<T> {
 
 const TableCell = styled("td", {
     padding: 12,
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.dark.text.secondary,
     textAlign: "center",
+    borderBottom: `1px solid ${COLORS.dark.border}`,
 });
 
 export function TableRowCell<T>({ item, column, index }: TableRowCellProps<T>): JSX.Element {
