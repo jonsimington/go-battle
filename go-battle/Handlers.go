@@ -490,9 +490,9 @@ func postTournamentsHandler(c *fiber.Ctx) error {
 		return strings.ReplaceAll(s, " ", "")
 	}))
 
-	if len(playersList) != 8 {
-		return c.Status(400).SendString("The `players` query param value must be a comma-separated list of eight ints")
-	}
+	// if len(playersList) != 8 {
+	// 	return c.Status(400).SendString("The `players` query param value must be a comma-separated list of eight ints")
+	// }
 
 	// TODO: check that all players passed are actual players
 
@@ -548,7 +548,16 @@ func startTournamentsHandler(c *fiber.Ctx) error {
 		return c.Status(400).SendString("`tournament_id` query parameter must point to an existing Tournament")
 	}
 
-	tournament.StartTournament(tournamentIdInt)
+	// Start tournament in a goroutine so the HTTP response isn't blocked by repo cloning
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("Panic recovered in StartTournament goroutine for tournament %d: %v", tournamentIdInt, r)
+				updateTournamentStatus(db, tournament, "Error")
+			}
+		}()
+		tournament.StartTournament(tournamentIdInt)
+	}()
 
 	return c.Status(200).SendString(fmt.Sprintf("Started tournament %d", tournamentIdInt))
 }

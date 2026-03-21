@@ -2,239 +2,225 @@
     padding: 20px 0;
 }
 
-.bracket-container {
-    display: flex;
-    overflow-x: auto;
-    padding: 20px 0;
-    min-height: 600px;
-    position: relative;
-}
-
-.swiss-bracket-container {
+.swiss-tournament-container {
     display: flex;
     flex-direction: column;
-    min-height: 800px;
-    position: relative;
-}
-
-.bracket-round {
-    min-width: 250px;
-    margin: 0 10px;
-    padding: 10px;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
+    gap: 2rem;
 }
 
 .swiss-round {
-    display: flex;
-    margin-bottom: 40px;
-    position: relative;
-}
-
-.round-column {
-    min-width: 260px;
-    margin: 0 20px;
-}
-
-.bracket-level {
-    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.1);
     border-radius: 8px;
-    margin-bottom: 15px;
-}
-
-.bracket-level.high {
-    background-color: rgba(40, 167, 69, 0.1);
-    border: 1px solid rgba(40, 167, 69, 0.2);
-}
-
-.bracket-level.mid {
-    background-color: rgba(255, 193, 7, 0.1);
-    border: 1px solid rgba(255, 193, 7, 0.2);
-}
-
-.bracket-level.low {
-    background-color: rgba(220, 53, 69, 0.1);
-    border: 1px solid rgba(220, 53, 69, 0.2);
+    padding: 1rem;
 }
 
 .round-title {
     text-align: center;
-    margin-bottom: 15px;
-    padding-bottom: 5px;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.bracket-level-title {
-    text-align: center;
-    margin-bottom: 10px;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.bracket-level.high .bracket-level-title {
-    color: #28a745;
-}
-
-.bracket-level.mid .bracket-level-title {
-    color: #ffc107;
-}
-
-.bracket-level.low .bracket-level-title {
-    color: #dc3545;
+    color: #fff;
 }
 
 .matches-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
 }
 
 .bracket-match {
     background-color: #222;
-    border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    position: relative;
+    transition: transform 0.2s ease;
+}
+
+.bracket-match:hover {
+    transform: translateY(-2px);
 }
 
 .bracket-match .card-header {
     background-color: rgba(0, 0, 0, 0.2);
-    padding: 8px 10px;
-    font-size: 0.8em;
+    padding: 0.5rem 1rem;
 }
 
 .clickable-header {
     cursor: pointer;
-    transition: background-color 0.2s ease;
 }
 
 .clickable-header:hover {
     background-color: rgba(0, 0, 0, 0.4);
 }
 
-.bracket-match .card-body {
-    padding: 10px;
-}
-
 .player {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 5px 8px;
-    margin: 3px 0;
+    padding: 0.5rem 0.75rem;
+    margin: 0.25rem 0;
     border-radius: 4px;
     background-color: #333;
+    transition: background-color 0.2s ease;
 }
 
+/* For completed matches */
 .player.winner {
     background-color: rgba(40, 167, 69, 0.3);
-    font-weight: bold;
+    border-left: 3px solid #28a745;
+}
+
+/* For in-progress matches */
+.player.projected-winner {
+    border: 2px solid rgba(40, 167, 69, 0.5);
+    background-color: rgba(40, 167, 69, 0.1);
 }
 
 .player.draw {
-    background-color: rgba(255, 193, 7, 0.3);
-    font-weight: bold;
+    background-color: rgba(255, 193, 7, 0.2);
+    border-left: 3px solid #ffc107;
 }
 
-.draw-indicator {
-    position: absolute;
-    right: -8px;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: #ffc107;
-    color: #212529;
-    font-weight: bold;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    z-index: 1;
+.player.bye {
+    background-color: rgba(255, 193, 7, 0.2);
+    border-left: 3px solid #ffc107;
 }
 
-.player .score {
+.player.bye .player-name {
+    color: #ffc107;
+    font-style: italic;
+}
+
+.player-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;  /* Allow flex shrinking */
+    flex: 1;
+}
+
+.player-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+
+.player-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85em;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+}
+
+.score {
     font-weight: bold;
-    min-width: 20px;
+    min-width: 2.5em;
+    text-align: right;
+    margin-left: 12px;
+    flex-shrink: 0;
+}
+
+.elo-badge {
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+/* Tooltip overrides */
+.tooltip .tooltip-inner {
+    max-width: 300px;
+    padding: 8px 12px;
+}
+
+.tooltip .player-record {
+    font-size: 0.9em;
+    margin-top: 4px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.tournament-standings {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.tournament-standings h4 {
+    color: #fff;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     text-align: center;
 }
 
-.winner-card {
-    max-width: 400px;
-    margin: 0 auto;
-    background-color: rgba(40, 167, 69, 0.1);
-    border: 1px solid rgba(40, 167, 69, 0.3);
+.standings-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
 }
 
-.winner-card .card-header {
-    background-color: rgba(40, 167, 69, 0.2);
-    font-weight: bold;
-}
-
-/* Path indicators */
-.path-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
+.player-standing {
+    background-color: #2a2a2a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: transform 0.2s ease, background-color 0.2s ease;
     height: 100%;
-    pointer-events: none;
-    z-index: -1;
 }
 
-.path {
-    position: absolute;
-    pointer-events: none;
+.player-standing:hover {
+    transform: translateY(-2px);
+    background-color: #333;
 }
 
-.win-path {
-    border-top: 3px solid #28a745;
-    border-right: 3px solid #28a745;
+.player-standing .player-name {
+    display: flex;
+    align-items: center;
+    font-size: 1.1em;
+    font-weight: 500;
+    color: #fff;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.loss-path {
-    border-top: 3px solid #dc3545;
-    border-right: 3px solid #dc3545;
+.player-standing .player-score {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.9);
 }
 
-.player-status {
-    display: inline-block;
-    font-weight: bold;
-    padding: 2px 6px;
+.player-standing .score-value {
+    font-size: 1.75em;
+    font-weight: 600;
+    color: #fff;
+}
+
+.player-standing .score-details {
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 0.35rem 0.75rem;
     border-radius: 4px;
-    margin-left: 8px;
-    font-size: 0.8em;
+    text-align: center;
 }
 
-.player-qualified {
-    background-color: #28a745;
-    color: white;
+/* Add medal indicators for top 3 positions */
+.player-standing:nth-child(1) {
+    background: linear-gradient(180deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 215, 0, 0.05) 100%);
+    border-color: rgba(255, 215, 0, 0.3);
 }
 
-.player-eliminated {
-    background-color: #dc3545;
-    color: white;
+.player-standing:nth-child(2) {
+    background: linear-gradient(180deg, rgba(192, 192, 192, 0.15) 0%, rgba(192, 192, 192, 0.05) 100%);
+    border-color: rgba(192, 192, 192, 0.3);
 }
 
-.player-stats {
-    font-size: 0.8em;
-    margin-left: 6px;
-    opacity: 0.8;
-}
-
-/* Responsive adjustments */
-@media (max-width: 992px) {
-    .swiss-bracket-container {
-        overflow-x: auto;
-    }
-    
-    .swiss-round {
-        min-width: 800px;
-    }
-    
-    .round-column {
-        min-width: 220px;
-    }
-}
-
-@media (max-width: 768px) {
-    .bracket-round {
-        min-width: 200px;
-    }
+.player-standing:nth-child(3) {
+    background: linear-gradient(180deg, rgba(205, 127, 50, 0.15) 0%, rgba(205, 127, 50, 0.05) 100%);
+    border-color: rgba(205, 127, 50, 0.3);
 }

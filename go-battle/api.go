@@ -14,7 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 
-	"github.com/jonsimington/go-battle/matchmaker"
+	// "github.com/jonsimington/go-battle/matchmaker"
 	elogo "github.com/kortemy/elo-go"
 	"github.com/sirupsen/logrus"
 
@@ -140,9 +140,9 @@ func main() {
 	log.Infof("Initializing tournament controller")
 	InitializeTournamentController(db)
 
-	matchmakerPeriod := 5 * time.Minute
-	log.Infof("Starting matchmaker with random games every %v", matchmakerPeriod)
-	go matchmaker.StartRandomMatch(matchmakerPeriod)
+	// matchmakerPeriod := 5 * time.Minute
+	// log.Infof("Starting matchmaker with random games every %v", matchmakerPeriod)
+	// go matchmaker.StartRandomMatch(matchmakerPeriod)
 
 	app.Listen(":3000")
 }

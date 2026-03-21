@@ -1,29 +1,35 @@
 import React, { FC, useEffect, useState } from 'react';
-import { Alert, Button, Col, Form, Row } from 'react-bootstrap';
-import { FaUserPlus } from 'react-icons/fa6';
+import { Alert, Button, Col, Form, Row, Container } from 'react-bootstrap';
+import { FaUserPlus, FaDice } from 'react-icons/fa6';
 import { PlayersResult } from '../../../models/PlayersResult';
+import './CreateTournament.css';
 
 interface CreateTournamentProps {}
 
 const CreateTournament: FC<CreateTournamentProps> = () => {
     const [typeValue, setTypeValue] = useState('swiss');
-    const [playerOneValue, setPlayerOneValue] = useState('');
-    const [playerTwoValue, setPlayerTwoValue] = useState('');
-    const [playerThreeValue, setPlayerThreeValue] = useState('');
-    const [playerFourValue, setPlayerFourValue] = useState('');
-    const [playerFiveValue, setPlayerFiveValue] = useState('');
-    const [playerSixValue, setPlayerSixValue] = useState('');
-    const [playerSevenValue, setPlayerSevenValue] = useState('');
-    const [playerEightValue, setPlayerEightValue] = useState('');
     const [playersValue, setPlayersValue] = useState('');
-
     const [players, setPlayers] = useState<PlayersResult[]>();
     const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<string>>(new Set());
+    const [maxPlayers, setMaxPlayers] = useState(24);
+    const [playerValues, setPlayerValues] = useState<string[]>(Array(24).fill(''));
 
     const [hasError, setHasError] = useState(false);
     const [hasWarning, setHasWarning] = useState(false);
     const [hasApiResponse, setHasApiResponse] = useState(false);
     const [alertText, setAlertText] = useState('');
+
+    const handleIncrementMaxPlayers = () => {
+        if (maxPlayers < 24) {
+            handleMaxPlayersChange({ target: { value: (maxPlayers + 1).toString() } } as React.ChangeEvent<HTMLInputElement>);
+        }
+    };
+
+    const handleDecrementMaxPlayers = () => {
+        if (maxPlayers > 8) {
+            handleMaxPlayersChange({ target: { value: (maxPlayers - 1).toString() } } as React.ChangeEvent<HTMLInputElement>);
+        }
+    };
 
     // Helper function to shuffle an array
     const shuffleArray = (array: any[]) => {
@@ -35,88 +41,110 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
         return newArray;
     };
 
+    // Function to select top N players by ELO
+    const selectTopPlayers = () => {
+        if (!players || players.length < 8) return;
+        
+        // Clear existing selections
+        setSelectedPlayerIds(new Set());
+        
+        // Sort players by ELO in descending order and take top N
+        const sortedPlayers = [...players].sort((a, b) => (b.elo || 0) - (a.elo || 0));
+        const selectedPlayers = sortedPlayers.slice(0, maxPlayers);
+        
+        // Update player values and selected IDs
+        const newSelectedIds = new Set<string>();
+        const newPlayerValues = Array(maxPlayers).fill('');
+        
+        selectedPlayers.forEach((player, index) => {
+            newPlayerValues[index] = player.ID.toString();
+            newSelectedIds.add(player.ID.toString());
+        });
+        
+        setPlayerValues(newPlayerValues);
+        setSelectedPlayerIds(newSelectedIds);
+        setPlayersValue(selectedPlayers.map(p => p.ID.toString()).join(','));
+    };
+
+    // Function to select bottom N players by ELO
+    const selectBottomPlayers = () => {
+        if (!players || players.length < 8) return;
+        
+        // Clear existing selections
+        setSelectedPlayerIds(new Set());
+        
+        // Sort players by ELO in ascending order and take bottom N
+        const sortedPlayers = [...players].sort((a, b) => (a.elo || 0) - (b.elo || 0));
+        const selectedPlayers = sortedPlayers.slice(0, maxPlayers);
+        
+        // Update player values and selected IDs
+        const newSelectedIds = new Set<string>();
+        const newPlayerValues = Array(maxPlayers).fill('');
+        
+        selectedPlayers.forEach((player, index) => {
+            newPlayerValues[index] = player.ID.toString();
+            newSelectedIds.add(player.ID.toString());
+        });
+        
+        setPlayerValues(newPlayerValues);
+        setSelectedPlayerIds(newSelectedIds);
+        setPlayersValue(selectedPlayers.map(p => p.ID.toString()).join(','));
+    };
+
     // Helper function to update player selection and prevent duplicates
-    const updatePlayerValue = (playerId: string, setter: React.Dispatch<React.SetStateAction<string>>) => {
+    const updatePlayerValue = (playerId: string, index: number) => {
+        const newPlayerValues = [...playerValues];
+        
         // Remove current value from selected set if it exists
-        const currentValue = setter.toString().split(' ').pop() || '';
-        if (currentValue && selectedPlayerIds.has(currentValue)) {
+        if (playerValues[index] && selectedPlayerIds.has(playerValues[index])) {
             const newSet = new Set(selectedPlayerIds);
-            newSet.delete(currentValue);
+            newSet.delete(playerValues[index]);
             setSelectedPlayerIds(newSet);
         }
         
         // Add new value to selected set
         if (playerId) {
-            setter(playerId);
+            newPlayerValues[index] = playerId;
             const newSet = new Set(selectedPlayerIds);
             newSet.add(playerId);
             setSelectedPlayerIds(newSet);
         } else {
-            setter('');
+            newPlayerValues[index] = '';
         }
         
-        // Update the combined players value string
-        updatePlayersValueFromState();
+        setPlayerValues(newPlayerValues);
+        updatePlayersValueFromState(newPlayerValues);
     };
 
     // Update combined players value from all individual player values
-    const updatePlayersValueFromState = () => {
-        const values = [
-            playerOneValue, 
-            playerTwoValue, 
-            playerThreeValue, 
-            playerFourValue, 
-            playerFiveValue, 
-            playerSixValue, 
-            playerSevenValue, 
-            playerEightValue
-        ].filter(val => val !== '');
-        
-        setPlayersValue(values.join(','));
+    const updatePlayersValueFromState = (values: string[] = playerValues) => {
+        setPlayersValue(values.filter(val => val !== '').join(','));
     };
 
     const handleTypeValueChange = (event: { target: { value: React.SetStateAction<string>; }; }) => {
         setTypeValue(event.target.value);
     }
-    
-    // Updated player change handlers to prevent duplicate selections
-    const handlePlayerOneValueChange = (event: { target: { value: string; }; }) => {
-        updatePlayerValue(event.target.value, setPlayerOneValue);
-    }
-    
-    const handlePlayerTwoValueChange = (event: { target: { value: string; }; }) => {
-        updatePlayerValue(event.target.value, setPlayerTwoValue);
-    }
-    
-    const handlePlayerThreeValueChange = (event: { target: { value: string; }; }) => {
-        updatePlayerValue(event.target.value, setPlayerThreeValue);
-    }
-    
-    const handlePlayerFourValueChange = (event: { target: { value: string; }; }) => {
-        updatePlayerValue(event.target.value, setPlayerFourValue);
-    }
-    
-    const handlePlayerFiveValueChange = (event: { target: { value: string; }; }) => {
-        updatePlayerValue(event.target.value, setPlayerFiveValue);
-    }
-    
-    const handlePlayerSixValueChange = (event: { target: { value: string; }; }) => {
-        updatePlayerValue(event.target.value, setPlayerSixValue);
-    }
-    
-    const handlePlayerSevenValueChange = (event: { target: { value: string; }; }) => {
-        updatePlayerValue(event.target.value, setPlayerSevenValue);
-    }
-    
-    const handlePlayerEightValueChange = (event: { target: { value: string; }; }) => {
-        updatePlayerValue(event.target.value, setPlayerEightValue);
-    }
 
-    const updatePlayersValue = (player1: string, player2: string, player3: string, player4: string, player5: string, player6: string, player7: string, player8: string) => {
-        const values = [player1, player2, player3, player4, player5, player6, player7, player8].filter(val => val !== '');
-        setPlayersValue(values.join(','));
-    }
-    
+    const handleMaxPlayersChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const value = parseInt(event.target.value);
+        if (value >= 8 && value <= 24) {
+            setMaxPlayers(value);
+            // Update player values array length
+            const newPlayerValues = [...playerValues.slice(0, value)];
+            while (newPlayerValues.length < value) {
+                newPlayerValues.push('');
+            }
+            setPlayerValues(newPlayerValues);
+            // Update selected IDs to remove any that are now out of bounds
+            const newSelectedIds = new Set<string>();
+            newPlayerValues.forEach(id => {
+                if (id) newSelectedIds.add(id);
+            });
+            setSelectedPlayerIds(newSelectedIds);
+            updatePlayersValueFromState(newPlayerValues);
+        }
+    };
+
     // Function to randomly select players
     const randomlySelectPlayers = () => {
         if (!players || players.length < 8) return;
@@ -124,42 +152,22 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
         // Clear existing selections
         setSelectedPlayerIds(new Set());
         
-        // Get 8 random players
+        // Get up to 24 random players
         const shuffled = shuffleArray(players);
-        const selectedPlayers = shuffled.slice(0, 8);
+        const selectedPlayers = shuffled.slice(0, Math.min(maxPlayers, players.length));
         
         // Update player values and selected IDs
         const newSelectedIds = new Set<string>();
+        const newPlayerValues = Array(maxPlayers).fill('');
         
-        setPlayerOneValue(selectedPlayers[0]?.ID.toString() || '');
-        if (selectedPlayers[0]) newSelectedIds.add(selectedPlayers[0].ID.toString());
+        selectedPlayers.forEach((player, index) => {
+            newPlayerValues[index] = player.ID.toString();
+            newSelectedIds.add(player.ID.toString());
+        });
         
-        setPlayerTwoValue(selectedPlayers[1]?.ID.toString() || '');
-        if (selectedPlayers[1]) newSelectedIds.add(selectedPlayers[1].ID.toString());
-        
-        setPlayerThreeValue(selectedPlayers[2]?.ID.toString() || '');
-        if (selectedPlayers[2]) newSelectedIds.add(selectedPlayers[2].ID.toString());
-        
-        setPlayerFourValue(selectedPlayers[3]?.ID.toString() || '');
-        if (selectedPlayers[3]) newSelectedIds.add(selectedPlayers[3].ID.toString());
-        
-        setPlayerFiveValue(selectedPlayers[4]?.ID.toString() || '');
-        if (selectedPlayers[4]) newSelectedIds.add(selectedPlayers[4].ID.toString());
-        
-        setPlayerSixValue(selectedPlayers[5]?.ID.toString() || '');
-        if (selectedPlayers[5]) newSelectedIds.add(selectedPlayers[5].ID.toString());
-        
-        setPlayerSevenValue(selectedPlayers[6]?.ID.toString() || '');
-        if (selectedPlayers[6]) newSelectedIds.add(selectedPlayers[6].ID.toString());
-        
-        setPlayerEightValue(selectedPlayers[7]?.ID.toString() || '');
-        if (selectedPlayers[7]) newSelectedIds.add(selectedPlayers[7].ID.toString());
-        
+        setPlayerValues(newPlayerValues);
         setSelectedPlayerIds(newSelectedIds);
-        
-        // Update combined players value
-        const values = selectedPlayers.map(p => p.ID.toString());
-        setPlayersValue(values.join(','));
+        setPlayersValue(selectedPlayers.map(p => p.ID.toString()).join(','));
     };
 
     const tournamentTypes = [
@@ -229,17 +237,17 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
         return (
             <>
             {hasApiResponse && hasError &&
-                <Alert key="danger" variant="danger" className="mt-2">
+                <Alert key="danger" variant="danger" className="mt-4">
                     {alertText}
                 </Alert>
             }
             {hasApiResponse && hasWarning &&
-                <Alert key="warning" variant="warning" className="mt-2">
+                <Alert key="warning" variant="warning" className="mt-4">
                     {alertText}
                 </Alert>
             }
             {hasApiResponse && !hasError && !hasWarning &&
-                <Alert key="success" variant="success" className="mt-2">
+                <Alert key="success" variant="success" className="mt-4">
                     {alertText}
                 </Alert>
             }
@@ -248,148 +256,138 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
     }
 
     // Modified to disable already selected options
-    const renderPlayer = (player: PlayersResult, keyContext: string) => {
+    const renderPlayer = (player: PlayersResult, index: number) => {
         const isDisabled = selectedPlayerIds.has(player.ID.toString()) && 
-                         (player.ID.toString() !== playerOneValue &&
-                          player.ID.toString() !== playerTwoValue &&
-                          player.ID.toString() !== playerThreeValue &&
-                          player.ID.toString() !== playerFourValue &&
-                          player.ID.toString() !== playerFiveValue &&
-                          player.ID.toString() !== playerSixValue &&
-                          player.ID.toString() !== playerSevenValue &&
-                          player.ID.toString() !== playerEightValue);
+                         playerValues[index] !== player.ID.toString();
                           
-        return <option value={player.ID} key={`${keyContext}-${player.ID}`} disabled={isDisabled}>
-            ID {player.ID} | {player.name} | Client {player.client.ID}
-        </option>
+        return (
+            <option 
+                value={player.ID} 
+                key={`player-${index}-${player.ID}`} 
+                disabled={isDisabled}
+            >
+                ID {player.ID} | {player.name} | Client {player.client.ID}
+            </option>
+        );
+    }
+
+    const renderPlayerSelect = (index: number) => {
+        return (
+            <Form.Group className="mb-3" controlId={`player${index + 1}`}>
+                <Form.Label className="player-label">Player {index + 1}</Form.Label>
+                <Form.Select 
+                    value={playerValues[index]} 
+                    onChange={(e) => updatePlayerValue(e.target.value, index)}
+                    className="player-select"
+                >
+                    <option value="">Select a player</option>
+                    {players?.map((player) => renderPlayer(player, index))}
+                </Form.Select>
+            </Form.Group>
+        );
     }
 
     return (
-        <>
-        <Form className="w-50" onSubmit={handleSubmit}>
-            <Form.Group className="mb-3" controlId="numGames">
-                <Form.Label className="h5">Tournament Type</Form.Label>
-                <Form.Select value={typeValue} onChange={handleTypeValueChange}>
-                    {tournamentTypes.map((t) => {
-                        return (
-                            <option value={t.value} key={`type-${t.value}`}>{t.name}</option>
-                        )
-                    })}
-                </Form.Select>
-            </Form.Group>
-            
-            <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5>Players</h5>
-                <Button variant="primary" onClick={randomlySelectPlayers} type="button">
-                    Randomize Players
+        <Container className="create-tournament-container">
+            <Form className="tournament-form" onSubmit={handleSubmit}>
+                <Row className="mb-4">
+                    <Col md={6}>
+                        <Form.Group controlId="numGames">
+                            <Form.Label className="h4 fw-bold">Tournament Type</Form.Label>
+                            <Form.Select 
+                                value={typeValue} 
+                                onChange={handleTypeValueChange}
+                                className="tournament-type-select"
+                            >
+                                {tournamentTypes.map((t) => (
+                                    <option value={t.value} key={`type-${t.value}`}>{t.name}</option>
+                                ))}
+                            </Form.Select>
+                        </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                        <Form.Group controlId="maxPlayers">
+                            <Form.Label className="h4 fw-bold">Maximum Players</Form.Label>
+                            <div className="d-flex align-items-center">
+                                <Button 
+                                    variant="outline-secondary" 
+                                    onClick={handleDecrementMaxPlayers}
+                                    disabled={maxPlayers <= 8}
+                                    className="me-2"
+                                >
+                                    -
+                                </Button>
+                                <Form.Control
+                                    type="number"
+                                    min={8}
+                                    max={24}
+                                    value={maxPlayers}
+                                    onChange={handleMaxPlayersChange}
+                                    style={{ width: '80px' }}
+                                    className="text-center"
+                                />
+                                <Button 
+                                    variant="outline-secondary" 
+                                    onClick={handleIncrementMaxPlayers}
+                                    disabled={maxPlayers >= 24}
+                                    className="ms-2"
+                                >
+                                    +
+                                </Button>
+                            </div>
+                            <Form.Text className="text-muted">
+                                Choose between 8 and 24 players
+                            </Form.Text>
+                        </Form.Group>
+                    </Col>
+                </Row>
+                
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h4 className="fw-bold m-0">Players</h4>
+                    <div>
+                        <Button 
+                            variant="primary" 
+                            onClick={randomlySelectPlayers} 
+                            type="button"
+                            className="randomize-btn me-2"
+                        >
+                            <FaDice className="me-2" />
+                            Randomize Players
+                        </Button>
+                        <Button 
+                            variant="primary" 
+                            onClick={selectTopPlayers} 
+                            type="button"
+                            className="me-2"
+                        >
+                            Select Top Players
+                        </Button>
+                        <Button 
+                            variant="primary" 
+                            onClick={selectBottomPlayers} 
+                            type="button"
+                        >
+                            Select Bottom Players
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="players-grid">
+                    {Array.from({ length: maxPlayers }, (_, i) => (
+                        <div key={`player-select-${i}`} className="player-select-container">
+                            {renderPlayerSelect(i)}
+                        </div>
+                    ))}
+                </div>
+
+                <Button variant="success" type="submit" className="submit-btn mt-4">
+                    <FaUserPlus className="me-2" />Create Tournament
                 </Button>
-            </div>
 
-            <Row>
-                <Col>
-                    <Form.Group className="mb-3" controlId="playerOne">
-                        <Form.Label className="h5">Player One</Form.Label>
-                        <Form.Select value={playerOneValue} onChange={handlePlayerOneValueChange}>
-                            <option value="">Select a player</option>
-                            {players?.map((player, i) => {
-                                return renderPlayer(player, 'playerOne');
-                            })}
-                        </Form.Select>
-                    </Form.Group>
-                </Col>
-                <Col>
-                <Form.Group className="mb-3" controlId="playerTwo">
-                    <Form.Label className="h5">Player Two</Form.Label>
-                    <Form.Select value={playerTwoValue} onChange={handlePlayerTwoValueChange}>
-                        <option value="">Select a player</option>
-                        {players?.map((player, i) => {
-                            return renderPlayer(player, 'playerTwo');
-                        })}
-                    </Form.Select>
-                </Form.Group>
-                </Col>
-            </Row>
-            <Row>
-                <Col>
-                    <Form.Group className="mb-3" controlId="playerThree">
-                        <Form.Label className="h5">Player Three</Form.Label>
-                        <Form.Select value={playerThreeValue} onChange={handlePlayerThreeValueChange}>
-                            <option value="">Select a player</option>
-                            {players?.map((player, i) => {
-                                return renderPlayer(player, 'playerThree');
-                            })}
-                        </Form.Select>
-                    </Form.Group>
-                </Col>
-                <Col>
-                <Form.Group className="mb-3" controlId="playerFour">
-                    <Form.Label className="h5">Player Four</Form.Label>
-                    <Form.Select value={playerFourValue} onChange={handlePlayerFourValueChange}>
-                        <option value="">Select a player</option>
-                        {players?.map((player, i) => {
-                            return renderPlayer(player, 'playerFour');
-                        })}
-                    </Form.Select>
-                </Form.Group>
-                </Col>
-            </Row>
-            <Row>
-                <Col>
-                    <Form.Group className="mb-3" controlId="playerFive">
-                        <Form.Label className="h5">Player Five</Form.Label>
-                        <Form.Select value={playerFiveValue} onChange={handlePlayerFiveValueChange}>
-                            <option value="">Select a player</option>
-                            {players?.map((player, i) => {
-                                return renderPlayer(player, 'playerFive');
-                            })}
-                        </Form.Select>
-                    </Form.Group>
-                </Col>
-                <Col>
-                <Form.Group className="mb-3" controlId="playerSix">
-                    <Form.Label className="h5">Player Six</Form.Label>
-                    <Form.Select value={playerSixValue} onChange={handlePlayerSixValueChange}>
-                        <option value="">Select a player</option>
-                        {players?.map((player, i) => {
-                            return renderPlayer(player, 'playerSix');
-                        })}
-                    </Form.Select>
-                </Form.Group>
-                </Col>
-            </Row>
-            <Row>
-                <Col>
-                    <Form.Group className="mb-3" controlId="playerSeven">
-                        <Form.Label className="h5">Player Seven</Form.Label>
-                        <Form.Select value={playerSevenValue} onChange={handlePlayerSevenValueChange}>
-                            <option value="">Select a player</option>
-                            {players?.map((player, i) => {
-                                return renderPlayer(player, 'playerSeven');
-                            })}
-                        </Form.Select>
-                    </Form.Group>
-                </Col>
-                <Col>
-                <Form.Group className="mb-3" controlId="playerEight">
-                    <Form.Label className="h5">Player Eight</Form.Label>
-                    <Form.Select value={playerEightValue} onChange={handlePlayerEightValueChange}>
-                        <option value="">Select a player</option>
-                        {players?.map((player, i) => {
-                            return renderPlayer(player, 'playerEight');
-                        })}
-                    </Form.Select>
-                </Form.Group>
-                </Col>
-            </Row>
-
-            <Button variant="success" type="submit">
-                <FaUserPlus className="me-2"></FaUserPlus>Create
-            </Button>
-
-            {renderAlerts()}
-        </Form>
-        </>
-      );
+                {renderAlerts()}
+            </Form>
+        </Container>
+    );
 }
 
 export default CreateTournament;

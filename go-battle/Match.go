@@ -56,6 +56,9 @@ func addGameToMatch(db *gorm.DB, match Match, game Game) {
 }
 
 func updateMatchStatus(db *gorm.DB, match Match, status string) {
+	matchLock.Lock()
+	defer matchLock.Unlock()
+
 	var m Match
 
 	db.Where("id = ?", match.ID).First(&m)
@@ -66,6 +69,9 @@ func updateMatchStatus(db *gorm.DB, match Match, status string) {
 }
 
 func updateMatchDraw(db *gorm.DB, match Match, draw bool) {
+	matchLock.Lock()
+	defer matchLock.Unlock()
+
 	var m Match
 
 	db.Where("id = ?", match.ID).First(&m)
@@ -76,6 +82,9 @@ func updateMatchDraw(db *gorm.DB, match Match, draw bool) {
 }
 
 func updateMatchStartTime(db *gorm.DB, match Match, time time.Time) {
+	matchLock.Lock()
+	defer matchLock.Unlock()
+
 	var m Match
 
 	db.Where("id = ?", match.ID).First(&m)
@@ -86,6 +95,9 @@ func updateMatchStartTime(db *gorm.DB, match Match, time time.Time) {
 }
 
 func updateMatchEndTime(db *gorm.DB, match Match, time time.Time) {
+	matchLock.Lock()
+	defer matchLock.Unlock()
+
 	var m Match
 
 	db.Where("id = ?", match.ID).First(&m)
@@ -323,7 +335,7 @@ func getPlayerWithMostWins(match Match) (Player, bool) {
 	var player2Wins float32 = 0
 
 	for _, g := range match.Games {
-		if match.Draw {
+		if g.Draw {
 			player1Wins += 0.5
 			player2Wins += 0.5
 		} else if g.Winner != nil {
@@ -344,7 +356,7 @@ func getPlayerWithMostWins(match Match) (Player, bool) {
 	return player2, true
 }
 
-// CheckAndUpdateMatchStatus checks if all games in a match are in a final state (Complete, Error)
+// CheckAndUpdateMatchStatus checks if all games in a match are in a final state (Complete, Error, Canceled)
 // and updates the match status to Complete if necessary
 func CheckAndUpdateMatchStatus(db *gorm.DB, matchID int) {
 	// Get a fresh copy of the match with all games loaded
@@ -390,7 +402,8 @@ func CheckAndUpdateMatchStatus(db *gorm.DB, matchID int) {
 
 		if len(match.Players) >= 2 && len(match.Games) > 0 {
 			for _, game := range match.Games {
-				if game.Status == "Complete" && !game.Draw {
+				// Include both Complete and Canceled games in win counting
+				if (game.Status == "Complete" || game.Status == "Canceled") && !game.Draw {
 					if game.Winner != nil && game.Winner.ID == match.Players[0].ID {
 						player1Wins++
 					} else if game.Winner != nil && game.Winner.ID == match.Players[1].ID {
@@ -472,7 +485,8 @@ func updateMatchStatusOnly(db *gorm.DB, matchID int) {
 
 		if len(match.Players) >= 2 && len(match.Games) > 0 {
 			for _, game := range match.Games {
-				if game.Status == "Complete" && !game.Draw {
+				// Include both Complete and Canceled games in win counting
+				if (game.Status == "Complete" || game.Status == "Canceled") && !game.Draw {
 					if game.Winner != nil && game.Winner.ID == match.Players[0].ID {
 						player1Wins++
 					} else if game.Winner != nil && game.Winner.ID == match.Players[1].ID {

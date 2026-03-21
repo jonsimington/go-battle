@@ -187,6 +187,9 @@ func setGameLoser(db *gorm.DB, game Game, loser Player) {
 }
 
 func updateGameDraw(db *gorm.DB, game Game, draw bool) {
+	gameLock.Lock()
+	defer gameLock.Unlock()
+
 	var g Game
 
 	db.Where("id = ?", game.ID).First(&g)
@@ -391,6 +394,10 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 				updateGameStatus(db, g, "Canceled")
 				g.Status = "Canceled"
 				updateGameErrorMessage(db, g, "Game process was killed")
+			} else if runErr.Error() == "context deadline exceeded" {
+				updateGameStatus(db, g, "Canceled")
+				g.Status = "Canceled"
+				updateGameErrorMessage(db, g, "Game process timed out")
 			} else {
 				var gameErrorCode, _ = GetGameErrorCode(runErr.Error())
 				errorMsg := fmt.Sprintf("Player %s game command failed after %d attempts: %v (%s)",
@@ -628,10 +635,18 @@ func getGamelogFilename(gameType string, gameSession int) string {
 	var cerveauURL = cerveauURLScheme + "://" + cerveauHost + ":" + cerveauPort
 	url := cerveauURL + "/status/" + gameType + "/" + strconv.Itoa(gameSession)
 
+	maxStatusAttempts := 60
+	statusAttempt := 0
 	status := "running"
 
 	for status != "over" {
 		status = getGameStatus(gameType, gameSession).Status
+		statusAttempt++
+		if statusAttempt >= maxStatusAttempts {
+			log.Warningf("Game session %d status never reached 'over' after %d attempts", gameSession, maxStatusAttempts)
+			return ""
+		}
+		time.Sleep(1 * time.Second)
 	}
 
 	gameStatus := new(GameStatus)
@@ -642,7 +657,8 @@ func getGamelogFilename(gameType string, gameSession int) string {
 		return gameStatus.GamelogFilename
 	}
 
-	return getGamelogFilename(gameType, gameSession)
+	log.Warningf("Game session %d status is 'over' but gamelog filename is empty", gameSession)
+	return ""
 }
 
 func getGamelogUrl(gamelogFilename string) string {

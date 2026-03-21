@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   db:
     networks:
@@ -66,10 +65,12 @@ services:
       - WATCHPACK_POLLING=true
     volumes:
       - ./go-battle-web:/usr/src/app/go-battle-web:delegated
-      - /usr/src/app/go-battle-web/node_modules
+      - web-node-modules:/usr/src/app/go-battle-web/node_modules
 
 volumes:
   db:
+    driver: local
+  web-node-modules:
     driver: local
     
 networks:

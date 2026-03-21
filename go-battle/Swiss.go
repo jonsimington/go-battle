@@ -12,6 +12,7 @@ import (
 type MatchPairing struct {
 	Player1 Player
 	Player2 Player
+	IsBye   bool
 }
 
 func RandomPairing(players []Player) []MatchPairing {
@@ -70,92 +71,108 @@ func SwissPairing(tournamentPlayers []*TournamentPlayer, round int) []MatchPairi
 
 	log.Infof("Creating pairings for round %d with %d players", round, len(playersToPair))
 
-	if round == 1 {
-		// First round pairing - players should already be sorted by Elo
-		players := playersToPair
-		for len(players) >= 2 {
-			p1 := players[0]
-			p2 := players[1]
+	// Sort players by score so highest scoring players play each other
+	sort.Slice(playersToPair, func(i, j int) bool {
+		return playersToPair[i].Score > playersToPair[j].Score
+	})
 
-			// Get fresh player data
-			freshPlayer1 := getPlayer(int(p1.Player.ID))
-			freshPlayer2 := getPlayer(int(p2.Player.ID))
+	// Create score groups - players with same scores should play each other when possible
+	scoreGroups := make(map[float32][]*TournamentPlayer)
+	for _, p := range playersToPair {
+		scoreGroups[p.Score] = append(scoreGroups[p.Score], p)
+	}
 
-			if freshPlayer1.ID != 0 && freshPlayer2.ID != 0 {
-				matchPairing := MatchPairing{
-					Player1: freshPlayer1,
-					Player2: freshPlayer2,
-				}
-				matchedPlayers = append(matchedPlayers, matchPairing)
-			}
-			players = players[2:]
-		}
+	// Process each score group from highest to lowest
+	scores := make([]float32, 0)
+	for score := range scoreGroups {
+		scores = append(scores, score)
+	}
+	sort.Slice(scores, func(i, j int) bool {
+		return scores[i] > scores[j]
+	})
 
-		// Handle odd number of players with a bye
-		if len(players) > 0 {
-			log.Infof("Assigning bye to player %s for round %d", players[0].Player.Name, round)
-			players[0].ByeGames = append(players[0].ByeGames, round)
-			players[0].Score += 1.0
-		}
-	} else {
-		// For round 2+, use score-based pairing
-		// Sort players by score (should already be sorted but ensure it)
-		sort.Slice(playersToPair, func(i, j int) bool {
-			return playersToPair[i].Score > playersToPair[j].Score
-		})
+	remainingPlayers := playersToPair
+	for len(remainingPlayers) > 1 { // Stop at 1 to handle odd number case separately
+		p1 := remainingPlayers[0]
+		matched := false
 
-		players := playersToPair
-		for len(players) >= 2 {
-			// Try to find a valid pairing for the current top player
-			p1 := players[0]
-			validOpponentFound := false
+		// First try to find opponent from same score group who hasn't been played
+		for i := 1; i < len(remainingPlayers); i++ {
+			p2 := remainingPlayers[i]
+			if !hasPlayedBefore(p1, p2) {
+				// Get fresh player data
+				freshPlayer1 := getPlayer(int(p1.Player.ID))
+				freshPlayer2 := getPlayer(int(p2.Player.ID))
 
-			// Look for the highest-ranked player they haven't played yet
-			for j := 1; j < len(players); j++ {
-				p2 := players[j]
-				if !hasPlayedBefore(p1, p2) {
-					// Valid pairing found
-					freshPlayer1 := getPlayer(int(p1.Player.ID))
-					freshPlayer2 := getPlayer(int(p2.Player.ID))
-
-					if freshPlayer1.ID != 0 && freshPlayer2.ID != 0 {
-						matchPairing := MatchPairing{
-							Player1: freshPlayer1,
-							Player2: freshPlayer2,
-						}
-						matchedPlayers = append(matchedPlayers, matchPairing)
-
-						// Remove both players from the pool
-						players = append(players[:j], players[j+1:]...) // Remove p2 first
-						players = players[1:]                           // Remove p1
-						validOpponentFound = true
-						break
+				if freshPlayer1.ID != 0 && freshPlayer2.ID != 0 {
+					matchPairing := MatchPairing{
+						Player1: freshPlayer1,
+						Player2: freshPlayer2,
 					}
-				}
-			}
+					matchedPlayers = append(matchedPlayers, matchPairing)
 
-			// If no valid opponent found, give a bye
-			if !validOpponentFound {
-				log.Infof("No valid opponents for %s, assigning bye for round %d", p1.Player.Name, round)
-				p1.ByeGames = append(p1.ByeGames, round)
-				p1.Score += 1.0
-				players = players[1:] // Remove p1
+					// Remove both players from remaining pool
+					remainingPlayers = append(remainingPlayers[:i], remainingPlayers[i+1:]...)
+					remainingPlayers = remainingPlayers[1:]
+					matched = true
+					break
+				}
 			}
 		}
 
-		// Handle last player if odd number
-		if len(players) == 1 {
-			log.Infof("Odd number of players, assigning bye to %s for round %d",
-				players[0].Player.Name, round)
-			players[0].ByeGames = append(players[0].ByeGames, round)
-			players[0].Score += 1.0
+		// If no unpaired opponent found, pair with anyone
+		if !matched {
+			for i := 1; i < len(remainingPlayers); i++ {
+				p2 := remainingPlayers[i]
+				freshPlayer1 := getPlayer(int(p1.Player.ID))
+				freshPlayer2 := getPlayer(int(p2.Player.ID))
+
+				if freshPlayer1.ID != 0 && freshPlayer2.ID != 0 {
+					matchPairing := MatchPairing{
+						Player1: freshPlayer1,
+						Player2: freshPlayer2,
+					}
+					matchedPlayers = append(matchedPlayers, matchPairing)
+
+					// Remove both players from remaining pool
+					remainingPlayers = append(remainingPlayers[:i], remainingPlayers[i+1:]...)
+					remainingPlayers = remainingPlayers[1:]
+					matched = true
+					break
+				}
+			}
+		}
+
+		// If still no match found (shouldn't happen unless player data invalid)
+		if !matched {
+			remainingPlayers = remainingPlayers[1:]
+		}
+	}
+
+	// Handle last player if odd number
+	if len(remainingPlayers) == 1 {
+		log.Infof("Odd number of players, assigning bye to %s for round %d", remainingPlayers[0].Player.Name, round)
+		freshPlayer := getPlayer(int(remainingPlayers[0].Player.ID))
+		if freshPlayer.ID != 0 {
+			matchPairing := MatchPairing{
+				Player1: freshPlayer,
+				IsBye:   true,
+			}
+			matchedPlayers = append(matchedPlayers, matchPairing)
+			remainingPlayers[0].ByeGames = append(remainingPlayers[0].ByeGames, round)
+			remainingPlayers[0].Score += 1.0
 		}
 	}
 
 	log.Infof("Created %d pairings for round %d", len(matchedPlayers), round)
 	for i, pairing := range matchedPlayers {
-		log.Debugf("Pairing %d: %s (ID: %d) vs %s (ID: %d)",
-			i, pairing.Player1.Name, pairing.Player1.ID, pairing.Player2.Name, pairing.Player2.ID)
+		if pairing.IsBye {
+			log.Debugf("Pairing %d: %s (ID: %d) - BYE",
+				i, pairing.Player1.Name, pairing.Player1.ID)
+		} else {
+			log.Debugf("Pairing %d: %s (ID: %d) vs %s (ID: %d)",
+				i, pairing.Player1.Name, pairing.Player1.ID, pairing.Player2.Name, pairing.Player2.ID)
+		}
 	}
 
 	return matchedPlayers

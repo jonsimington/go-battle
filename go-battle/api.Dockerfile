@@ -2,7 +2,7 @@ FROM golang:1.24.2-bullseye AS builder
 
 WORKDIR /usr/src/app
 
-RUN go install github.com/air-verse/air@latest
+RUN go install github.com/air-verse/air@v1.61.7
 
 # Install Python 2.7 from Debian bullseye
 RUN apt update

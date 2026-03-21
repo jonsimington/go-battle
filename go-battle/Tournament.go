@@ -35,6 +35,9 @@ const (
 	GameResultWin  int = 1
 )
 
+// Maximum number of rounds before forcing tournament completion
+const MaxRounds = 20
+
 type TournamentPlayer struct {
 	Player          *Player   `json:"player"`
 	Score           float32   `json:"score"`
@@ -271,6 +274,48 @@ func createMatchesFromPairings(db *gorm.DB, tournament Tournament, roundPairings
 
 	// Process each pairing
 	for i, pairing := range roundPairings {
+		// For bye matches, create a special match with just one player
+		if pairing.IsBye {
+			log.Infof("Creating bye match for player %s (ID:%d) in round %d",
+				pairing.Player1.Name, pairing.Player1.ID, roundNumber)
+
+			// Create the match record with a single player
+			match := Match{
+				NumGames: 0, // Bye matches don't have any games
+				Players: []Player{
+					pairing.Player1,
+				},
+				Status: "Complete", // Bye matches are automatically complete
+				Draw:   false,      // Bye matches are automatic wins
+			}
+
+			// Insert the match in the database within transaction
+			if err := tx.Create(&match).Error; err != nil {
+				log.Errorf("Failed to create bye match in database: %v", err)
+				tx.Rollback()
+				return 0
+			}
+			log.Infof("Bye match %d created successfully in database", match.ID)
+
+			// Add match to tournament within transaction
+			if err := tx.Exec(
+				"INSERT INTO tournament_matches (tournament_id, match_id) VALUES (?, ?)",
+				tournament.ID, match.ID,
+			).Error; err != nil {
+				log.Errorf("Failed to add bye match to tournament: %v", err)
+				tx.Rollback()
+				return 0
+			}
+
+			// Set match times immediately since it's automatically complete
+			updateMatchStartTime(db, match, time.Now())
+			updateMatchEndTime(db, match, time.Now())
+
+			matchCount++
+			continue
+		}
+
+		// Handle regular matches as before
 		player1 := pairing.Player1
 		player2 := pairing.Player2
 
@@ -315,7 +360,6 @@ func createMatchesFromPairings(db *gorm.DB, tournament Tournament, roundPairings
 			tx.Rollback()
 			return 0
 		}
-		log.Infof("Match %d added to tournament %d", match.ID, tournament.ID)
 
 		matchCount++
 		matchIDs = append(matchIDs, match.ID)
@@ -331,7 +375,7 @@ func createMatchesFromPairings(db *gorm.DB, tournament Tournament, roundPairings
 	log.Infof("Successfully created and saved %d matches in database for tournament %d round %d",
 		matchCount, tournament.ID, roundNumber)
 
-	// Now start the matches one by one (not in goroutines)
+	// Now start the regular matches one by one (not in goroutines)
 	for i, matchID := range matchIDs {
 		// Get a fresh copy of the match from the database
 		matchToStart := getMatch(int(matchID))
@@ -394,9 +438,7 @@ func (t Tournament) StartTournament(id int) {
 
 // ProgressTournament advances a tournament to its next round based on completed match results
 func ProgressTournament(db *gorm.DB, tournamentID int) {
-	// First part - acquire lock to get tournament data and prepare pairings
 	tournamentLock.Lock()
-	defer tournamentLock.Unlock() // Always release lock when we're done
 
 	// Get fresh tournament data with all relationships loaded
 	tournament := getTournament(db, tournamentID)
@@ -404,6 +446,7 @@ func ProgressTournament(db *gorm.DB, tournamentID int) {
 	// Skip if tournament is already completed
 	if tournament.Status == "Completed" {
 		log.Infof("Tournament %d is already complete, not progressing", tournamentID)
+		tournamentLock.Unlock()
 		return
 	}
 
@@ -411,38 +454,38 @@ func ProgressTournament(db *gorm.DB, tournamentID int) {
 	currentRound := GetTournamentCurrentRound(db, tournament.ID)
 	log.Infof("Tournament %d has completed round %d", tournamentID, currentRound)
 
-	// Swiss tournament configuration
-	maxRounds := 5         // Maximum number of rounds in the Swiss tournament
-	qualificationWins := 3 // Number of wins needed to qualify
-
-	// If we've already played the maximum number of rounds, mark the tournament as completed
-	if currentRound >= maxRounds {
-		log.Infof("Tournament %d has reached max rounds (%d), marking as completed", tournamentID, maxRounds)
-		winner := determineSwissTournamentWinner(tournament)
-		if winner != nil && winner.ID > 0 {
-			updateTournamentWinner(db, tournament, winner)
-			log.Infof("Tournament %d winner: %s (ID: %d)", tournamentID, winner.Name, winner.ID)
-		} else {
-			log.Warningf("Could not determine winner for tournament %d or winner ID was invalid", tournamentID)
-		}
-		updateTournamentStatus(db, tournament, "Completed")
-		updateTournamentEndTime(db, tournament, time.Now())
-		return
-	}
-
-	// Build tournament players with current tournament state
+	// Build tournament players with current tournament state to check standings
 	tournamentPlayers := buildTournamentPlayersFromResults(tournament)
 
-	// Check if we need to end the tournament early
-	activePlayerCount := 0
-	for _, tp := range tournamentPlayers {
-		if tp.Score < float32(qualificationWins) {
-			activePlayerCount++
+	// Sort players by score to check if we have a clear winner
+	sort.Slice(tournamentPlayers, func(i, j int) bool {
+		return tournamentPlayers[i].Score > tournamentPlayers[j].Score
+	})
+
+	// Check for tournament completion conditions
+	shouldComplete := false
+
+	// Condition 1: Maximum rounds reached
+	if currentRound >= MaxRounds {
+		log.Infof("Tournament %d has reached maximum rounds (%d), ending tournament", tournamentID, MaxRounds)
+		shouldComplete = true
+	}
+
+	// Condition 2: Clear winner (highest scoring player cannot be caught)
+	if len(tournamentPlayers) > 1 {
+		leader := tournamentPlayers[0]
+		secondPlace := tournamentPlayers[1]
+		remainingRoundsPossible := MaxRounds - currentRound       // Use MaxRounds instead of player count
+		maxPossiblePointsGain := float32(remainingRoundsPossible) // 1 point per round win
+
+		// If second place can't catch up even if they win all remaining possible games
+		if secondPlace.Score+maxPossiblePointsGain < leader.Score {
+			log.Infof("Tournament %d has a clear winner, no other player can catch up", tournamentID)
+			shouldComplete = true
 		}
 	}
 
-	if activePlayerCount < 2 {
-		log.Infof("Tournament %d has fewer than 2 active players remaining, marking as completed", tournamentID)
+	if shouldComplete {
 		winner := determineSwissTournamentWinner(tournament)
 		if winner != nil && winner.ID > 0 {
 			updateTournamentWinner(db, tournament, winner)
@@ -452,10 +495,11 @@ func ProgressTournament(db *gorm.DB, tournamentID int) {
 		}
 		updateTournamentStatus(db, tournament, "Completed")
 		updateTournamentEndTime(db, tournament, time.Now())
+		tournamentLock.Unlock()
 		return
 	}
 
-	// Increment the current round for the next set of matches
+	// Continue to next round
 	nextRound := currentRound + 1
 	log.Infof("Starting Tournament %d, Round %d", tournamentID, nextRound)
 
@@ -473,18 +517,27 @@ func ProgressTournament(db *gorm.DB, tournamentID int) {
 	// Debug the pairings to ensure they're correctly formed
 	log.Infof("Generated %d pairings for tournament %d round %d", len(roundPairings), tournamentID, nextRound)
 	for i, pairing := range roundPairings {
-		log.Infof("Pairing %d: %s vs %s", i, pairing.Player1.Name, pairing.Player2.Name)
+		if pairing.IsBye {
+			log.Infof("Pairing %d: %s vs BYE", i, pairing.Player1.Name)
+		} else {
+			log.Infof("Pairing %d: %s vs %s", i, pairing.Player1.Name, pairing.Player2.Name)
+		}
 	}
 
-	// Create matches for the new round while holding the lock
+	// Release the lock before I/O-heavy match creation (repo cloning, game launching)
+	// The pairings and round metadata are already persisted, so it's safe to release
+	tournamentLock.Unlock()
+
+	// Create matches for the new round (may involve repo cloning, so done outside lock)
 	log.Infof("Creating matches for tournament %d round %d with %d pairings",
 		tournamentID, nextRound, len(roundPairings))
 
 	matchCount := createMatchesFromPairings(db, tournament, roundPairings, nextRound)
 	log.Infof("Created %d matches for round %d of tournament %d", matchCount, nextRound, tournamentID)
 
-	// If no matches were created, end the tournament
+	// If no matches were created (no valid pairings possible), end the tournament
 	if matchCount == 0 {
+		tournamentLock.Lock()
 		log.Infof("No new matches created for tournament %d, marking as complete", tournamentID)
 		winner := determineSwissTournamentWinner(tournament)
 		if winner != nil && winner.ID > 0 {
@@ -495,6 +548,7 @@ func ProgressTournament(db *gorm.DB, tournamentID int) {
 		}
 		updateTournamentStatus(db, tournament, "Completed")
 		updateTournamentEndTime(db, tournament, time.Now())
+		tournamentLock.Unlock()
 	}
 }
 
@@ -533,8 +587,18 @@ func buildTournamentPlayersFromResults(tournament Tournament) []*TournamentPlaye
 			continue
 		}
 
+		// Handle bye matches (1 player) - award 1 point for the bye
+		if len(match.Players) == 1 {
+			byePlayer := match.Players[0]
+			if tp, ok := playerMap[byePlayer.ID]; ok {
+				tp.Score += 1.0
+				tp.LastGameResult = GameResultWin
+			}
+			continue
+		}
+
 		if len(match.Players) < 2 {
-			log.Warningf("Match %d has fewer than 2 players, skipping", match.ID)
+			log.Warningf("Match %d has no players, skipping", match.ID)
 			continue
 		}
 
@@ -671,9 +735,9 @@ func checkTournaments(db *gorm.DB) {
 				break
 			}
 
-			// Verify all games in the match are in a final state
+			// Verify all games in the match are in a final state (Complete, Error, or Canceled)
 			for _, game := range updatedMatch.Games {
-				if game.Status != "Complete" && game.Status != "Error" {
+				if game.Status != "Complete" && game.Status != "Error" && game.Status != "Canceled" {
 					allMatchesComplete = false
 					log.Warnf("Match %d has game %d with status %s, waiting for completion",
 						updatedMatch.ID, game.ID, game.Status)

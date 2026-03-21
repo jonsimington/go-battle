@@ -36,7 +36,11 @@ func calculateEloOutcomes(player1 Player, player2 Player, winner *Player, draw b
 	}
 
 	if score == -1 {
-		log.Errorf("Calculating ELO outcomes between %s and %s with winner %s (draw: %t).  Score was still default value before returning", player1.Name, player2.Name, winner.Name, draw)
+		winnerName := "<nil>"
+		if winner != nil {
+			winnerName = winner.Name
+		}
+		log.Errorf("Calculating ELO outcomes between %s and %s with winner %s (draw: %t).  Score was still default value before returning", player1.Name, player2.Name, winnerName, draw)
 	}
 
 	return elo.Outcome(rankA, rankB, score)
