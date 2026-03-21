@@ -1,83 +1,458 @@
+/* Layout */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.loading {
+  color: var(--text-secondary);
+  padding: 40px 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* Stats row */
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .statCard {
-  background-color: var(--surface);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 150ms ease;
+  cursor: pointer;
+}
+
+.statCard:hover {
+  border-color: var(--text-muted);
+  text-decoration: none;
+  color: inherit;
 }
 
 .statLabel {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  margin-bottom: 4px;
+  letter-spacing: 0.01em;
 }
 
 .statValue {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.2;
 }
 
-.leaderboard {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+/* Two columns */
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
 }
 
-.leaderboardHeader {
+.columnLeft, .columnRight {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Panel */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.panelHeader {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  padding: 12px 16px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
 }
 
-.leaderboardRow {
+.empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 20px 16px;
+  text-align: center;
+}
+
+/* Leaderboard table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table thead th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.thRank { width: 36px; }
+.thRight { text-align: right !important; }
+
+.tableRow td {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-muted, #21262d);
+  vertical-align: middle;
+}
+
+.tableRow:last-child td {
+  border-bottom: none;
+}
+
+.tableRow:hover {
+  background: rgba(88, 166, 255, 0.04);
+}
+
+.rank {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-align: center;
+}
+
+.playerCell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.playerLink {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.playerLink:hover .playerName {
+  color: var(--primary);
+}
+
+.playerName {
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: color 150ms ease;
+}
+
+.winRate {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.record {
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.recordLink {
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 150ms ease;
+}
+
+.recordLink:hover {
+  opacity: 0.8;
+  text-decoration: none;
+  color: inherit;
+}
+
+.wins { color: var(--success); }
+.losses { color: var(--danger); }
+.draws { color: var(--text-muted); }
+
+.eloCell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.eloBadge {
+  font-weight: 600;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trendUp {
+  color: var(--success);
+  font-size: 11px;
+  margin-left: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.trendDown {
+  color: var(--danger);
+  font-size: 11px;
+  margin-left: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+
+/* ELO distribution chart */
+.eloChart {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.eloBarRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eloBarLabel {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 72px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.eloBarTrack {
+  flex: 1;
+  height: 8px;
+  background: var(--border-muted, #21262d);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.eloBarFill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 4px;
+  min-width: 2px;
+  transition: width 150ms ease;
+}
+
+.eloBarCount {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 24px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status breakdown */
+.statusList {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.statusRow {
+  display: grid;
+  grid-template-columns: 8px 1fr auto 80px;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.statusLabel {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.statusCount {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.statusBar {
+  height: 4px;
+  background: var(--border-muted, #21262d);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.statusBarFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 150ms ease;
+}
+
+/* Tournament rows */
+.tournamentRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
   border-bottom: 1px solid var(--border-muted, #21262d);
+  text-decoration: none;
+  color: inherit;
   transition: background-color 150ms ease;
 }
 
-.leaderboardRow:last-child {
+.tournamentRow:last-child {
   border-bottom: none;
 }
 
-.leaderboardRow:hover {
-  background-color: rgba(88, 166, 255, 0.06);
+.tournamentRow:hover {
+  background: rgba(88, 166, 255, 0.04);
+  text-decoration: none;
+  color: inherit;
 }
 
-.rank {
+.tournamentInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tournamentName {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-muted);
-  min-width: 24px;
-  margin-right: 12px;
-}
-
-.playerName {
-  font-size: 14px;
-  font-weight: 500;
   color: var(--text-primary);
-  flex: 1;
 }
 
-@media (max-width: 768px) {
+.tournamentMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.statusTag {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Match list */
+.matchList {
+  display: flex;
+  flex-direction: column;
+}
+
+.matchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-muted, #21262d);
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 150ms ease;
+}
+
+.matchRow:last-child {
+  border-bottom: none;
+}
+
+.matchRow:hover {
+  background: rgba(88, 166, 255, 0.04);
+  text-decoration: none;
+  color: inherit;
+}
+
+.matchPlayers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.matchPlayerLink {
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.matchPlayerLink:hover {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.vs {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.matchMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.matchStatus {
+  font-weight: 500;
+}
+
+.matchGames {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.matchDuration {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+  .statsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
   .statsGrid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .container {
+    padding: 16px 12px;
   }
 }

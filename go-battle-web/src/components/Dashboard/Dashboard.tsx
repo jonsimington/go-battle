@@ -1,80 +1,280 @@
-import { FC, useEffect, useMemo, useState } from 'react';
-import { Container } from 'react-bootstrap';
-import { PlayersResult } from '../../models/PlayersResult';
-import { MatchesResult } from '../../models/MatchesResult';
-import { GamesResult } from '../../models/GamesResult';
-import { average, elapsedTime, getApiUrl, prettyTimeAgo } from '../../utils/utils';
-import EloBadge from '../Common/ELO/ELOBadge';
+import { FC, useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { DashboardStats } from '../../models/DashboardStats';
+import { getApiUrl, prettyTimeAgo } from '../../utils/utils';
+import { FaCaretUp, FaCaretDown, FaTrophy } from 'react-icons/fa';
+import RefreshButton from '../Common/RefreshButton';
 import styles from './Dashboard.module.css';
 
 const apiUrl = getApiUrl();
 
-const Dashboard: FC = () => {
-    const [players, setPlayers] = useState<PlayersResult[]>([]);
-    const [matches, setMatches] = useState<MatchesResult[]>([]);
-    const [games, setGames] = useState<GamesResult[]>([]);
+const STATUS_COLORS: Record<string, string> = {
+    'Complete': 'var(--success)',
+    'In Progress': 'var(--primary)',
+    'Pending': 'var(--warning)',
+    'Error': 'var(--danger)',
+    'Canceled': 'var(--text-muted)',
+    'Incomplete': 'var(--text-muted)',
+};
 
-    useEffect(() => {
-        Promise.all([
-            fetch(`${apiUrl}/players`, { mode: 'cors' }).then(r => r.json()),
-            fetch(`${apiUrl}/matches`, { mode: 'cors' }).then(r => r.json()),
-            fetch(`${apiUrl}/games`, { mode: 'cors' }).then(r => r.json()),
-        ])
-            .then(([playersData, matchesData, gamesData]) => {
-                setPlayers(playersData as PlayersResult[]);
-                setMatches(matchesData as MatchesResult[]);
-                setGames(gamesData as GamesResult[]);
-            })
-            .catch(error => console.error(error));
+const ELO_TIER_COLORS: Record<string, string> = {
+    beginner: '#8b949e',
+    novice: '#3fb950',
+    intermediate: '#58a6ff',
+    advanced: '#d29922',
+    expert: '#f78166',
+    master: '#f85149',
+    grandmaster: '#bc8cff',
+};
+
+function getEloTier(elo: number): string {
+    if (elo < 1200) return 'beginner';
+    if (elo < 1400) return 'novice';
+    if (elo < 1600) return 'intermediate';
+    if (elo < 1800) return 'advanced';
+    if (elo < 2000) return 'expert';
+    if (elo < 2200) return 'master';
+    return 'grandmaster';
+}
+
+function formatDuration(startTime: string, endTime: string): string {
+    const start = new Date(startTime).getTime();
+    const end = new Date(endTime).getTime();
+    if (!start || !end || end <= start) return '—';
+    return prettyTimeAgo(end - start);
+}
+
+const Dashboard: FC = () => {
+    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    const fetchStats = useCallback(async () => {
+        try {
+            const res = await fetch(`${apiUrl}/stats/dashboard`, { mode: 'cors' });
+            const data = await res.json();
+            setStats(data);
+        } catch (err) {
+            console.error('Failed to fetch dashboard stats:', err);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
-    // Derive top 5 players during render instead of via useEffect
-    const topFivePlayers = useMemo(
-        () => [...players].sort((a, b) => b.elo - a.elo).slice(0, 5),
-        [players]
-    );
+    useEffect(() => { fetchStats(); }, [fetchStats]);
 
-    // Derive avg match length during render instead of via useEffect
-    const avgMatchLength = useMemo(() => {
-        if (matches.length === 0) return 0;
-        const times = matches
-            .map(m => elapsedTime(m.start_time, m.end_time))
-            .filter(t => t > 0);
-        return average(times);
-    }, [matches]);
+    if (loading) {
+        return <div className={styles.container}><div className={styles.loading}>Loading…</div></div>;
+    }
+
+    if (!stats) {
+        return <div className={styles.container}><div className={styles.loading}>Failed to load dashboard data.</div></div>;
+    }
+
+    const totalGamesInStatus = Object.values(stats.games_by_status).reduce((a, b) => a + b, 0);
+    const eloMax = Math.max(...(stats.elo_distribution?.map(b => b.count) || [1]), 1);
 
     return (
-        <Container>
+        <div className={styles.container}>
+            <div className={styles.header}>
+                <h2 className={styles.title}>Dashboard</h2>
+                <RefreshButton onRefresh={fetchStats} size="sm" />
+            </div>
+
+            {/* Summary counts */}
             <div className={styles.statsGrid}>
+                <Link to="/players/search" className={styles.statCard}>
+                    <span className={styles.statLabel}>Players</span>
+                    <span className={styles.statValue}>{stats.player_count}</span>
+                </Link>
+                <Link to="/matches/search" className={styles.statCard}>
+                    <span className={styles.statLabel}>Matches</span>
+                    <span className={styles.statValue}>{stats.match_count}</span>
+                </Link>
+                <Link to="/games/search" className={styles.statCard}>
+                    <span className={styles.statLabel}>Games</span>
+                    <span className={styles.statValue}>{stats.game_count}</span>
+                </Link>
+                <Link to="/tournaments/search" className={styles.statCard}>
+                    <span className={styles.statLabel}>Tournaments</span>
+                    <span className={styles.statValue}>{stats.tournament_count}</span>
+                </Link>
                 <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Players</div>
-                    <div className={styles.statValue}>{players.length}</div>
-                </div>
-                <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Matches</div>
-                    <div className={styles.statValue}>{matches.length}</div>
-                </div>
-                <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Games</div>
-                    <div className={styles.statValue}>{games.length}</div>
-                </div>
-                <div className={styles.statCard}>
-                    <div className={styles.statLabel}>Avg Match Length</div>
-                    <div className={styles.statValue}>{prettyTimeAgo(avgMatchLength)}</div>
+                    <span className={styles.statLabel}>Avg Match Duration</span>
+                    <span className={styles.statValue}>
+                        {stats.avg_match_duration_ms > 0 ? prettyTimeAgo(stats.avg_match_duration_ms) : '—'}
+                    </span>
                 </div>
             </div>
 
-            <div className={styles.leaderboard}>
-                <div className={styles.leaderboardHeader}>Top 5 Players</div>
-                {topFivePlayers.map((p, i) => (
-                    <div className={styles.leaderboardRow} key={`top5-${p.ID}`}>
-                        <span className={styles.rank}>{i + 1}</span>
-                        <span className={styles.playerName}>{p.name}</span>
-                        <EloBadge elo={p.elo} eloHistory={p.elo_history} />
+            <div className={styles.columns}>
+                {/* Left column */}
+                <div className={styles.columnLeft}>
+                    {/* Leaderboard */}
+                    <div className={styles.panel}>
+                        <div className={styles.panelHeader}>Leaderboard</div>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th className={styles.thRank}>#</th>
+                                    <th>Player</th>
+                                    <th className={styles.thRight}>W / L / D</th>
+                                    <th className={styles.thRight}>ELO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(stats.top_players || []).map((p, i) => {
+                                    const tier = getEloTier(p.elo);
+                                    const winRate = p.total_games > 0
+                                        ? ((p.wins / p.total_games) * 100).toFixed(0)
+                                        : '—';
+                                    return (
+                                        <tr key={p.id} className={styles.tableRow}>
+                                            <td className={styles.rank}>
+                                                {i < 3 ? <FaTrophy style={{ color: ['#d4a017', '#a8a8a8', '#cd7f32'][i], fontSize: 12 }} /> : i + 1}
+                                            </td>
+                                            <td className={styles.playerCell}>
+                                                <Link to={`/players/search?ids=${p.id}`} className={styles.playerLink}>
+                                                    <span className={styles.playerName}>{p.name}</span>
+                                                    <span className={styles.winRate}>{winRate}% win</span>
+                                                </Link>
+                                            </td>
+                                            <td className={styles.record}>
+                                                <Link to={`/games/search?players=${p.id}`} className={styles.recordLink}>
+                                                    <span className={styles.wins}>{p.wins}</span>
+                                                    {' / '}
+                                                    <span className={styles.losses}>{p.losses}</span>
+                                                    {' / '}
+                                                    <span className={styles.draws}>{p.draws}</span>
+                                                </Link>
+                                            </td>
+                                            <td className={styles.eloCell}>
+                                                <span className={styles.eloBadge} style={{ color: ELO_TIER_COLORS[tier] }}>
+                                                    {p.elo}
+                                                </span>
+                                                {p.elo_trend !== 0 && (
+                                                    <span className={p.elo_trend > 0 ? styles.trendUp : styles.trendDown}>
+                                                        {p.elo_trend > 0 ? <FaCaretUp /> : <FaCaretDown />}
+                                                        {Math.abs(p.elo_trend)}
+                                                    </span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                        {(!stats.top_players || stats.top_players.length === 0) && (
+                            <div className={styles.empty}>No players yet</div>
+                        )}
                     </div>
-                ))}
+
+                    {/* ELO Distribution */}
+                    <div className={styles.panel}>
+                        <div className={styles.panelHeader}>ELO Distribution</div>
+                        <div className={styles.eloChart}>
+                            {(stats.elo_distribution || []).map(bucket => (
+                                <div key={bucket.label} className={styles.eloBarRow}>
+                                    <span className={styles.eloBarLabel}>{bucket.label}</span>
+                                    <div className={styles.eloBarTrack}>
+                                        <div
+                                            className={styles.eloBarFill}
+                                            style={{ width: `${(bucket.count / eloMax) * 100}%` }}
+                                        />
+                                    </div>
+                                    <span className={styles.eloBarCount}>{bucket.count}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right column */}
+                <div className={styles.columnRight}>
+                    {/* Game status breakdown */}
+                    <div className={styles.panel}>
+                        <div className={styles.panelHeader}>Game Status</div>
+                        <div className={styles.statusList}>
+                            {Object.entries(stats.games_by_status).map(([status, count]) => (
+                                <div key={status} className={styles.statusRow}>
+                                    <span className={styles.statusDot} style={{ background: STATUS_COLORS[status] || 'var(--text-muted)' }} />
+                                    <span className={styles.statusLabel}>{status}</span>
+                                    <span className={styles.statusCount}>{count}</span>
+                                    <div className={styles.statusBar}>
+                                        <div
+                                            className={styles.statusBarFill}
+                                            style={{
+                                                width: `${totalGamesInStatus > 0 ? (count / totalGamesInStatus) * 100 : 0}%`,
+                                                background: STATUS_COLORS[status] || 'var(--text-muted)',
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Active tournaments */}
+                    {stats.active_tournaments && stats.active_tournaments.length > 0 && (
+                        <div className={styles.panel}>
+                            <div className={styles.panelHeader}>Active Tournaments</div>
+                            {stats.active_tournaments.map(t => (
+                                <Link key={t.id} to={`/tournaments/bracket/${t.id}`} className={styles.tournamentRow}>
+                                    <div className={styles.tournamentInfo}>
+                                        <span className={styles.tournamentName}>{t.name}</span>
+                                        <span className={styles.tournamentMeta}>
+                                            {t.type} · {t.player_count} players · Round {t.current_round}
+                                        </span>
+                                    </div>
+                                    <span
+                                        className={styles.statusTag}
+                                        style={{ color: STATUS_COLORS[t.status] || 'var(--text-secondary)' }}
+                                    >
+                                        {t.status}
+                                    </span>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Recent matches */}
+                    <div className={styles.panel}>
+                        <div className={styles.panelHeader}>Recent Matches</div>
+                        <div className={styles.matchList}>
+                            {(stats.recent_matches || []).map(m => (
+                                <Link key={m.id} to={`/matches/search?ids=${m.id}`} className={styles.matchRow}>
+                                    <div className={styles.matchPlayers}>
+                                        <Link to={`/players/search?ids=${m.player1_id}`} className={styles.matchPlayerLink} onClick={e => e.stopPropagation()}>
+                                            {m.player1 || '—'}
+                                        </Link>
+                                        <span className={styles.vs}>vs</span>
+                                        <Link to={`/players/search?ids=${m.player2_id}`} className={styles.matchPlayerLink} onClick={e => e.stopPropagation()}>
+                                            {m.player2 || '—'}
+                                        </Link>
+                                    </div>
+                                    <div className={styles.matchMeta}>
+                                        <span
+                                            className={styles.matchStatus}
+                                            style={{ color: STATUS_COLORS[m.status] || 'var(--text-muted)' }}
+                                        >
+                                            {m.status}
+                                        </span>
+                                        <span className={styles.matchGames}>{m.num_games}g</span>
+                                        {m.end_time && m.start_time && (
+                                            <span className={styles.matchDuration}>
+                                                {formatDuration(m.start_time, m.end_time)}
+                                            </span>
+                                        )}
+                                    </div>
+                                </Link>
+                            ))}
+                            {(!stats.recent_matches || stats.recent_matches.length === 0) && (
+                                <div className={styles.empty}>No matches yet</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
-        </Container>
+        </div>
     );
 };
 

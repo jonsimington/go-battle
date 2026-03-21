@@ -137,6 +137,8 @@ func main() {
 	app.Post("/tournaments/start", startTournamentsHandler)
 	app.Delete("/tournaments", deleteTournamentsHandler)
 
+	app.Get("/stats/dashboard", getDashboardStatsHandler)
+
 	log.Infof("Initializing tournament controller")
 	InitializeTournamentController(db)
 
