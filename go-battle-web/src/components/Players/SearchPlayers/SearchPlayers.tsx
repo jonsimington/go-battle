@@ -6,7 +6,8 @@ import { calculateGameResult, calculateStreak, pluck } from '../../../utils/util
 import { Sparklines, SparklinesLine, SparklinesSpots } from 'react-sparklines';
 import { FaInfinity, FaMagnifyingGlass, FaSort, FaSortDown, FaSortUp, FaMedal, FaTrophy, FaFire } from 'react-icons/fa6';
 import EloBadge from '../../Common/ELO/ELOBadge';
-import './SearchPlayers.css'; // Import the CSS
+import { Link, useNavigate } from 'react-router-dom';
+import './SearchPlayers.css';
 
 interface SearchPlayersProps {
     tableData: any[],
@@ -20,6 +21,8 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
     const [searchTerm, setSearchTerm] = useState("");
     const [eloMinFilter, setEloMinFilter] = useState("");
     const [eloMaxFilter, setEloMaxFilter] = useState("");
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         const sortData = (sortType: any) => {
@@ -51,7 +54,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                 });
             }
             else if(sortType === "activity-desc") {
-                sortedData.sort((a, b) => a.games.length > b.games.length ? -1 : a.games.length < b.games.length ? 1 : 0)
+                sortedData.sort((a, b) => (a.games || []).length > (b.games || []).length ? -1 : (a.games || []).length < (b.games || []).length ? 1 : 0)
             }
     
             setData(sortedData);
@@ -88,7 +91,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
     }, [data, searchTerm, eloMinFilter, eloMaxFilter]);
 
     const calculateWinPercentage = (player: PlayersResult): number => {
-        const completeGames = player.games.filter(g => g.status === "Complete");
+        const completeGames = (player.games || []).filter(g => g.status === "Complete");
         const wins = completeGames.filter(g => g.winner?.ID === player.ID).length;
         const draws = completeGames.filter(g => g.draw).length;
         const numGames = completeGames.length;
@@ -105,6 +108,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
     };
 
     const renderPlayerActivity = (games: any[]) => {
+        if (!games) return null;
         const recentGames = games.filter(g => g.status === "Complete")
                                .sort((a, b) => a.UpdatedAt > b.UpdatedAt ? -1 : a.UpdatedAt < b.UpdatedAt ? 1 : 0)
                                .slice(0, 15);
@@ -146,7 +150,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
                 const { name, ID, games } = item;
                 return (
-                    <div className="player-name-button-container" style={{ width: '100%', minWidth: '300px' }}>
+                    <div className="player-name-button-container" style={{ width: '100%', minWidth: '200px' }}>
                         <div className="bg-dark player-card" style={{ 
                             display: 'flex', 
                             borderRadius: '5px', 
@@ -168,13 +172,13 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                                 {renderPlayerActivity(games)}
                             </div>
                             <div style={{ display: 'flex' }}>
-                                <a 
-                                    href={`${window.location.origin}/games/search?players=${ID}`}
+                                <Link 
+                                    to={`/games/search?players=${ID}`}
                                     className="action-link" 
                                     style={{ 
-                                        padding: '10px 12px',  // Increased vertical padding from 8px to 10px
+                                        padding: '10px 12px',
                                         backgroundColor: 'transparent',
-                                        color: '#79c0ff',  // info color
+                                        color: '#79c0ff',
                                         borderLeft: '1px solid #30363d',
                                         textDecoration: 'none',
                                         display: 'flex',
@@ -183,14 +187,14 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                                     }}
                                 >
                                     Games
-                                </a>
-                                <a 
-                                    href={`${window.location.origin}/matches/search?players=${ID}`}
+                                </Link>
+                                <Link 
+                                    to={`/matches/search?players=${ID}`}
                                     className="action-link" 
                                     style={{ 
-                                        padding: '10px 12px',  // Increased vertical padding from 8px to 10px
+                                        padding: '10px 12px',
                                         backgroundColor: 'transparent',
-                                        color: '#79c0ff',  // info color
+                                        color: '#79c0ff',
                                         borderLeft: '1px solid #30363d',
                                         textDecoration: 'none',
                                         display: 'flex',
@@ -199,7 +203,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                                     }}
                                 >
                                     Matches
-                                </a>
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -211,8 +215,9 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             title: "W / L / D",
             width: 120,
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
-                const { games, ID } = item;
-                const completeGames = games.filter((g) => g.status === "Complete")
+                const { ID } = item;
+                const safeGames = item.games || [];
+                const completeGames = safeGames.filter((g) => g.status === "Complete")
                 const wins = completeGames.filter((g) => g.winner?.ID === ID).length;
                 const losses = completeGames.filter((g) => g.loser?.ID === ID).length;
                 const draws = completeGames.filter((g) => g.draw).length;
@@ -255,8 +260,9 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             title: "Streak",
             width: 100,
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
-                const { games, ID } = item;
-                let sortedGames = games.filter(g => g.status === "Complete").sort((a, b) => a.UpdatedAt > b.UpdatedAt ? -1 : a.UpdatedAt < b.UpdatedAt ? 1 : 0);
+                const { ID } = item;
+                const safeGames = item.games || [];
+                let sortedGames = safeGames.filter(g => g.status === "Complete").sort((a, b) => a.UpdatedAt > b.UpdatedAt ? -1 : a.UpdatedAt < b.UpdatedAt ? 1 : 0);
                 let streakResult = calculateStreak(sortedGames, ID);
                 let streakType = streakResult.streakType;
                 let streakCount = streakResult.streakCount;
@@ -294,8 +300,9 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             title: "Win %",
             width: 100,
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
-                const { games, ID } = item;
-                const completeGames = games.filter((g) => g.status === "Complete")
+                const { ID } = item;
+                const safeGames = item.games || [];
+                const completeGames = safeGames.filter((g) => g.status === "Complete")
                 const wins = completeGames.filter((g) => g.winner?.ID === ID).length;
                 const draws = completeGames.filter((g) => g.draw).length;
                 const numGames = completeGames.length;
@@ -334,7 +341,7 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             title: "ELO History",
             width: 200,
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
-                const { elo_history } = item;
+                const elo_history = item.elo_history || [];
                 if (elo_history.length === 0) {
                     return "No History Yet";
                 }
@@ -376,12 +383,13 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             width: 100,
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
                 const { client } = item;
+                if (!client) return <span>—</span>;
                 return (
                     <Button 
                         variant="outline-info" 
                         size="sm" 
                         key={`client-${client.ID}`}
-                        href={`${window.location.origin}/clients/search?ids=${client.ID}`}>
+                        onClick={() => navigate(`/clients/search?ids=${client.ID}`)}>
                             {client.ID}
                     </Button>
                 )

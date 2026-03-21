@@ -27,8 +27,18 @@
 
 .matches-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 12px;
+}
+
+@media (max-width: 480px) {
+    .matches-container {
+        grid-template-columns: 1fr;
+    }
+
+    .standings-container {
+        grid-template-columns: 1fr;
+    }
 }
 
 .bracket-match {

@@ -14,11 +14,17 @@ export interface IColumnType<T> {
     render?: (column: IColumnType<T>, item: T, index?: number) => React.ReactNode;
   }
 
+const ScrollWrapper = styled("div", {
+    width: "100%",
+    overflowX: "auto",
+    WebkitOverflowScrolling: "touch",
+});
+
 const TableWrapper = styled("table", {
     borderCollapse: "collapse",
     border: "none",
-    maxWidth: "95%",
-    minWidth: "75%",
+    width: "100%",
+    minWidth: "600px",
     marginBottom: "1em",
     borderRadius: "6px",
     overflow: "hidden"
@@ -26,13 +32,15 @@ const TableWrapper = styled("table", {
 
 export function DynamicTable<T>({ data, columns }: DynamicTableProps<T>): JSX.Element {
     return (
-        <TableWrapper>
-            <thead>
-                <TableHeader columns={columns} />
-            </thead>
-            <tbody>
-                <TableRow data={data} columns={columns} />
-            </tbody>
-        </TableWrapper>
+        <ScrollWrapper>
+            <TableWrapper>
+                <thead>
+                    <TableHeader columns={columns} />
+                </thead>
+                <tbody>
+                    <TableRow data={data} columns={columns} />
+                </tbody>
+            </TableWrapper>
+        </ScrollWrapper>
       );
 }

@@ -6,4 +6,5 @@
   color: var(--text-primary);
   padding: 24px 0;
   min-height: calc(100vh - 57px);
+  overflow-x: hidden;
 }

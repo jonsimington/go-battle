@@ -38,12 +38,12 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
     
     // fetch data from api
     useEffect(() => {
+        setData(undefined);
+        setDisplayedData(undefined);
+        setSelectedPage(1);
+        setShouldShowPagination(pagesWithPagination.includes(context));
         fetchFromApi();
-
-        if(pagesWithPagination.includes(context)) {
-            setShouldShowPagination(true);
-        }
-    }, []);
+    }, [context, searchParams]);
 
     // update number of pages any time data changes
     useEffect(() => {
@@ -173,8 +173,8 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                     
                     {data !== undefined && data.length > 0 && shouldShowPagination &&
                         <Container>
-                            <Row className="my-2">
-                                <Col xs={2}>
+                            <Row className="my-2 align-items-center gy-2">
+                                <Col xs={12} md={3}>
                                     <Dropdown autoClose={true} onSelect={handleResultsPerPageChange}>
                                         <Dropdown.Toggle variant="outline-info" id="dropdown-basic" size="sm">
                                             Results Per Page ({resultsPerPage})
@@ -186,8 +186,8 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                                         </Dropdown.Menu>
                                     </Dropdown>
                                 </Col>
-                                <Col xs={8} className="d-flex justify-content-center">
-                                    <Pagination>
+                                <Col xs={12} md={9} className="d-flex justify-content-center">
+                                    <Pagination size="sm" className="flex-wrap mb-0">
                                         <Pagination.First onClick={() => handlePageChange(1)} disabled={selectedPage === 1} />
                                         <Pagination.Prev onClick={() => handlePageChange(selectedPage - 1)} disabled={selectedPage === 1} />
                                         <Pagination.Ellipsis hidden={!showElipsesBeforeSelectedPage} disabled />
@@ -207,7 +207,6 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                                         <Pagination.Last onClick={() => handlePageChange(numPages)} disabled={selectedPage === numPages} />
                                     </Pagination>
                                 </Col>
-                                <Col xs={2}></Col>
                             </Row>
                         </Container>
                     }

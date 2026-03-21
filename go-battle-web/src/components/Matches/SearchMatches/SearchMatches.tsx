@@ -9,6 +9,7 @@ import TimeAgo from 'timeago-react';
 import { PlayerScore } from '../../../models/PlayerScore';
 import { Modal } from '../../Common/Modal';
 import EloBadge from '../../Common/ELO/ELOBadge';
+import { useNavigate } from 'react-router-dom';
 
 interface SearchMatchesProps {
     tableData: any[]
@@ -37,6 +38,8 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
     const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
     const [alertText, setAlertText] = useState('');
 
+    const navigate = useNavigate();
+
     const columns: IColumnType<MatchesResult>[] = [
         {
             key: "ID",
@@ -53,7 +56,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             title: "Games",
             width: 100,
             render: (_, { games, ID }) => {
-                const gameIdsQuery = games.map(pluck('ID')).join(',');
+                const gameIdsQuery = (games || []).map(pluck('ID')).join(',');
                 const gameIdsDisplay = gameIdsQuery.replace(/,/g, ', ');
 
                 if(gameIdsQuery.length > 0) {
@@ -62,7 +65,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                             variant="outline-info" 
                             size="sm" 
                             key={`games-${ID}`}
-                            href={`${window.location.origin}/games/search?ids=${encodeURI(gameIdsQuery)}`}>
+                            onClick={() => navigate(`/games/search?ids=${encodeURI(gameIdsQuery)}`)}>
                                 {gameIdsDisplay}
                         </Button>
                     )
@@ -78,15 +81,16 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             key: "players",
             title: "Players",
             render: (_, { players, games, ID }) => {
-                const playerIds = players.map(pluck('ID')).join(', ');
-                const playerNames = players.map(pluck('name'));
+                const safeGames = games || [];
+                const playerIds = (players || []).map(pluck('ID')).join(', ');
+                const playerNames = (players || []).map(pluck('name'));
 
                 let playerScores: PlayerScore[] = [];
 
                 playerNames.forEach(playerName => {
-                    let playerWins = games.filter((g) => g.winner?.name === playerName).length;
-                    let playerLosses = games.filter((g) => g.loser?.name === playerName).length;
-                    let playerDraws = games.filter((g) => g.draw === true).length * 0.5
+                    let playerWins = safeGames.filter((g) => g.winner?.name === playerName).length;
+                    let playerLosses = safeGames.filter((g) => g.loser?.name === playerName).length;
+                    let playerDraws = safeGames.filter((g) => g.draw === true).length * 0.5
                     let playerID = players.filter((p) => p.name === playerName)[0].ID
                     let playerELO = players.filter((p) => p.name === playerName)[0].elo
                     let playerELOHistory = players.filter((p) => p.name === playerName)[0].elo_history
@@ -110,14 +114,12 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                                 let badgeColor = allPlayersHaveSameScore(playerScores) ? "outline-secondary" : playerScores[0]?.name === score.name ? "outline-success" : "outline-danger";
                                 let badgeKey = `player-score-badge-${slugify(score.name)}-${ID}`;
                                 let aKey = `player-score-a-${slugify(score.name)}-${ID}`;
-                                let playersLink = `${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`;
+                                let playersLink = `/players/search?ids=${encodeURI(playerIds)}`;
 
                                 return (
-                                    <a href={playersLink} key={aKey}>
-                                        <OverlayTrigger placement="top" overlay={renderPlayerRecordTooltip(score)}>
-                                            <Button variant={badgeColor} size="sm" className="mx-1 my-1 w-100" key={badgeKey}>{score.name}<EloBadge elo={score.elo} eloHistory={score.elo_history} /> : {score.wins + score.draws}</Button>
-                                        </OverlayTrigger>
-                                    </a>
+                                    <OverlayTrigger placement="top" overlay={renderPlayerRecordTooltip(score)} key={aKey}>
+                                        <Button variant={badgeColor} size="sm" className="mx-1 my-1 w-100" key={badgeKey} onClick={() => navigate(playersLink)}>{score.name}<EloBadge elo={score.elo} eloHistory={score.elo_history} /> : {score.wins + score.draws}</Button>
+                                    </OverlayTrigger>
                                 )
                             })}
                         </>
@@ -159,7 +161,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             title: "Status",
             width: 125,
             render: (_, { status, start_time, end_time }) => {
-                const elapsed = prettyTimeAgo(elapsedTime(start_time, end_time));
+                const elapsed = (start_time && end_time) ? prettyTimeAgo(elapsedTime(start_time, end_time)) : '';
                 
                 if (status === "Complete") {
                     return (
@@ -177,7 +179,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             title: "Play Match",
             width: 125,
             render: (_, { ID, status, start_time }) => {
-                start_time = start_time.toString() == "0001-01-01T00:00:00Z" ? new Date() : start_time
+                start_time = !start_time || start_time.toString() == "0001-01-01T00:00:00Z" ? new Date() : start_time
 
                 if(status === "Pending" && !matchesPlaying.includes(ID)) {
                     return (

@@ -6,7 +6,7 @@ import { TournamentsResult } from '../../../models/TournamentsResult';
 import { PlayerScore } from '../../../models/PlayerScore';
 import { FaCirclePlay, FaSpinner, FaDiagramProject, FaTrash } from 'react-icons/fa6';
 import TimeAgo from 'timeago-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Modal } from '../../Common/Modal';
 
 interface SearchTournamentsProps {
@@ -36,6 +36,8 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
     const [showToast, setShowToast] = useState(false);
     const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
     const [alertText, setAlertText] = useState('');
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         const sortData = (sortType: any) => {
@@ -101,14 +103,12 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                                 let badgeColor = allPlayersHaveSameScore(playerScores) ? "outline-secondary" : playerScores[playerScores.length - 1]?.name === score.name ? "outline-success" : "outline-danger";
                                 let badgeKey = `player-score-badge-${slugify(score.name)}-${ID}`;
                                 let aKey = `player-score-a-${slugify(score.name)}-${ID}`;
-                                let playersLink = `${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`;
+                                let playersLink = `/players/search?ids=${encodeURI(playerIds)}`;
 
                                 return (
-                                    <a href={playersLink} key={aKey}>
-                                        <OverlayTrigger placement="top" overlay={renderPlayerRecordTooltip(score)}>
-                                            <Button variant={badgeColor} size="sm" className="mx-1 my-1" key={badgeKey}>{score.name} ({score.elo}): {score.wins + score.draws}</Button>
-                                        </OverlayTrigger>
-                                    </a>
+                                    <OverlayTrigger placement="top" overlay={renderPlayerRecordTooltip(score)} key={aKey}>
+                                        <Button variant={badgeColor} size="sm" className="mx-1 my-1" key={badgeKey} onClick={() => navigate(playersLink)}>{score.name} ({score.elo}): {score.wins + score.draws}</Button>
+                                    </OverlayTrigger>
                                 )
                             })}
                         </>
@@ -134,7 +134,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                             variant="outline-info" 
                             size="sm" 
                             key={`games-${ID}`}
-                            href={`${window.location.origin}/games/search?ids=${encodeURI(gameIds)}`}>
+                            onClick={() => navigate(`/games/search?ids=${encodeURI(gameIds)}`)}>
                                 {gameIds}
                         </Button>
                     )
@@ -159,7 +159,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                             variant="outline-info" 
                             size="sm" 
                             key={`matches-${ID}`}
-                            href={`${window.location.origin}/matches/search?ids=${encodeURI(matchIds)}`}>
+                            onClick={() => navigate(`/matches/search?ids=${encodeURI(matchIds)}`)}>
                                 {matchIds}
                         </Button>
                     )
@@ -176,11 +176,9 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             title: "Bracket",
             width: 100,
             render: (_, { ID }) => (
-                <Link to={`/tournaments/bracket/${ID}`}>
-                    <Button variant="outline-primary" size="sm">
-                        <FaDiagramProject /> View
-                    </Button>
-                </Link>
+                <Button variant="outline-primary" size="sm" onClick={() => navigate(`/tournaments/bracket/${ID}`)}>
+                    <FaDiagramProject /> View
+                </Button>
             )
         },
         {
@@ -197,7 +195,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                             size="sm" 
                             className="mx-1 my-1" 
                             key={`winner-${ID}`}
-                            href={`${window.location.origin}/players/search?ids=${encodeURI(winner?.ID.toString())}`}>
+                            onClick={() => navigate(`/players/search?ids=${encodeURI(winner?.ID.toString())}`)}>
                                 {winner?.name}
                         </Button>
                     )

@@ -16,31 +16,29 @@ import TournamentBracket from './components/Tournaments/TournamentBracket/Tourna
 
 function App() {
   return (
-    <>
+    <BrowserRouter>
         <div className="wrapper">
             <Navigation />
 
             <div className="body" data-bs-theme="dark">
-                <BrowserRouter>
-                    <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="players/create" element={<CreatePlayer />} />
-                        <Route path="players/search" element={<DbTableView context="players" />} />
-                        <Route path="clients/create" element={<CreateClient />} />
-                        <Route path="clients/search" element={<DbTableView context="clients" />} />
-                        <Route path="matches/create" element={<CreateMatch />} />
-                        <Route path="matches/search" element={<DbTableView context="matches" />} />
-                        <Route path="matches/random" element={<CreateRandomMatch />} />
-                        <Route path="games/create" element={<CreateGame />} />
-                        <Route path="games/search" element={<DbTableView context="games" />} />
-                        <Route path="tournaments/create" element={<CreateTournament />} />
-                        <Route path="tournaments/search" element={<DbTableView context="tournaments" />} />
-                        <Route path="tournaments/bracket/:id" element={<TournamentBracket />} />
-                    </Routes>
-                </BrowserRouter>
+                <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="players/create" element={<CreatePlayer />} />
+                    <Route path="players/search" element={<DbTableView context="players" />} />
+                    <Route path="clients/create" element={<CreateClient />} />
+                    <Route path="clients/search" element={<DbTableView context="clients" />} />
+                    <Route path="matches/create" element={<CreateMatch />} />
+                    <Route path="matches/search" element={<DbTableView context="matches" />} />
+                    <Route path="matches/random" element={<CreateRandomMatch />} />
+                    <Route path="games/create" element={<CreateGame />} />
+                    <Route path="games/search" element={<DbTableView context="games" />} />
+                    <Route path="tournaments/create" element={<CreateTournament />} />
+                    <Route path="tournaments/search" element={<DbTableView context="tournaments" />} />
+                    <Route path="tournaments/bracket/:id" element={<TournamentBracket />} />
+                </Routes>
             </div>
         </div>
-    </>
+    </BrowserRouter>
   );
 }
 

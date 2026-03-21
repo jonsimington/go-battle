@@ -4,6 +4,7 @@ import { GamesResult } from '../../../models/GamesResult';
 import { getVisUrl, pluck, prettyDate } from '../../../utils/utils';
 import { Button, OverlayTrigger, Tooltip, Badge } from 'react-bootstrap';
 import { FaTv } from 'react-icons/fa6';
+import { useNavigate } from 'react-router-dom';
 import moment from 'moment';
 
 interface SearchGamesProps {
@@ -16,6 +17,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
     const [sortType, setSortType] = useState("created-desc");
 
     const visUrl = getVisUrl();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const sortData = (sortType: any) => {
@@ -45,7 +47,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             title: "Players",
             width: 100,
             render: (_, { players, ID }) => {
-                const playerIds = players.map(pluck('ID')).join(', ');
+                const playerIds = (players || []).map(pluck('ID')).join(', ');
     
                 if(playerIds.length > 0) {
                     return (
@@ -53,7 +55,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                             variant="outline-info" 
                             size="sm" 
                             key={`players-${ID}`}
-                            href={`${window.location.origin}/players/search?ids=${encodeURI(playerIds)}`}>
+                            onClick={() => navigate(`/players/search?ids=${encodeURI(playerIds)}`)}>
                                 {playerIds}
                         </Button>
                     )
@@ -81,7 +83,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                             size="sm" 
                             className="mx-1 my-1 w-100" 
                             key={`winner-${ID}`}
-                            href={`${window.location.origin}/players/search?ids=${encodeURI(winner?.ID.toString())}`}>
+                            onClick={() => navigate(`/players/search?ids=${encodeURI(winner?.ID.toString())}`)}>
                                 {winner?.name}
                         </Button>
                     )
@@ -99,14 +101,14 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                     return "Undetermined"
                 } else {
                     return (
-                            <Button 
-                                variant="outline-danger" 
-                                size="sm" 
-                                className="mx-1 my-1 w-100" 
-                                key={`loser-${ID}`}
-                                href={`${window.location.origin}/players/search?ids=${encodeURI(loser?.ID.toString())}`}>
-                                    {loser?.name}
-                            </Button>
+                        <Button 
+                            variant="outline-danger" 
+                            size="sm" 
+                            className="mx-1 my-1 w-100" 
+                            key={`loser-${ID}`}
+                            onClick={() => navigate(`/players/search?ids=${encodeURI(loser?.ID.toString())}`)}>
+                                {loser?.name}
+                        </Button>
                     )
                 }
             }
@@ -115,14 +117,18 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             key: "match",
             title: "Match",
             width: 100,
-            render: (_, { match }) => {
+            render: (_, { match, match_id }) => {
+                const id = match_id || match?.ID;
+                if (!id) {
+                    return <span>—</span>
+                }
                 return (
                     <Button 
                         variant="outline-info" 
                         size="sm" 
-                        key={`match-${match.ID}`}
-                        href={`${window.location.origin}/matches/search?ids=${encodeURI(match.ID.toString())}`}>
-                            {match.ID}
+                        key={`match-${id}`}
+                        onClick={() => navigate(`/matches/search?ids=${encodeURI(id.toString())}`)}>
+                            {id}
                     </Button>
                 )
             }

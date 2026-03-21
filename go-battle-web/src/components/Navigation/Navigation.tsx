@@ -6,44 +6,54 @@ import NavDropdown from 'react-bootstrap/NavDropdown';
 import Navbar from 'react-bootstrap/Navbar';
 import { FaChessBishop, FaPlus, FaMagnifyingGlass, FaShuffle } from "react-icons/fa6";
 import { getCerveauUrl, getVisUrl } from '../../utils/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface NavigationProps {}
 
 const Navigation: FC<NavigationProps> = () => {
     const cerveauUrl = getCerveauUrl();
     const visUrl = getVisUrl();
+    const navigate = useNavigate();
+
+    const go = (path: string) => (e: React.MouseEvent) => {
+        e.preventDefault();
+        navigate(path);
+    };
 
     return (
         <div className={styles.Navigation} data-testid="Navigation">
-          <Navbar bg="dark" data-bs-theme="dark">
+          <Navbar bg="dark" data-bs-theme="dark" expand="lg">
               <Container>
-                  <Navbar.Brand href="#home"><FaChessBishop></FaChessBishop> Go Battle</Navbar.Brand>
-                  <Nav className="me-auto">
-                  <Nav.Link href="/">Home</Nav.Link>
-                  <NavDropdown title="Players" id="players-dropdown">
-                      <NavDropdown.Item href="/players/search"><FaMagnifyingGlass></FaMagnifyingGlass> Search Players</NavDropdown.Item>
-                      <NavDropdown.Item href="/players/create"><FaPlus></FaPlus> Create Player</NavDropdown.Item>
-                  </NavDropdown>
-                  <NavDropdown title="Clients" id="clients-dropdown">
-                      <NavDropdown.Item href="/clients/search"><FaMagnifyingGlass></FaMagnifyingGlass> Search Clients</NavDropdown.Item>
-                      <NavDropdown.Item href="/clients/create"><FaPlus></FaPlus> Create Client</NavDropdown.Item>
-                  </NavDropdown>
-                  <NavDropdown title="Matches" id="matches-dropdown">
-                      <NavDropdown.Item href="/matches/search"><FaMagnifyingGlass></FaMagnifyingGlass> Search Matches</NavDropdown.Item>
-                      <NavDropdown.Item href="/matches/create"><FaPlus></FaPlus> Create Match</NavDropdown.Item>
-                      <NavDropdown.Item href="/matches/random"><FaShuffle></FaShuffle> Create Random Match</NavDropdown.Item>
-                  </NavDropdown>
-                  <NavDropdown title="Games" id="games-dropdown">
-                      <NavDropdown.Item href="/games/search"><FaMagnifyingGlass></FaMagnifyingGlass> Search Games</NavDropdown.Item>
-                      <NavDropdown.Item href="/games/create"><FaPlus></FaPlus> Create Game</NavDropdown.Item>
-                  </NavDropdown>
-                  <NavDropdown title="Tournaments" id="tournaments-dropdown">
-                      <NavDropdown.Item href="/tournaments/search"><FaMagnifyingGlass></FaMagnifyingGlass> Search Tournaments</NavDropdown.Item>
-                      <NavDropdown.Item href="/tournaments/create"><FaPlus></FaPlus> Create Tournament</NavDropdown.Item>
-                  </NavDropdown>
-                  <Nav.Link href={cerveauUrl}>Cerveau</Nav.Link>
-                  <Nav.Link href={visUrl}>Viseur</Nav.Link>
-                  </Nav>
+                  <Navbar.Brand href="/" onClick={go("/")}><FaChessBishop /> Go Battle</Navbar.Brand>
+                  <Navbar.Toggle aria-controls="main-navbar-nav" />
+                  <Navbar.Collapse id="main-navbar-nav">
+                      <Nav className="me-auto">
+                      <Nav.Link href="/" onClick={go("/")}>Home</Nav.Link>
+                      <NavDropdown title="Players" id="players-dropdown">
+                          <NavDropdown.Item href="/players/search" onClick={go("/players/search")}><FaMagnifyingGlass /> Search Players</NavDropdown.Item>
+                          <NavDropdown.Item href="/players/create" onClick={go("/players/create")}><FaPlus /> Create Player</NavDropdown.Item>
+                      </NavDropdown>
+                      <NavDropdown title="Clients" id="clients-dropdown">
+                          <NavDropdown.Item href="/clients/search" onClick={go("/clients/search")}><FaMagnifyingGlass /> Search Clients</NavDropdown.Item>
+                          <NavDropdown.Item href="/clients/create" onClick={go("/clients/create")}><FaPlus /> Create Client</NavDropdown.Item>
+                      </NavDropdown>
+                      <NavDropdown title="Matches" id="matches-dropdown">
+                          <NavDropdown.Item href="/matches/search" onClick={go("/matches/search")}><FaMagnifyingGlass /> Search Matches</NavDropdown.Item>
+                          <NavDropdown.Item href="/matches/create" onClick={go("/matches/create")}><FaPlus /> Create Match</NavDropdown.Item>
+                          <NavDropdown.Item href="/matches/random" onClick={go("/matches/random")}><FaShuffle /> Create Random Match</NavDropdown.Item>
+                      </NavDropdown>
+                      <NavDropdown title="Games" id="games-dropdown">
+                          <NavDropdown.Item href="/games/search" onClick={go("/games/search")}><FaMagnifyingGlass /> Search Games</NavDropdown.Item>
+                          <NavDropdown.Item href="/games/create" onClick={go("/games/create")}><FaPlus /> Create Game</NavDropdown.Item>
+                      </NavDropdown>
+                      <NavDropdown title="Tournaments" id="tournaments-dropdown">
+                          <NavDropdown.Item href="/tournaments/search" onClick={go("/tournaments/search")}><FaMagnifyingGlass /> Search Tournaments</NavDropdown.Item>
+                          <NavDropdown.Item href="/tournaments/create" onClick={go("/tournaments/create")}><FaPlus /> Create Tournament</NavDropdown.Item>
+                      </NavDropdown>
+                      <Nav.Link href={cerveauUrl}>Cerveau</Nav.Link>
+                      <Nav.Link href={visUrl}>Viseur</Nav.Link>
+                      </Nav>
+                  </Navbar.Collapse>
               </Container>
           </Navbar>
         </div>

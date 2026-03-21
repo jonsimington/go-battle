@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, Col, Container, Row, Spinner } from 'react-bootstrap';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { TournamentsResult } from '../../../models/TournamentsResult';
 import { MatchesResult } from '../../../models/MatchesResult';
 import './TournamentBracket.css';
@@ -65,6 +65,7 @@ interface GamelogPlayer {
 
 export function TournamentBracket(): JSX.Element {
     const { id } = useParams<{id: string}>();
+    const navigate = useNavigate();
     const [tournament, setTournament] = useState<TournamentsResult | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -274,13 +275,13 @@ export function TournamentBracket(): JSX.Element {
     }
 
     const renderMatch = (match: BracketMatch) => {
-        const matchUrl = `${window.location.origin}/matches/search?ids=${match.id}`;
+        const matchUrl = `/matches/search?ids=${match.id}`;
         
         return (
             <Card className="bracket-match" key={`match-${match.id}`}>
                 <Card.Header 
                     className="clickable-header"
-                    onClick={() => window.location.href = matchUrl}
+                    onClick={() => navigate(matchUrl)}
                 >
                     <div className="d-flex justify-content-between align-items-center">
                         <small>
@@ -426,7 +427,7 @@ export function TournamentBracket(): JSX.Element {
 
     // Render a match specifically for the Swiss tournament visualization
     const renderSwissMatch = (match: BracketMatch) => {
-        const matchUrl = `${window.location.origin}/matches/search?ids=${match.id}`;
+        const matchUrl = `/matches/search?ids=${match.id}`;
         
         // Get match-specific stats for players
         const detailedMatch = matchesWithDetailedGames.get(match.id);
@@ -451,7 +452,7 @@ export function TournamentBracket(): JSX.Element {
             <Card className="bracket-match">
                 <Card.Header 
                     className="clickable-header"
-                    onClick={() => window.location.href = matchUrl}
+                    onClick={() => navigate(matchUrl)}
                 >
                     <div className="d-flex justify-content-between align-items-center">
                         <small>
@@ -608,9 +609,7 @@ export function TournamentBracket(): JSX.Element {
                 <Alert variant="danger">
                     {error}
                 </Alert>
-                <Link to="/tournaments/search">
-                    <Button variant="primary">Back to Tournaments</Button>
-                </Link>
+                <Button variant="primary" onClick={() => navigate('/tournaments/search')}>Back to Tournaments</Button>
             </Container>
         );
     }
@@ -630,9 +629,7 @@ export function TournamentBracket(): JSX.Element {
                         onRefresh={refreshTournamentData} 
                         className="me-2"
                     />
-                    <Link to="/tournaments/search">
-                        <Button variant="outline-secondary">Back to Tournaments</Button>
-                    </Link>
+                    <Button variant="outline-secondary" onClick={() => navigate('/tournaments/search')}>Back to Tournaments</Button>
                 </div>
             </div>
 
