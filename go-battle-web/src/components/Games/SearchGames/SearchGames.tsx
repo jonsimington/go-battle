@@ -1,40 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { Toast } from 'react-bootstrap';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
-import { getVisUrl, pluck, prettyDate } from '../../../utils/utils';
-import { Button, OverlayTrigger, Tooltip, Badge } from 'react-bootstrap';
-import { FaTv } from 'react-icons/fa6';
+import { delay, getApiUrl, getVisUrl, pluck } from '../../../utils/utils';
+import { FaTv, FaTrash } from 'react-icons/fa6';
+import TimeAgo from 'timeago-react';
 import { useNavigate } from 'react-router-dom';
-import moment from 'moment';
+import { Modal } from '../../Common/Modal';
+import styles from './SearchGames.module.css';
 
 interface SearchGamesProps {
     tableData: any[]
     refreshData: Function
 }
 
+const toastStyles = {
+    maxWidth: "95%",
+    minWidth: "75%"
+}
+
 export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.Element {
-    const [data, setData] = useState(tableData);
-    const [sortType, setSortType] = useState("created-desc");
+    const [gameToDelete, setGameToDelete] = useState<number | null>(null);
+    const [hasError, setHasError] = useState(false);
+    const [hasWarning, setHasWarning] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+    const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
+    const [alertText, setAlertText] = useState('');
 
     const visUrl = getVisUrl();
     const navigate = useNavigate();
-
-    useEffect(() => {
-        const sortData = (sortType: any) => {
-            let sortedData = [...data] as GamesResult[];
-    
-            if(sortType === "created") {
-                sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
-            }
-            else if(sortType === "created-desc") {
-                sortedData.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
-            }
-    
-            setData(sortedData);
-        }
-
-        sortData("created-desc")
-    }, [sortType]);
 
     const columns: IColumnType<GamesResult>[] = [
         {
@@ -45,92 +39,54 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
         {
             key: "players",
             title: "Players",
-            width: 100,
-            render: (_, { players, ID }) => {
-                const playerIds = (players || []).map(pluck('ID')).join(', ');
-    
-                if(playerIds.length > 0) {
-                    return (
-                        <Button 
-                            variant="outline-info" 
-                            size="sm" 
-                            key={`players-${ID}`}
-                            onClick={() => navigate(`/players/search?ids=${encodeURI(playerIds)}`)}>
-                                {playerIds}
-                        </Button>
-                    )
-                }
-                else {
-                    return (
-                        <span>No Players</span>
-                    )
-                }
-            }
-        },
-        {
-            key: "winner",
-            title: "Winner",
             width: 200,
-            render: (_, { winner, draw, ID }) => {
-                if (draw) {
-                    return "Draw"
-                } else if (winner === null || winner?.ID === 0) {
-                    return "Undetermined"
-                } else {
-                    return (
-                        <Button 
-                            variant="outline-success" 
-                            size="sm" 
-                            className="mx-1 my-1 w-100" 
-                            key={`winner-${ID}`}
-                            onClick={() => navigate(`/players/search?ids=${encodeURI(winner?.ID.toString())}`)}>
-                                {winner?.name}
-                        </Button>
-                    )
-                }
-            }
-        },
-        {
-            key: "loser",
-            title: "Loser",
-            width: 200,
-            render: (_, { loser, draw, ID }) => {
-                if (draw) {
-                    return "Draw"
-                } else if (loser === null || loser?.ID === 0) {
-                    return "Undetermined"
-                } else {
-                    return (
-                        <Button 
-                            variant="outline-danger" 
-                            size="sm" 
-                            className="mx-1 my-1 w-100" 
-                            key={`loser-${ID}`}
-                            onClick={() => navigate(`/players/search?ids=${encodeURI(loser?.ID.toString())}`)}>
-                                {loser?.name}
-                        </Button>
-                    )
-                }
+            render: (_, { players, winner, loser, draw }) => {
+                if (!players || players.length === 0) return <span className={styles.muted}>—</span>;
+                const playerIds = players.map(pluck('ID')).join(', ');
+
+                return (
+                    <div className={styles.playerList}>
+                        {players.map((p: any) => {
+                            const isWinner = !draw && winner && winner.ID === p.ID;
+                            const isLoser = !draw && loser && loser.ID === p.ID;
+                            const colorClass = draw ? styles.playerDraw
+                                : isWinner ? styles.playerWinner
+                                : isLoser ? styles.playerLoser
+                                : '';
+                            const label = draw ? 'draw'
+                                : isWinner ? 'W'
+                                : isLoser ? 'L'
+                                : null;
+
+                            return (
+                                <span
+                                    key={p.ID}
+                                    className={`${styles.playerName} ${colorClass}`}
+                                    onClick={() => navigate(`/players/search?ids=${encodeURI(playerIds)}`)}
+                                >
+                                    {p.name}
+                                    {label && <span className={styles.resultTag}>{label}</span>}
+                                </span>
+                            );
+                        })}
+                    </div>
+                );
             }
         },
         {
             key: "match",
             title: "Match",
-            width: 100,
+            width: 80,
             render: (_, { match, match_id }) => {
                 const id = match_id || match?.ID;
-                if (!id) {
-                    return <span>—</span>
-                }
+                if (!id) return <span className={styles.muted}>—</span>;
                 return (
-                    <Button 
-                        variant="outline-info" 
-                        size="sm" 
-                        key={`match-${id}`}
+                    <span
+                        className={styles.countLink}
                         onClick={() => navigate(`/matches/search?ids=${encodeURI(id.toString())}`)}>
-                            {id}
-                    </Button>
-                )
+                        #{id}
+                    </span>
+                );
             }
         },
         {
@@ -140,71 +96,136 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             render: (_, { status, error_message }) => {
                 if (status === "Error" || error_message) {
                     return (
-                        <OverlayTrigger
-                            placement="top"
-                            overlay={
-                                <Tooltip id={`tooltip-error`} style={{position:"fixed", maxWidth: "300px"}}>
-                                    {error_message || "An error occurred"}
-                                </Tooltip>
-                            }
-                        >
-                            <Badge bg="danger">
-                                {status}!
-                            </Badge>
-                        </OverlayTrigger>
-                    )
-                } else {
-                    return status;
+                        <span className={`${styles.status} ${styles.statusError}`} title={error_message || "An error occurred"}>
+                            {status}
+                        </span>
+                    );
                 }
+                const statusClass = status === "Complete" ? styles.statusComplete
+                    : status === "In Progress" ? styles.statusInProgress
+                    : styles.statusPending;
+                return <span className={`${styles.status} ${statusClass}`}>{status || "Unknown"}</span>;
             }
         },
         {
             key: "CreatedAt",
             title: "Created",
-            width: 200,
+            width: 120,
             render: (_, { CreatedAt }) => {
-                return (
-                    <OverlayTrigger placement="top" overlay={renderDateTooltip(CreatedAt)}>
-                        <span>{moment(CreatedAt.toString()).fromNow()}</span>
-                    </OverlayTrigger>
-                )
+                return <TimeAgo datetime={CreatedAt} className={styles.timeAgo} />;
             }
         },
         {
-            key: "visualize",
-            title: "Visualize",
+            key: "actions",
+            title: "",
             width: 100,
-            render: (_, { gamelog_url }) => {
-                return (
-                    <>
-                        {gamelog_url !== undefined && gamelog_url !== "" &&
-                            <Button variant="outline-info" href={`${visUrl}/?log=${encodeURI(gamelog_url)}`} target='_'>
-                                <h5><FaTv /></h5>
-                            </Button>
-                        }
-                        {(gamelog_url === undefined || gamelog_url === "") &&
-                            <Button variant="outline-secondary" disabled={true}>
-                                <h5><FaTv /></h5>
-                            </Button>
-                        }
-                    </>
-                )
-            }
+            render: (_, { gamelog_url, ID }) => (
+                <div className={styles.actions}>
+                    {gamelog_url && gamelog_url !== "" ? (
+                        <a
+                            className={styles.actionBtn}
+                            href={`${visUrl}/?log=${encodeURI(gamelog_url)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Visualize">
+                            <FaTv />
+                        </a>
+                    ) : (
+                        <span className={`${styles.actionBtn} ${styles.actionDisabled}`} title="No gamelog">
+                            <FaTv />
+                        </span>
+                    )}
+                    <button
+                        className={`${styles.actionBtn} ${styles.actionDelete}`}
+                        onClick={() => confirmDeleteGame(ID)}
+                        title="Delete game">
+                        <FaTrash />
+                    </button>
+                </div>
+            )
         },
     ];
 
-    const renderDateTooltip = (date: Date) => {
-        return (
-            <Tooltip id={`tooltip-date-${date}`} style={{position:"fixed"}}>
-                {prettyDate(date.toString())}
-            </Tooltip>
-        )
+    const handleFetchResponse = async (response: Response) => {
+        setShowToast(true);
+        const responseText = await response.text();
+        setAlertText(`HTTP ${response.status}: ${responseText}`);
+
+        if (response.ok) {
+            setHasWarning(false);
+            setHasError(false);
+        } else if (response.status === 400) {
+            setHasWarning(true);
+        } else if (response.status === 500) {
+            console.error(response.text);
+            setHasError(true);
+            return Promise.reject();
+        }
+    }
+
+    const confirmDeleteGame = (gameID: number) => {
+        setGameToDelete(gameID);
+        setShowConfirmDeleteModal(true);
+    }
+
+    const deleteGame = () => {
+        if (!gameToDelete) return;
+
+        const requestOptions = {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+        };
+
+        const apiUrl = getApiUrl();
+
+        fetch(`${apiUrl}/games?game_id=${gameToDelete}`, requestOptions)
+            .then(async response => handleFetchResponse(response))
+            .then(async () => {
+                await delay(1000);
+                setShowConfirmDeleteModal(false);
+                setGameToDelete(null);
+                refreshData();
+            })
+            .catch(() => {
+                setShowConfirmDeleteModal(false);
+                setGameToDelete(null);
+            });
     }
 
     return (
         <>
-        <h3>Games</h3>
-        <DynamicTable data={tableData} columns={columns} />
+            <h3>Games</h3>
+
+            <Toast className="my-3"
+                bg={hasError ? "danger" : hasWarning ? "warning" : "success"}
+                onClose={() => setShowToast(false)}
+                show={showToast}
+                delay={5000}
+                animation={true}
+                style={toastStyles}
+                autohide>
+                <Toast.Body>{alertText}</Toast.Body>
+            </Toast>
+
+            <DynamicTable data={tableData} columns={columns} />
+
+            <Modal
+                show={showConfirmDeleteModal}
+                title={`Delete Game ${gameToDelete}?`}
+                onHide={() => setShowConfirmDeleteModal(false)}
+                primaryButton={{
+                    variant: "danger",
+                    text: "Delete",
+                    onClick: deleteGame
+                }}
+                secondaryButton={{
+                    variant: "secondary",
+                    text: "Cancel",
+                    onClick: () => setShowConfirmDeleteModal(false)
+                }}
+            >
+                <p>Are you sure you want to delete game #{gameToDelete}?</p>
+            </Modal>
         </>
     );
 }

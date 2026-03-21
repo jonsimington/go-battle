@@ -1,1 +1,147 @@
-.SearchMatches {}
+.muted {
+    color: var(--text-muted);
+}
+
+.countLink {
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 13px;
+    transition: color 150ms ease;
+}
+
+.countLink:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.playerList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.playerScore {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    padding: 2px 0;
+    transition: color 150ms ease;
+}
+
+.playerScore:hover {
+    color: var(--text-primary);
+}
+
+.playerWinning {
+    color: var(--success);
+}
+
+.playerLosing {
+    color: var(--danger);
+}
+
+.scoreValue {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0 5px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.statusPending::before {
+    background-color: var(--warning);
+}
+
+.statusInProgress::before {
+    background-color: var(--secondary);
+}
+
+.statusComplete::before {
+    background-color: var(--success);
+}
+
+.actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.actionBtn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+}
+
+.actionBtn:hover {
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+    background-color: var(--surface);
+}
+
+.actionStart {
+    color: var(--success);
+    border-color: var(--success);
+}
+
+.actionStart:hover {
+    background-color: var(--success-muted);
+    color: var(--success);
+    border-color: var(--success);
+}
+
+.actionDelete {
+    color: var(--danger);
+    border-color: transparent;
+}
+
+.actionDelete:hover {
+    background-color: var(--danger-muted);
+    border-color: var(--danger);
+}
+
+.spinning {
+    color: var(--secondary);
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+}
+
+.timeAgo {
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}

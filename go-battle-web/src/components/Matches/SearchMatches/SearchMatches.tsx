@@ -1,15 +1,15 @@
-import { DynamicTable, IColumnType  } from '../../DynamicTable/DynamicTable';
+import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaSpinner, FaTrash } from 'react-icons/fa6';
-import { Button, Col, Container, Dropdown, OverlayTrigger, Row, Toast, Tooltip } from 'react-bootstrap';
-import { allPlayersHaveSameScore, delay, elapsedTime, getApiUrl, pluck, prettyDate, prettyTimeAgo, slugify } from '../../../utils/utils';
+import { Toast } from 'react-bootstrap';
+import { allPlayersHaveSameScore, calculatePlayerScores, delay, elapsedTime, getApiUrl, pluck, prettyTimeAgo } from '../../../utils/utils';
 import { useState } from 'react';
-import moment from 'moment';
 import TimeAgo from 'timeago-react';
 import { PlayerScore } from '../../../models/PlayerScore';
 import { Modal } from '../../Common/Modal';
 import EloBadge from '../../Common/ELO/ELOBadge';
 import { useNavigate } from 'react-router-dom';
+import styles from './SearchMatches.module.css';
 
 interface SearchMatchesProps {
     tableData: any[]
@@ -27,10 +27,9 @@ const toastStyles = {
 }
 
 export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): JSX.Element {
-    const [data, setData] = useState(tableData);
     const [matchesPlaying, setMatchesPlaying] = useState<number[]>([]);
     const [matchStartTimes, setMatchStartTimes] = useState<MatchStartTime[]>([]);
-    const [matchIdToDelete, setMatchIdToDelete] = useState(-1);
+    const [matchIdToDelete, setMatchIdToDelete] = useState<number | null>(null);
 
     const [hasError, setHasError] = useState(false);
     const [hasWarning, setHasWarning] = useState(false);
@@ -47,174 +46,106 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             width: 50,
         },
         {
-            key: "numGames",
-            title: "# Games",
-            width: 100,
-        },
-        {
             key: "games",
             title: "Games",
-            width: 100,
-            render: (_, { games, ID }) => {
-                const gameIdsQuery = (games || []).map(pluck('ID')).join(',');
-                const gameIdsDisplay = gameIdsQuery.replace(/,/g, ', ');
-
-                if(gameIdsQuery.length > 0) {
-                    return (
-                        <Button 
-                            variant="outline-info" 
-                            size="sm" 
-                            key={`games-${ID}`}
-                            onClick={() => navigate(`/games/search?ids=${encodeURI(gameIdsQuery)}`)}>
-                                {gameIdsDisplay}
-                        </Button>
-                    )
-                }
-                else {
-                    return (
-                        <span>No Games Yet</span>
-                    )
-                }
+            width: 80,
+            render: (_, { games }) => {
+                if (!games || games.length === 0) return <span className={styles.muted}>—</span>;
+                const gameIds = games.map(pluck('ID')).join(', ');
+                return (
+                    <span
+                        className={styles.countLink}
+                        onClick={() => navigate(`/games/search?ids=${encodeURI(gameIds)}`)}>
+                        {games.length} game{games.length !== 1 ? 's' : ''}
+                    </span>
+                );
             }
         },
         {
             key: "players",
             title: "Players",
-            render: (_, { players, games, ID }) => {
+            render: (_, { players, games }) => {
+                if (!players || players.length === 0) return <span className={styles.muted}>—</span>;
+
                 const safeGames = games || [];
-                const playerIds = (players || []).map(pluck('ID')).join(', ');
-                const playerNames = (players || []).map(pluck('name'));
+                const playerScores = calculatePlayerScores(safeGames, players);
+                const allSame = allPlayersHaveSameScore(playerScores);
+                const playerIds = players.map(pluck('ID')).join(', ');
 
-                let playerScores: PlayerScore[] = [];
-
-                playerNames.forEach(playerName => {
-                    let playerWins = safeGames.filter((g) => g.winner?.name === playerName).length;
-                    let playerLosses = safeGames.filter((g) => g.loser?.name === playerName).length;
-                    let playerDraws = safeGames.filter((g) => g.draw === true).length * 0.5
-                    let playerID = players.filter((p) => p.name === playerName)[0].ID
-                    let playerELO = players.filter((p) => p.name === playerName)[0].elo
-                    let playerELOHistory = players.filter((p) => p.name === playerName)[0].elo_history
-                    playerScores.push({
-                        name: playerName,
-                        wins: playerWins,
-                        losses: playerLosses,
-                        draws: playerDraws,
-                        id: playerID,
-                        elo: playerELO,
-                        elo_history: playerELOHistory,
-                    } as PlayerScore)
-                });
-
-                playerScores.sort((a, b) => a.wins > b.wins ? -1 : a.wins < b.wins ? 1 : 0)
-
-                if(playerIds.length > 0) {
-                    return (
-                        <>
-                            {playerScores.map((score) => {
-                                let badgeColor = allPlayersHaveSameScore(playerScores) ? "outline-secondary" : playerScores[0]?.name === score.name ? "outline-success" : "outline-danger";
-                                let badgeKey = `player-score-badge-${slugify(score.name)}-${ID}`;
-                                let aKey = `player-score-a-${slugify(score.name)}-${ID}`;
-                                let playersLink = `/players/search?ids=${encodeURI(playerIds)}`;
-
-                                return (
-                                    <OverlayTrigger placement="top" overlay={renderPlayerRecordTooltip(score)} key={aKey}>
-                                        <Button variant={badgeColor} size="sm" className="mx-1 my-1 w-100" key={badgeKey} onClick={() => navigate(playersLink)}>{score.name}<EloBadge elo={score.elo} eloHistory={score.elo_history} /> : {score.wins + score.draws}</Button>
-                                    </OverlayTrigger>
-                                )
-                            })}
-                        </>
-                    )
-                }
-                else {
-                    return (
-                        <span>No Players</span>
-                    )
-                }
-            }
-        },
-        {
-            key: "CreatedAt",
-            title: "Created",
-            width: 150,
-            render: (_, { CreatedAt }) => {
                 return (
-                    <OverlayTrigger placement="top" overlay={renderDateTooltip(CreatedAt)}>
-                        <span>{moment(CreatedAt.toString()).fromNow()}</span>
-                    </OverlayTrigger>
-                )
-            }
-        },
-        {
-            key: "UpdatedAt",
-            title: "Updated",
-            width: 150,
-            render: (_, { UpdatedAt }) => {
-                return (
-                    <OverlayTrigger placement="top" overlay={renderDateTooltip(UpdatedAt)}>
-                        <span>{moment(UpdatedAt.toString()).fromNow()}</span>
-                    </OverlayTrigger>
-                )
+                    <div className={styles.playerList}>
+                        {playerScores.map((score) => {
+                            const isLeader = !allSame && playerScores[0]?.name === score.name;
+                            const colorClass = allSame ? '' : isLeader ? styles.playerWinning : styles.playerLosing;
+
+                            return (
+                                <span
+                                    key={`ps-${score.id}`}
+                                    className={`${styles.playerScore} ${colorClass}`}
+                                    onClick={() => navigate(`/players/search?ids=${encodeURI(playerIds)}`)}
+                                    title={`W: ${score.wins} | L: ${score.losses} | D: ${score.draws * 2}`}
+                                >
+                                    {score.name}
+                                    <EloBadge elo={score.elo} eloHistory={score.elo_history} />
+                                    <span className={styles.scoreValue}>{score.wins + score.draws}</span>
+                                </span>
+                            );
+                        })}
+                    </div>
+                );
             }
         },
         {
             key: "status",
             title: "Status",
-            width: 125,
+            width: 120,
             render: (_, { status, start_time, end_time }) => {
                 const elapsed = (start_time && end_time) ? prettyTimeAgo(elapsedTime(start_time, end_time)) : '';
-                
-                if (status === "Complete") {
-                    return (
-                        <OverlayTrigger placement="top" overlay={renderElapsedMatchTimeTooltip(elapsed)}>
-                            <span>{status}</span>
-                        </OverlayTrigger>
-                    )
-                } else {
-                    return status;
-                }
-            }
-        },
-        {
-            key: "startMatch",
-            title: "Play Match",
-            width: 125,
-            render: (_, { ID, status, start_time }) => {
-                start_time = !start_time || start_time.toString() == "0001-01-01T00:00:00Z" ? new Date() : start_time
-
-                if(status === "Pending" && !matchesPlaying.includes(ID)) {
-                    return (
-                        <Button variant="outline-success" onClick={() => startMatch(ID)} key={`startMatchButton-${ID}`}>
-                            <h3><FaCirclePlay /></h3>
-                        </Button>
-                    )
-                } else if(status === "In Progress" || matchesPlaying.includes(ID)) {
-                    return (
-                        <>
-                            <div className="row d-inline-flex">
-                                <Button variant="outline-info" key={`matchPlayingIcon-${ID}`} disabled={true}>
-                                    <h3><FaSpinner  className="icon-spin" /></h3>
-                                </Button>
-                            </div>
-                            <div className="row">
-                                <TimeAgo datetime={start_time} opts={{minInterval: 1}} className="mt-1" />
-                            </div>
-                        </>
-                    )
-                }
-            }
-        },
-        {
-            key: "deleteMatch",
-            title: "Delete Match",
-            width: 110,
-            render: (_, { ID }) => {
+                const statusClass = status === "Complete" ? styles.statusComplete
+                    : status === "In Progress" ? styles.statusInProgress
+                    : styles.statusPending;
                 return (
-                    <>
-                        <Button variant="outline-danger" onClick={() => deleteMatch(ID)} key={`deleteMatchButton-${ID}`}>
-                            <h3><FaTrash /></h3>
-                        </Button>
-                    </>
-                )
+                    <span
+                        className={`${styles.status} ${statusClass}`}
+                        title={elapsed ? `Elapsed: ${elapsed}` : undefined}
+                    >
+                        {status || "Unknown"}
+                    </span>
+                );
+            }
+        },
+        {
+            key: "CreatedAt",
+            title: "Created",
+            width: 120,
+            render: (_, { CreatedAt }) => {
+                return <TimeAgo datetime={CreatedAt} className={styles.timeAgo} />;
+            }
+        },
+        {
+            key: "actions",
+            title: "",
+            width: 140,
+            render: (_, { ID, status, start_time }) => {
+                start_time = !start_time || start_time.toString() === "0001-01-01T00:00:00Z" ? new Date() : start_time;
+
+                return (
+                    <div className={styles.actions}>
+                        {status === "Pending" && !matchesPlaying.includes(ID) && (
+                            <button className={`${styles.actionBtn} ${styles.actionStart}`} onClick={() => startMatch(ID)} title="Start match">
+                                <FaCirclePlay />
+                            </button>
+                        )}
+                        {(status === "In Progress" || matchesPlaying.includes(ID)) && (
+                            <span className={styles.spinning} title="In progress">
+                                <FaSpinner className="icon-spin" />
+                            </span>
+                        )}
+                        <button className={`${styles.actionBtn} ${styles.actionDelete}`} onClick={() => confirmDelete(ID)} title="Delete match">
+                            <FaTrash />
+                        </button>
+                    </div>
+                );
             }
         },
     ];
@@ -232,11 +163,11 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         } else if (response.status === 500) {
             console.error(response.text);
             setHasError(true);
-            return Promise.reject()
+            return Promise.reject();
         }
     }
 
-    const startMatch = (matchID: number) =>  {
+    const startMatch = (matchID: number) => {
         setMatchesPlaying([...matchesPlaying, matchID]);
         setMatchStartTimes([...matchStartTimes, {
             id: matchID,
@@ -261,12 +192,14 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             });
     }
 
-    const deleteMatch = (matchID: number) =>  {
+    const confirmDelete = (matchID: number) => {
         setMatchIdToDelete(matchID);
         setShowConfirmDeleteModal(true);
     }
 
-    const confirmDeleteMatch = (matchID: number) => {
+    const deleteMatch = () => {
+        if (!matchIdToDelete) return;
+
         const requestOptions = {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
@@ -274,89 +207,23 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/matches?match_id=${matchID}`, requestOptions)
+        fetch(`${apiUrl}/matches?match_id=${matchIdToDelete}`, requestOptions)
             .then(async response => handleFetchResponse(response))
-            .then(() => setShowConfirmDeleteModal(false))
-            .then(() => removeMatchFromTable(matchID));
-    }
-
-    const removeMatchFromTable = (matchID: number) => {
-        setData(data.filter((m: MatchesResult) => m.ID !== matchID));
-        refreshData();
-    }
-
-    const sortData = (eventKey: any, event: Object) => {
-        let sortedData = [...data] as MatchesResult[];
-
-        if(eventKey === "created") {
-            sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
-        }
-        else if(eventKey === "created-desc") {
-            sortedData.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
-        }
-        else if(eventKey === "updated") {
-            sortedData.sort((a, b) => a.UpdatedAt < b.UpdatedAt ? -1 : a.UpdatedAt > b.UpdatedAt ? 1 : 0)
-        }
-        else if(eventKey === "numGames") {
-            sortedData.sort((a, b) => a.numGames < b.numGames ? -1 : a.numGames > b.numGames ? 1 : 0)
-        }
-        else if(eventKey === "status") {
-            sortedData.sort((a, b) => a.status > b.status ? -1 : a.status < b.status ? 0 : 1)
-        }
-
-        setData(sortedData);
-    }
-
-    const renderPlayerRecordTooltip = (player: PlayerScore) => {
-        return (
-            <Tooltip id={`tooltip-${slugify(player.name)}`} style={{position:"fixed"}}>
-                Wins: {player.wins} | Losses: {player.losses} | Draws: {player.draws * 2}
-            </Tooltip>
-        )
-    }
-
-    const renderDateTooltip = (date: Date) => {
-        return (
-            <Tooltip id={`tooltip-date-${date}`} style={{position:"fixed"}}>
-                {prettyDate(date.toString())}
-            </Tooltip>
-        )
-    }
-
-    const renderElapsedMatchTimeTooltip = (time: string) => {
-        return (
-            <Tooltip id={`tooltip-elapsedTime-${time}`} style={{position:"fixed"}}>
-                Elapsed Time: {time}
-            </Tooltip>
-        )
+            .then(async () => {
+                await delay(1000);
+                setShowConfirmDeleteModal(false);
+                setMatchIdToDelete(null);
+                refreshData();
+            })
+            .catch(() => {
+                setShowConfirmDeleteModal(false);
+                setMatchIdToDelete(null);
+            });
     }
 
     return (
         <>
-            <Container className="pb-3">
-                <Row className="text-center">
-                    <Col>
-                        <h3>Matches</h3>
-                    </Col>
-                </Row>
-
-                <Row>
-                    <Col>
-                        <Dropdown onSelect={sortData}>
-                            {/* <Dropdown.Toggle variant="outline-info" id="dropdown-basic">
-                                Sort By
-                            </Dropdown.Toggle> */}
-
-                            <Dropdown.Menu>
-                                <Dropdown.Item eventKey="created">Created</Dropdown.Item>
-                                <Dropdown.Item eventKey="updated">Updated</Dropdown.Item>
-                                <Dropdown.Item eventKey="numGames"># Games</Dropdown.Item>
-                                <Dropdown.Item eventKey="status">Status</Dropdown.Item>
-                            </Dropdown.Menu>
-                        </Dropdown>
-                    </Col>
-                </Row>
-            </Container>
+            <h3>Matches</h3>
 
             <Toast className="my-3"
                 bg={hasError ? "danger" : hasWarning ? "warning" : "success"}
@@ -370,7 +237,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             </Toast>
 
             <DynamicTable data={tableData} columns={columns} />
-            
+
             <Modal
                 show={showConfirmDeleteModal}
                 title={`Delete Match ${matchIdToDelete}?`}
@@ -378,7 +245,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                 primaryButton={{
                     variant: "danger",
                     text: "Delete",
-                    onClick: () => confirmDeleteMatch(matchIdToDelete)
+                    onClick: deleteMatch
                 }}
                 secondaryButton={{
                     variant: "secondary",
@@ -386,7 +253,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                     onClick: () => setShowConfirmDeleteModal(false)
                 }}
             >
-                <p>Are you sure you want to delete Match {matchIdToDelete}? This is permanent.</p>
+                <p>Are you sure you want to delete match #{matchIdToDelete}?</p>
             </Modal>
         </>
     );
