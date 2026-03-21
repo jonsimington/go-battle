@@ -34,7 +34,7 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
 
     const resultsPerPageOptions = [5, 10, 15, 20];
     
-    const pagesWithPagination = ["matches", "games"];
+    const pagesWithPagination = ["matches", "games", "tournaments"];
     
     // fetch data from api
     useEffect(() => {
@@ -168,7 +168,7 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                         <SearchClients tableData={data ?? []} refreshData={fetchFromApi} />
                     }
                     {context === "tournaments" &&
-                        <SearchTournaments tableData={data ?? []} refreshData={fetchFromApi} />
+                        <SearchTournaments tableData={displayedData ?? []} refreshData={fetchFromApi} />
                     }
                     
                     {data !== undefined && data.length > 0 && shouldShowPagination &&

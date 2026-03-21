@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Button, OverlayTrigger, Toast, Tooltip } from 'react-bootstrap';
+import { useState } from 'react';
+import { Toast } from 'react-bootstrap';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
-import { allPlayersHaveSameScore, delay, getApiUrl, pluck, slugify } from '../../../utils/utils';
+import { delay, getApiUrl, pluck } from '../../../utils/utils';
 import { TournamentsResult } from '../../../models/TournamentsResult';
-import { PlayerScore } from '../../../models/PlayerScore';
 import { FaCirclePlay, FaSpinner, FaDiagramProject, FaTrash } from 'react-icons/fa6';
 import TimeAgo from 'timeago-react';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../../Common/Modal';
+import styles from './SearchTournaments.module.css';
 
 interface SearchTournamentsProps {
     tableData: any[]
@@ -25,8 +25,6 @@ const toastStyles = {
 }
 
 export function SearchTournaments({ tableData, refreshData }: SearchTournamentsProps): JSX.Element {
-    const [data, setData] = useState(tableData);
-    const [sortType, setSortType] = useState("created-desc");
     const [tournamentsPlaying, setTournamentsPlaying] = useState<number[]>([]);
     const [tournamentStartTimes, setTournamentStartTimes] = useState<TournamentStartTime[]>([]);
     const [tournamentToDelete, setTournamentToDelete] = useState<number | null>(null);
@@ -39,23 +37,6 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
 
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const sortData = (sortType: any) => {
-            let sortedData = [...data] as TournamentsResult[];
-    
-            if(sortType === "created") {
-                sortedData.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0)
-            }
-            else if(sortType === "created-desc") {
-                sortedData.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
-            }
-    
-            setData(sortedData);
-        }
-
-        sortData("created-desc");
-    }, [sortType]);
-
     const columns: IColumnType<TournamentsResult>[] = [
         {
             key: "ID",
@@ -67,218 +48,111 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             title: "Name",
             width: 200,
         },
-        // TODO: can we extract this function since it's the same as in SearchMatches?
         {
             key: "players",
             title: "Players",
-            width: 280,
-            render: (_, { players, games, ID }) => {
+            width: 100,
+            render: (_, { players }) => {
+                if (!players || players.length === 0) return <span className={styles.muted}>—</span>;
                 const playerIds = players.map(pluck('ID')).join(', ');
-                const playerNames = players.map(pluck('name'));
-
-                let playerScores: PlayerScore[] = [];
-
-                playerNames.forEach(playerName => {
-                    let playerWins = games.filter((g) => g.winner?.name === playerName).length;
-                    let playerLosses = games.filter((g) => g.loser?.name === playerName).length;
-                    let playerDraws = games.filter((g) => g.draw === true).length * 0.5
-                    let playerID = players.filter((p) => p.name === playerName)[0].ID
-                    let playerELO = players.filter((p) => p.name === playerName)[0].elo
-                    playerScores.push({
-                        name: playerName,
-                        wins: playerWins,
-                        losses: playerLosses,
-                        draws: playerDraws,
-                        id: playerID,
-                        elo: playerELO
-                    } as PlayerScore)
-                });
-
-                playerScores.sort((a, b) => a.wins < b.wins ? -1 : a.wins > b.wins ? 0 : 1)
-
-                if(playerIds.length > 0) {
-                    return (
-                        <>
-                            {playerScores.map((score) => {
-                                let badgeColor = allPlayersHaveSameScore(playerScores) ? "outline-secondary" : playerScores[playerScores.length - 1]?.name === score.name ? "outline-success" : "outline-danger";
-                                let badgeKey = `player-score-badge-${slugify(score.name)}-${ID}`;
-                                let aKey = `player-score-a-${slugify(score.name)}-${ID}`;
-                                let playersLink = `/players/search?ids=${encodeURI(playerIds)}`;
-
-                                return (
-                                    <OverlayTrigger placement="top" overlay={renderPlayerRecordTooltip(score)} key={aKey}>
-                                        <Button variant={badgeColor} size="sm" className="mx-1 my-1" key={badgeKey} onClick={() => navigate(playersLink)}>{score.name} ({score.elo}): {score.wins + score.draws}</Button>
-                                    </OverlayTrigger>
-                                )
-                            })}
-                        </>
-                    )
-                }
-                else {
-                    return (
-                        <span>No Players</span>
-                    )
-                }
+                return (
+                    <span
+                        className={styles.countLink}
+                        onClick={() => navigate(`/players/search?ids=${encodeURI(playerIds)}`)}>
+                        {players.length} player{players.length !== 1 ? 's' : ''}
+                    </span>
+                );
             }
         },
         {
             key: "games",
             title: "Games",
-            width: 100,
-            render: (_, { games, ID }) => {
-                const gameIds = games.map(pluck('ID')).join(', ');
-
-                if(gameIds.length > 0) {
-                    return (
-                        <Button 
-                            variant="outline-info" 
-                            size="sm" 
-                            key={`games-${ID}`}
-                            onClick={() => navigate(`/games/search?ids=${encodeURI(gameIds)}`)}>
-                                {gameIds}
-                        </Button>
-                    )
-                }
-                else {
-                    return (
-                        <span>No Games Yet</span>
-                    )
-                }
+            width: 80,
+            render: (_, { games, matches }) => {
+                // games may be empty on the tournament directly; derive from matches instead
+                const allGames = games?.length ? games : (matches ?? []).flatMap((m: any) => m.games ?? []);
+                if (!allGames.length) return <span className={styles.muted}>—</span>;
+                const gameIds = allGames.map(pluck('ID')).join(', ');
+                return (
+                    <span
+                        className={styles.countLink}
+                        onClick={() => navigate(`/games/search?ids=${encodeURI(gameIds)}`)}>
+                        {allGames.length} game{allGames.length !== 1 ? 's' : ''}
+                    </span>
+                );
             }
         },
         {
             key: "matches",
             title: "Matches",
-            width: 100,
-            render: (_, { matches, ID }) => {
+            width: 80,
+            render: (_, { matches }) => {
+                if (!matches || matches.length === 0) return <span className={styles.muted}>—</span>;
                 const matchIds = matches.map(pluck('ID')).join(', ');
-
-                if(matches.length > 0) {
-                    return (
-                        <Button 
-                            variant="outline-info" 
-                            size="sm" 
-                            key={`matches-${ID}`}
-                            onClick={() => navigate(`/matches/search?ids=${encodeURI(matchIds)}`)}>
-                                {matchIds}
-                        </Button>
-                    )
-                }
-                else {
-                    return (
-                        <span>No Matches Yet</span>
-                    )
-                }
+                return (
+                    <span
+                        className={styles.countLink}
+                        onClick={() => navigate(`/matches/search?ids=${encodeURI(matchIds)}`)}>
+                        {matches.length} match{matches.length !== 1 ? 'es' : ''}
+                    </span>
+                );
             }
-        },
-        {
-            key: "viewBracket",
-            title: "Bracket",
-            width: 100,
-            render: (_, { ID }) => (
-                <Button variant="outline-primary" size="sm" onClick={() => navigate(`/tournaments/bracket/${ID}`)}>
-                    <FaDiagramProject /> View
-                </Button>
-            )
         },
         {
             key: "winner",
             title: "Winner",
-            width: 200,
-            render: (_, { winner, ID }) => {
-                if (winner === null || winner?.ID === 0) {
-                    return "Undetermined"
-                } else {
-                    return (
-                        <Button 
-                            variant="outline-success" 
-                            size="sm" 
-                            className="mx-1 my-1" 
-                            key={`winner-${ID}`}
-                            onClick={() => navigate(`/players/search?ids=${encodeURI(winner?.ID.toString())}`)}>
-                                {winner?.name}
-                        </Button>
-                    )
-                }
+            width: 120,
+            render: (_, { winner }) => {
+                if (!winner || winner.ID === 0) return <span className={styles.muted}>—</span>;
+                return (
+                    <span
+                        className={styles.winnerLink}
+                        onClick={() => navigate(`/players/search?ids=${encodeURI(winner.ID.toString())}`)}>
+                        {winner.name}
+                    </span>
+                );
             }
         },
         {
             key: "status",
             title: "Status",
-            width: 120,
+            width: 100,
             render: (_, { status }) => {
-                let badgeVariant = "secondary";
-                
-                if (status === "Pending") {
-                    badgeVariant = "warning";
-                } else if (status === "In Progress") {
-                    badgeVariant = "info";
-                } else if (status === "Completed") {
-                    badgeVariant = "success";
-                }
-                
-                return (
-                    <Button 
-                        variant={`outline-${badgeVariant}`} 
-                        size="sm" 
-                        disabled={true}>
-                        {status || "Unknown"}
-                    </Button>
-                );
+                const statusClass = status === "Completed" ? styles.statusCompleted
+                    : status === "In Progress" ? styles.statusInProgress
+                    : styles.statusPending;
+                return <span className={`${styles.status} ${statusClass}`}>{status || "Unknown"}</span>;
             }
         },
         {
             key: "type",
             title: "Type",
-            width: 150,
+            width: 100,
         },
         {
-            key: "startTournament",
-            title: "Start Tournament",
-            width: 125,
-            render: (_, { ID, status, start_time }) => {
-                if(status === "Pending" && !tournamentsPlaying.includes(ID)) {
-                    return (
-                        <Button variant="outline-success" onClick={() => startTournament(ID)} key={`startTournamentButton-${ID}`}>
-                            <h3><FaCirclePlay /></h3>
-                        </Button>
-                    )
-                } else if(status === "In Progress" || tournamentsPlaying.includes(ID)) {
-                    return (
-                        <>
-                            <div className="row d-inline-flex">
-                                <Button variant="outline-info" key={`matchPlayingIcon-${ID}`} disabled={true}>
-                                    <h3><FaSpinner  className="icon-spin" /></h3>
-                                </Button>
-                            </div>
-                            <div className="row">
-                                <TimeAgo datetime={start_time ?? new Date()} opts={{minInterval: 1}} className="mt-1" />
-                            </div>
-                        </>
-                    )
-                }
-                return null;
-            }
-        },
-        {
-            key: "deleteTournament",
-            title: "Delete",
-            width: 80,
-            render: (_, { ID, status }) => {
-                // Only allow deletion of pending tournaments
-                const canDelete = true; // status === "Pending" && !tournamentsPlaying.includes(ID);
-                
-
-                return (
-                    <Button 
-                        variant="outline-danger" 
-                        size="sm" 
-                        onClick={() => confirmDeleteTournament(ID)} 
-                        disabled={!canDelete}>
-                        <h3><FaTrash /></h3>
-                    </Button>
-                );
-            }
+            key: "actions",
+            title: "",
+            width: 140,
+            render: (_, { ID, status }) => (
+                <div className={styles.actions}>
+                    <button className={styles.actionBtn} onClick={() => navigate(`/tournaments/bracket/${ID}`)} title="View bracket">
+                        <FaDiagramProject />
+                    </button>
+                    {status === "Pending" && !tournamentsPlaying.includes(ID) && (
+                        <button className={`${styles.actionBtn} ${styles.actionStart}`} onClick={() => startTournament(ID)} title="Start tournament">
+                            <FaCirclePlay />
+                        </button>
+                    )}
+                    {(status === "In Progress" || tournamentsPlaying.includes(ID)) && (
+                        <span className={styles.spinning} title="In progress">
+                            <FaSpinner className="icon-spin" />
+                        </span>
+                    )}
+                    <button className={`${styles.actionBtn} ${styles.actionDelete}`} onClick={() => confirmDeleteTournament(ID)} title="Delete tournament">
+                        <FaTrash />
+                    </button>
+                </div>
+            )
         },
     ];
 
@@ -353,14 +227,6 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             });
     }
 
-    const renderPlayerRecordTooltip = (player: PlayerScore) => {
-        return (
-            <Tooltip id={`tooltip-${slugify(player.name)}`} style={{position:"fixed"}}>
-                Wins: {player.wins} | Losses: {player.losses} | Draws: {player.draws * 2}
-            </Tooltip>
-        )
-    }
-
     return (
         <>
             <h3>Tournaments</h3>
@@ -376,7 +242,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                 <Toast.Body>{alertText}</Toast.Body>
             </Toast>
 
-            <DynamicTable data={data} columns={columns} />
+            <DynamicTable data={tableData} columns={columns} />
 
             {/* Using the GenericModal component for delete confirmation */}
             <Modal
