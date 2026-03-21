@@ -431,19 +431,24 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 		}
 	}
 
-	// Game completed successfully, now wait for and verify gamelog exists
+	// Game completed successfully, now wait for and verify gamelog exists.
+	// Use exponential backoff: starts at 2s, caps at 30s, up to ~5 min total.
 	var gamelogFilename string
-	var getGamelogAttempts = 0
-	maxGamelogAttempts := 5
 	var gamelogFound bool = false
+	gamelogBackoff := 2 * time.Second
+	maxGamelogBackoff := 30 * time.Second
+	maxGamelogWait := 5 * time.Minute
+	gamelogElapsed := time.Duration(0)
+	gamelogAttempt := 0
 
-	for getGamelogAttempts < maxGamelogAttempts && !gamelogFound {
-		log.Debugf("Waiting for gamelog for session %d (attempt %d of %d)", gameSession, getGamelogAttempts+1, maxGamelogAttempts)
+	for gamelogElapsed < maxGamelogWait && !gamelogFound {
+		gamelogAttempt++
+		log.Debugf("Waiting for gamelog for session %d (attempt %d, elapsed %v)", gameSession, gamelogAttempt, gamelogElapsed)
 
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					log.Warningf("Error getting gamelog for game session %d (attempt %d): %v", gameSession, getGamelogAttempts+1, r)
+					log.Warningf("Error getting gamelog for game session %d (attempt %d): %v", gameSession, gamelogAttempt, r)
 				}
 			}()
 
@@ -533,8 +538,14 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 			break
 		}
 
-		getGamelogAttempts++
-		time.Sleep(3 * time.Second)
+		time.Sleep(gamelogBackoff)
+		gamelogElapsed += gamelogBackoff
+		if gamelogBackoff < maxGamelogBackoff {
+			gamelogBackoff *= 2
+			if gamelogBackoff > maxGamelogBackoff {
+				gamelogBackoff = maxGamelogBackoff
+			}
+		}
 	}
 
 	if gamelogFound {
@@ -544,7 +555,7 @@ func (g Game) runGame(playerLanguage string, playerDir string, gameType string, 
 
 	// If we get here, we couldn't get a gamelog, but we don't know which player is at fault
 	// This is likely a system issue, not a player's code issue
-	errorMsg := fmt.Sprintf("Failed to retrieve gamelog for session %d after %d attempts", gameSession, maxGamelogAttempts)
+	errorMsg := fmt.Sprintf("Failed to retrieve gamelog for session %d after %d attempts (%v elapsed)", gameSession, gamelogAttempt, gamelogElapsed)
 	log.Warningf(errorMsg)
 	updateGameStatus(db, g, "Incomplete")
 	updateGameErrorMessage(db, g, errorMsg)
@@ -654,18 +665,32 @@ func getGamelogFilename(gameType string, gameSession int) string {
 	var cerveauURL = cerveauURLScheme + "://" + cerveauHost + ":" + cerveauPort
 	url := cerveauURL + "/status/" + gameType + "/" + strconv.Itoa(gameSession)
 
-	maxStatusAttempts := 60
-	statusAttempt := 0
+	// Use exponential backoff to wait for the game to finish.
+	// Complex games can run for a very long time; the max total wait
+	// (~90 min) matches the game execution timeout.
+	maxWait := 90 * time.Minute
+	backoff := 1 * time.Second
+	maxBackoff := 30 * time.Second
+	elapsed := time.Duration(0)
 	status := "running"
 
 	for status != "over" {
 		status = getGameStatus(gameType, gameSession).Status
-		statusAttempt++
-		if statusAttempt >= maxStatusAttempts {
-			log.Warningf("Game session %d status never reached 'over' after %d attempts", gameSession, maxStatusAttempts)
+		if status == "over" {
+			break
+		}
+		if elapsed >= maxWait {
+			log.Warningf("Game session %d status never reached 'over' after %v", gameSession, elapsed)
 			return ""
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(backoff)
+		elapsed += backoff
+		if backoff < maxBackoff {
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
 	}
 
 	gameStatus := new(GameStatus)
