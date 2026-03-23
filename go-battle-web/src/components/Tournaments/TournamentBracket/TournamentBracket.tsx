@@ -51,6 +51,8 @@ interface PlayerStatus {
 }
 
 interface StandingsEntry extends PlayerStatus {
+    swissScore: number;
+    byes: number;
     elo?: number;
     elo_history?: HistoricalElo[];
 }
@@ -218,15 +220,21 @@ export function TournamentBracket(): JSX.Element {
             const player2IsWinner = player2 ? player2Score > player1Score : false;
             const isDraw = match.status === "Complete" && !player1IsWinner && !player2IsWinner && player2 !== null;
             
+            const matchGames = (detailedMatch?.games || match.games || []);
             if (detailedMatch && detailedMatch.games) {
-                completedGames = detailedMatch.games.filter(g => g.status === "Complete").length;
+                completedGames = detailedMatch.games.filter(g => isResolvedGame(g)).length;
             } else {
-                completedGames = match.games.filter(g => g.status === "Complete").length;
+                completedGames = match.games.filter(g => isResolvedGame(g)).length;
             }
-            
-            const player1Status = playerStatusMap.get(player1.ID);
-            const player2Status = player2 ? playerStatusMap.get(player2.ID) : undefined;
-            
+
+            // Compute per-player game-level W/L/D for this match
+            const p1GameWins = matchGames.filter((g: any) => g.winner_id === player1.ID && isResolvedGame(g)).length;
+            const p1GameLosses = matchGames.filter((g: any) => g.loser_id === player1.ID && isResolvedGame(g)).length;
+            const p1GameDraws = matchGames.filter((g: any) => g.draw && isResolvedGame(g)).length;
+            const p2GameWins = player2 ? matchGames.filter((g: any) => g.winner_id === player2.ID && isResolvedGame(g)).length : 0;
+            const p2GameLosses = player2 ? matchGames.filter((g: any) => g.loser_id === player2.ID && isResolvedGame(g)).length : 0;
+            const p2GameDraws = player2 ? matchGames.filter((g: any) => g.draw && isResolvedGame(g)).length : 0;
+
             bracketMatchesArray.push({
                 id: match.ID,
                 roundNumber: roundIdx + 1,
@@ -235,9 +243,9 @@ export function TournamentBracket(): JSX.Element {
                     name: player1.name,
                     score: player1Score,
                     isWinner: player1IsWinner,
-                    wins: player1Status?.wins || 0,
-                    losses: player1Status?.losses || 0,
-                    draws: player1Status?.draws || 0,
+                    wins: p1GameWins,
+                    losses: p1GameLosses,
+                    draws: p1GameDraws,
                     elo: player1.elo,
                     elo_history: player1.elo_history
                 },
@@ -246,9 +254,9 @@ export function TournamentBracket(): JSX.Element {
                     name: player2.name,
                     score: player2Score,
                     isWinner: player2IsWinner,
-                    wins: player2Status?.wins || 0,
-                    losses: player2Status?.losses || 0,
-                    draws: player2Status?.draws || 0,
+                    wins: p2GameWins,
+                    losses: p2GameLosses,
+                    draws: p2GameDraws,
                     elo: player2.elo,
                     elo_history: player2.elo_history
                 } : {
@@ -271,10 +279,12 @@ export function TournamentBracket(): JSX.Element {
         setPlayerStatus(playerStatusMap);
     };
 
+    const isResolvedGame = (g: any) => g.status === "Complete" || g.status === "Error";
+
     const calculateScore = (player: PlayersResult, match: MatchesResult) => {
         const matchGames = matchesWithDetailedGames.get(match.ID)?.games || match.games;
-        const wins = matchGames.filter((g: any) => g.winner_id === player.ID && g.status === "Complete").length;
-        const draws = matchGames.filter((g: any) => g.draw && g.status === "Complete").length;
+        const wins = matchGames.filter((g: any) => g.winner_id === player.ID && isResolvedGame(g)).length;
+        const draws = matchGames.filter((g: any) => g.draw && isResolvedGame(g)).length;
         return wins + (draws * 0.5);
     };
 
@@ -315,7 +325,7 @@ export function TournamentBracket(): JSX.Element {
         tournament?.players.forEach(p => {
             map.set(p.ID, {
                 id: p.ID, name: p.name,
-                wins: 0, losses: 0, draws: 0, score: 0,
+                wins: 0, losses: 0, draws: 0, score: 0, swissScore: 0, byes: 0,
                 elo: p.elo, elo_history: p.elo_history,
             });
         });
@@ -326,30 +336,39 @@ export function TournamentBracket(): JSX.Element {
             const p2 = map.get(match.player2.id);
             if (!p1) return;
 
-            // Use per-match scoring (Win=1, Draw=0.5, Loss=0) to match backend Swiss logic
+            // Swiss match-level score (Win=1, Draw=0.5, Loss=0)
             if (match.player2.id === 0) {
-                // Bye match
-                p1.wins++;
-                p1.score += 1.0;
+                p1.swissScore += 1.0;
+                p1.byes++;
             } else if (match.isDraw) {
-                p1.draws++;
-                p1.score += 0.5;
-                if (p2) {
-                    p2.draws++;
-                    p2.score += 0.5;
-                }
+                p1.swissScore += 0.5;
+                if (p2) p2.swissScore += 0.5;
             } else if (match.player1.isWinner) {
-                p1.wins++;
-                p1.score += 1.0;
-                if (p2) p2.losses++;
+                p1.swissScore += 1.0;
             } else if (match.player2.isWinner && p2) {
-                p2.wins++;
-                p2.score += 1.0;
-                p1.losses++;
+                p2.swissScore += 1.0;
+            }
+
+            // Game-level W/L/D totals
+            p1.wins += match.player1.wins || 0;
+            p1.losses += match.player1.losses || 0;
+            p1.draws += match.player1.draws || 0;
+            if (p2 && match.player2.id !== 0) {
+                p2.wins += match.player2.wins || 0;
+                p2.losses += match.player2.losses || 0;
+                p2.draws += match.player2.draws || 0;
             }
         });
 
-        return Array.from(map.values()).sort((a, b) => b.score - a.score);
+        // Game-level score = wins + draws * 0.5
+        map.forEach(entry => {
+            entry.score = entry.wins + entry.draws * 0.5;
+        });
+
+        return Array.from(map.values()).sort((a, b) => {
+            if (b.swissScore !== a.swissScore) return b.swissScore - a.swissScore;
+            return b.score - a.score;
+        });
     }, [bracketMatches, tournament]);
 
     const flowRoundCount = useMemo(() => {
@@ -400,7 +419,7 @@ export function TournamentBracket(): JSX.Element {
                 if (match) {
                     const detailedMatch = matchesWithDetailedGames.get(match.id);
                     const games = (detailedMatch?.games || [])
-                        .filter(g => g.status === "Complete")
+                        .filter(g => g.status === "Complete" || g.status === "Error")
                         .sort((a, b) => new Date(a.CreatedAt).getTime() - new Date(b.CreatedAt).getTime());
 
                     for (let g = 0; g < gamesPerRound; g++) {
@@ -453,16 +472,20 @@ export function TournamentBracket(): JSX.Element {
 
     // ── Sub-renderers ──
 
+    const hasByes = standings.some(e => e.byes > 0);
+
     const renderStandings = () => (
         <table className="tb-standings">
             <thead>
                 <tr>
                     <th className="tb-th-rank">#</th>
                     <th>Player</th>
+                    <th className="tb-th-num" title="Swiss match score (Win=1, Draw=0.5, Loss=0)">Swiss</th>
                     <th className="tb-th-num">Score</th>
                     <th className="tb-th-num">W</th>
                     <th className="tb-th-num">L</th>
                     <th className="tb-th-num">D</th>
+                    {hasByes && <th className="tb-th-num" title="Bye rounds (free win, no games played)">Bye</th>}
                     <th className="tb-th-elo">ELO</th>
                 </tr>
             </thead>
@@ -475,10 +498,12 @@ export function TournamentBracket(): JSX.Element {
                     >
                         <td className={`tb-rank ${idx < 3 ? `tb-rank-${idx + 1}` : ''}`}>{idx + 1}</td>
                         <td className="tb-player-cell">{entry.name}</td>
+                        <td className="tb-score-cell">{entry.swissScore % 1 === 0 ? entry.swissScore : entry.swissScore.toFixed(1)}</td>
                         <td className="tb-score-cell">{entry.score % 1 === 0 ? entry.score : entry.score.toFixed(1)}</td>
                         <td className="tb-num-cell">{entry.wins}</td>
                         <td className="tb-num-cell">{entry.losses}</td>
                         <td className="tb-num-cell">{entry.draws}</td>
+                        {hasByes && <td className="tb-num-cell">{entry.byes || ''}</td>}
                         <td className="tb-elo-cell">
                             {entry.elo !== undefined && (
                                 <ELOBadge elo={entry.elo} eloHistory={entry.elo_history} />
@@ -516,12 +541,12 @@ export function TournamentBracket(): JSX.Element {
         const detailedMatch = matchesWithDetailedGames.get(match.id);
         const games = detailedMatch?.games || [];
 
-        const p1W = games.filter(g => g.winner_id === match.player1.id && g.status === "Complete").length;
-        const p1L = games.filter(g => g.loser_id === match.player1.id && g.status === "Complete").length;
-        const p1D = games.filter(g => g.draw && g.status === "Complete").length;
-        const p2W = !isBye ? games.filter(g => g.winner_id === match.player2.id && g.status === "Complete").length : 0;
-        const p2L = !isBye ? games.filter(g => g.loser_id === match.player2.id && g.status === "Complete").length : 0;
-        const p2D = !isBye ? games.filter(g => g.draw && g.status === "Complete").length : 0;
+        const p1W = games.filter(g => g.winner_id === match.player1.id && isResolvedGame(g)).length;
+        const p1L = games.filter(g => g.loser_id === match.player1.id && isResolvedGame(g)).length;
+        const p1D = games.filter(g => g.draw && isResolvedGame(g)).length;
+        const p2W = !isBye ? games.filter(g => g.winner_id === match.player2.id && isResolvedGame(g)).length : 0;
+        const p2L = !isBye ? games.filter(g => g.loser_id === match.player2.id && isResolvedGame(g)).length : 0;
+        const p2D = !isBye ? games.filter(g => g.draw && isResolvedGame(g)).length : 0;
 
         const p1Class = isBye ? 'tb-row-win'
             : match.status === "Complete"

@@ -197,7 +197,7 @@
 }
 
 .tb-th-rank { width: 40px; }
-.tb-th-num { text-align: right; width: 56px; }
+.tb-th-num { text-align: center; width: 56px; }
 .tb-th-elo { text-align: right; width: 80px; }
 
 .tb-standings-row {
@@ -231,8 +231,9 @@
 
 .tb-num-cell,
 .tb-score-cell {
-    text-align: right;
+    text-align: center;
     font-variant-numeric: tabular-nums;
+    width: 56px;
 }
 
 .tb-score-cell {
@@ -241,6 +242,7 @@
 
 .tb-elo-cell {
     text-align: right;
+    width: 80px;
 }
 
 /* ─── Rounds (horizontal scroll) ─── */
