@@ -39,13 +39,14 @@ const (
 // MaxRoundsHardCap is the absolute maximum number of rounds before forcing tournament completion
 const MaxRoundsHardCap = 50
 
-// OptimalSwissRounds returns ceil(log2(n)) — the standard number of rounds for a Swiss tournament
-// with n players. Falls back to 1 if n < 2.
+// OptimalSwissRounds returns ceil(log2(n)) + 2 — a generous number of rounds for a Swiss
+// tournament with n players. The base ceil(log2(n)) is the theoretical minimum; adding 2
+// extra rounds provides much better score separation when draws are possible.
 func OptimalSwissRounds(n int) int {
 	if n < 2 {
 		return 1
 	}
-	return int(math.Ceil(math.Log2(float64(n))))
+	return int(math.Ceil(math.Log2(float64(n)))) + 2
 }
 
 type TournamentPlayer struct {
@@ -204,6 +205,8 @@ func getTournament(db *gorm.DB, id int) Tournament {
 		Preload("Players.Games").
 		Preload("Matches").
 		Preload("Matches.Games").
+		Preload("Matches.Games.Winner").
+		Preload("Matches.Games.Loser").
 		Preload("Matches.Players").
 		Preload("Matches.Players.Games").
 		Preload("Matches.Players.EloHistory", func(db *gorm.DB) *gorm.DB {
@@ -361,6 +364,7 @@ func createMatchesFromPairings(db *gorm.DB, tournament Tournament, roundPairings
 				},
 				Status: "Complete", // Bye matches are automatically complete
 				Draw:   false,      // Bye matches are automatic wins
+				Round:  roundNumber,
 			}
 
 			// Insert the match in the database within transaction
@@ -416,6 +420,7 @@ func createMatchesFromPairings(db *gorm.DB, tournament Tournament, roundPairings
 				player2,
 			},
 			Status: "Pending",
+			Round:  roundNumber,
 		}
 
 		// Insert the match in the database within transaction
@@ -708,10 +713,11 @@ func buildTournamentPlayersFromResults(tournament Tournament) []*TournamentPlaye
 
 			if game.Draw {
 				draws++
-			} else if game.Winner != nil && game.Loser != nil {
-				if game.Winner.ID == player1.ID {
+			} else if game.WinnerID != nil && game.LoserID != nil {
+				winnerID := uint(*game.WinnerID)
+				if winnerID == player1.ID {
 					player1GameWins++
-				} else if game.Winner.ID == player2.ID {
+				} else if winnerID == player2.ID {
 					player2GameWins++
 				}
 			}

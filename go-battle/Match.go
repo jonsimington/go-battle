@@ -24,6 +24,7 @@ type Match struct {
 	Draw      bool      `json:"draw"`
 	StartTime time.Time `json:"start_time"`
 	EndTime   time.Time `json:"end_time"`
+	Round     int       `json:"round"`
 }
 
 var matchLock = &sync.Mutex{}

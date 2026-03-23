@@ -588,6 +588,14 @@ func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir stri
 		for numRetries < maxRetries {
 			log.Warningf("Game error occurred for player %s, attempt %d of %d: %v", player.Name, numRetries+1, maxRetries, runErr)
 
+			// Check if the cerveau session is already over before retrying.
+			// Retrying against a finished session will hang indefinitely.
+			cerveauStatus := getGameStatus(gameType, gameSession)
+			if cerveauStatus.Status == "over" {
+				log.Infof("Cerveau session %d is already 'over', skipping retry for player %s", gameSession, player.Name)
+				break
+			}
+
 			// Create a new command for each retry - can't reuse runCmd because Stdout is already set
 			if playerLanguage == "cpp" {
 				runCmd = exec.CommandContext(gameTimeoutContext, exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
@@ -642,9 +650,17 @@ func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir stri
 	gamelogElapsed := time.Duration(0)
 	gamelogAttempt := 0
 
+	// On retries, use a shorter timeout for getGamelogFilename since the session
+	// should already be 'over' — we only need to wait for cerveau to finish writing the gamelog.
+	gamelogPollTimeout := 90 * time.Minute
+
 	for gamelogElapsed < maxGamelogWait && !gamelogFound {
 		gamelogAttempt++
 		log.Debugf("Waiting for gamelog for session %d (attempt %d, elapsed %v)", gameSession, gamelogAttempt, gamelogElapsed)
+
+		if gamelogAttempt > 1 {
+			gamelogPollTimeout = 30 * time.Second
+		}
 
 		func() {
 			defer func() {
@@ -653,7 +669,7 @@ func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir stri
 				}
 			}()
 
-			gamelogFilename = getGamelogFilename(gameType, gameSession)
+			gamelogFilename = getGamelogFilenameWithTimeout(gameType, gameSession, gamelogPollTimeout)
 			if gamelogFilename != "" {
 				gamelogUrl := getGamelogUrl(gamelogFilename)
 
@@ -860,6 +876,10 @@ func getGameStatus(gameType string, gameSession int) *GameStatus {
 }
 
 func getGamelogFilename(gameType string, gameSession int) string {
+	return getGamelogFilenameWithTimeout(gameType, gameSession, 90*time.Minute)
+}
+
+func getGamelogFilenameWithTimeout(gameType string, gameSession int, maxWait time.Duration) string {
 	var cerveauHost = conf.Get("cerveauWebHost")
 	var cerveauPort = conf.Get("cerveauWebPort")
 	var cerveauURLScheme = conf.Get("cerveauURLScheme")
@@ -867,21 +887,27 @@ func getGamelogFilename(gameType string, gameSession int) string {
 	url := cerveauURL + "/status/" + gameType + "/" + strconv.Itoa(gameSession)
 
 	// Use exponential backoff to wait for the game to finish.
-	// Complex games can run for a very long time; the max total wait
-	// (~90 min) matches the game execution timeout.
-	maxWait := 90 * time.Minute
 	backoff := 1 * time.Second
 	maxBackoff := 30 * time.Second
 	elapsed := time.Duration(0)
 	status := "running"
+	pollAttempt := 0
 
 	for status != "over" {
-		status = getGameStatus(gameType, gameSession).Status
+		gameStatus := getGameStatus(gameType, gameSession)
+		status = gameStatus.Status
 		if status == "over" {
 			break
 		}
+		pollAttempt++
+		if pollAttempt%10 == 0 {
+			log.Debugf("Still waiting for session %d to be 'over' (status=%q, attempt %d, elapsed %v)", gameSession, status, pollAttempt, elapsed)
+		}
+		if status == "" {
+			log.Warningf("Game session %d returned empty status from cerveau (attempt %d, elapsed %v)", gameSession, pollAttempt, elapsed)
+		}
 		if elapsed >= maxWait {
-			log.Warningf("Game session %d status never reached 'over' after %v", gameSession, elapsed)
+			log.Warningf("Game session %d status never reached 'over' after %v (last status=%q)", gameSession, elapsed, status)
 			return ""
 		}
 		time.Sleep(backoff)

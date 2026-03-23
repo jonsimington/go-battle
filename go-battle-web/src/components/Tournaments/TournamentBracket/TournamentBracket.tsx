@@ -164,23 +164,18 @@ export function TournamentBracket(): JSX.Element {
         // Initialize player status tracking
         const playerStatusMap = new Map<number, PlayerStatus>();
         tournament.players.forEach(player => {
-            const games = (player.games || []).filter(g => g.status === "Complete");
-            let wins = games.filter(g => g.winner_id === player.ID).length;
-            let losses = games.filter(g => g.loser_id === player.ID).length;
-            let draws = games.filter(g => g.draw).length;
-
             playerStatusMap.set(player.ID, {
                 id: player.ID,
                 name: player.name,
-                wins: wins,
-                losses: losses,
-                draws: draws,
-                score: wins + (draws * 0.5)
+                wins: 0,
+                losses: 0,
+                draws: 0,
+                score: 0
             });
         });
         
-        // Number of rounds in Swiss tournament
-        const maxRounds = Math.ceil(Math.log2(tournament.players.length));
+        // Number of rounds in Swiss tournament (matches backend OptimalSwissRounds)
+        const maxRounds = Math.ceil(Math.log2(tournament.players.length)) + 2;
         
         const organizedRounds: Round[] = [];
         let bracketMatchesArray: BracketMatch[] = [];
@@ -196,11 +191,13 @@ export function TournamentBracket(): JSX.Element {
         sortedMatches.forEach(match => {
             if (!match.players || match.players.length === 0) return;
             
-            // Determine which round this match belongs to based on creation time
-            const roundIdx = Math.min(
-                Math.floor(sortedMatches.indexOf(match) / (tournament.players.length / 2)),
-                maxRounds - 1
-            );
+            // Use the round field from the backend if available, otherwise fall back to index-based inference
+            const roundIdx = match.round
+                ? Math.min(match.round - 1, maxRounds - 1)
+                : Math.min(
+                    Math.floor(sortedMatches.indexOf(match) / (tournament.players.length / 2)),
+                    maxRounds - 1
+                  );
             const round = organizedRounds[roundIdx];
             
             // Add to round's matches
@@ -324,31 +321,36 @@ export function TournamentBracket(): JSX.Element {
         });
 
         bracketMatches.forEach(match => {
-            if (match.status === "Pending") return;
+            if (match.status !== "Complete") return;
             const p1 = map.get(match.player1.id);
             const p2 = map.get(match.player2.id);
             if (!p1) return;
 
-            const detailedMatch = matchesWithDetailedGames.get(match.id);
-            const games = detailedMatch?.games || [];
-            games.filter(g => g.status === "Complete").forEach(game => {
-                if (game.draw) {
-                    p1.draws++;
-                    if (p2) p2.draws++;
-                } else if (game.winner_id === p1.id) {
-                    p1.wins++;
-                    if (p2) p2.losses++;
-                } else if (p2 && game.winner_id === p2.id) {
-                    p2.wins++;
-                    p1.losses++;
+            // Use per-match scoring (Win=1, Draw=0.5, Loss=0) to match backend Swiss logic
+            if (match.player2.id === 0) {
+                // Bye match
+                p1.wins++;
+                p1.score += 1.0;
+            } else if (match.isDraw) {
+                p1.draws++;
+                p1.score += 0.5;
+                if (p2) {
+                    p2.draws++;
+                    p2.score += 0.5;
                 }
-            });
-            p1.score = p1.wins + (p1.draws * 0.5);
-            if (p2) p2.score = p2.wins + (p2.draws * 0.5);
+            } else if (match.player1.isWinner) {
+                p1.wins++;
+                p1.score += 1.0;
+                if (p2) p2.losses++;
+            } else if (match.player2.isWinner && p2) {
+                p2.wins++;
+                p2.score += 1.0;
+                p1.losses++;
+            }
         });
 
         return Array.from(map.values()).sort((a, b) => b.score - a.score);
-    }, [bracketMatches, matchesWithDetailedGames, tournament]);
+    }, [bracketMatches, tournament]);
 
     const flowRoundCount = useMemo(() => {
         let max = 0;

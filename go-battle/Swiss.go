@@ -71,9 +71,12 @@ func SwissPairing(tournamentPlayers []*TournamentPlayer, round int) []MatchPairi
 
 	log.Infof("Creating pairings for round %d with %d players", round, len(remainingPlayers))
 
-	// Sort players by score so highest scoring players play each other
-	sort.Slice(remainingPlayers, func(i, j int) bool {
-		return remainingPlayers[i].Score > remainingPlayers[j].Score
+	// Sort players by score (desc), then by ELO (desc) as tiebreaker for deterministic pairing
+	sort.SliceStable(remainingPlayers, func(i, j int) bool {
+		if remainingPlayers[i].Score != remainingPlayers[j].Score {
+			return remainingPlayers[i].Score > remainingPlayers[j].Score
+		}
+		return remainingPlayers[i].Player.Elo > remainingPlayers[j].Player.Elo
 	})
 
 	// Handle odd number of players: assign bye to the lowest-scoring player

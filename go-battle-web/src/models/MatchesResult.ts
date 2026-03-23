@@ -10,4 +10,5 @@ export interface MatchesResult extends ApiResult {
     draw: boolean;
     start_time: Date;
     end_time: Date;
+    round: number;
 }
