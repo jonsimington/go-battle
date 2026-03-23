@@ -1,13 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"math"
 	"math/rand"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -99,23 +96,9 @@ func postClientsHandler(c *fiber.Ctx) error {
 }
 
 func getClientsHandler(c *fiber.Ctx) error {
-	ids := c.Query("ids")
-	language := c.Query("language")
-	game := c.Query("game")
-
-	clientsList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
-		return strings.ReplaceAll(s, " ", "")
-	}))
-
-	clients := getClientsFiltered(clientsList, language, game)
-
-	jsonClients, err := json.Marshal(clients)
-
-	if err != nil {
-		log.Errorln(fmt.Sprintf("Error marshalling list of clients: %s", err))
-	}
-
-	return c.Status(200).SendString(string(jsonClients))
+	clientsList := parseIntIDList(c.Query("ids"))
+	clients := getClientsFiltered(clientsList, c.Query("language"), c.Query("game"))
+	return sendJSON(c, clients)
 }
 
 // /////////////////////////////////////////////////////////////////////////
@@ -123,23 +106,18 @@ func getClientsHandler(c *fiber.Ctx) error {
 // /////////////////////////////////////////////////////////////////////////
 func postPlayersHandler(c *fiber.Ctx) error {
 	name := c.Query("name")
-	clientId := c.Query("client_id")
 
 	if name == "" {
 		return c.Status(400).SendString("Must supply `name` query parameter which is the name of the Player.")
-	}
-	if clientId == "" {
-		return c.Status(400).SendString("Must supply `client_id` query parameter which is id of the Player's Client.")
 	}
 
 	if playerExists(db, name) {
 		return c.Status(400).SendString(fmt.Sprintf("A player by the name of `%s` already exists!", name))
 	}
 
-	clientIdInt, clientIdIntErr := strconv.Atoi(clientId)
-
-	if clientIdIntErr != nil {
-		return c.Status(400).SendString("`client_id` query parameter must be an integer")
+	clientIdInt, err := requireIntParam(c, "client_id")
+	if err != nil {
+		return err
 	}
 
 	foundClients := getClients([]int{clientIdInt})
@@ -161,42 +139,20 @@ func postPlayersHandler(c *fiber.Ctx) error {
 }
 
 func getPlayersHandler(c *fiber.Ctx) error {
-	ids := c.Query("ids")
-
-	playersList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
-		return strings.ReplaceAll(s, " ", "")
-	}))
-
-	players := getPlayers(playersList)
-
-	jsonPlayers, err := json.Marshal(players)
-
-	if err != nil {
-		log.Errorln(fmt.Sprintf("Error marshalling list of players: %s", err))
-	}
-
-	return c.Status(200).SendString(string(jsonPlayers))
+	players := getPlayers(parseIntIDList(c.Query("ids")))
+	return sendJSON(c, players)
 }
 
 // /////////////////////////////////////////////////////////////////////////
 // GAMES
 // /////////////////////////////////////////////////////////////////////////
 func postGamesHandler(c *fiber.Ctx) error {
-	// gameId := c.Query("game_id")
-	numGames := c.Query("num_games")
-	numGamesInt, numGamesIntErr := strconv.Atoi(numGames)
-	playersQuery := c.Query("players")
-
-	if numGamesIntErr != nil {
-		return c.Status(400).SendString("`num_games` query parameter must be an integer")
-	}
-	if numGames == "" {
-		return c.Status(400).SendString("The `players` query param value must be a comma-separated list of two ints")
+	numGamesInt, err := requireIntParam(c, "num_games")
+	if err != nil {
+		return err
 	}
 
-	playersList, _ := sliceAtoi(map2(strings.Split(playersQuery, ","), func(s string) string {
-		return strings.ReplaceAll(s, " ", "")
-	}))
+	playersList := parseIntIDList(c.Query("players"))
 
 	if len(playersList) != 2 {
 		return c.Status(400).SendString("The `players` query param value must be a comma-separated list of two ints")
@@ -230,57 +186,28 @@ func postGamesHandler(c *fiber.Ctx) error {
 }
 
 func getGamesHandler(c *fiber.Ctx) error {
-	players := c.Query("players")
-	ids := c.Query("ids")
+	playersList := parseIntIDList(c.Query("players"))
+	idList := parseIntIDList(c.Query("ids"))
 	status := c.Query("status")
 	page, pageSize := parsePaginationParams(c)
 	sortField, sortDir := parseSortParams(c)
-
-	playersList, _ := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
-		return strings.ReplaceAll(s, " ", "")
-	}))
-	idList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
-		return strings.ReplaceAll(s, " ", "")
-	}))
 
 	var games []Game
 	var totalCount int64
 
 	if len(playersList) > 0 {
 		games, totalCount = getGamesWithPlayersPaginated(playersList, page, pageSize, status, sortField, sortDir)
-	} else if len(idList) > 0 {
-		games, totalCount = getGamesByIdPaginated(idList, page, pageSize, status, sortField, sortDir)
 	} else {
-		games, totalCount = getGamesByIdPaginated([]int{}, page, pageSize, status, sortField, sortDir)
+		games, totalCount = getGamesByIdPaginated(idList, page, pageSize, status, sortField, sortDir)
 	}
 
-	response := PaginatedResponse{
-		Data:       games,
-		Page:       page,
-		PageSize:   pageSize,
-		TotalCount: totalCount,
-		TotalPages: int(math.Ceil(float64(totalCount) / float64(pageSize))),
-	}
-
-	jsonGames, err := json.Marshal(response)
-
-	if err != nil {
-		log.Errorln(fmt.Sprintf("Error marshalling list of games: %s", err))
-	}
-
-	return c.Status(200).SendString(string(jsonGames))
+	return sendPaginatedJSON(c, games, page, pageSize, totalCount)
 }
 
 func deleteGamesHandler(c *fiber.Ctx) error {
-	gameId := c.Query("game_id")
-	gameIdInt, gameIdIntErr := strconv.Atoi(gameId)
-
-	if gameId == "" {
-		return c.Status(400).SendString("The `game_id` query param value must be provided")
-	}
-
-	if gameIdIntErr != nil {
-		return c.Status(400).SendString("`game_id` query parameter must be an integer")
+	gameIdInt, err := requireIntParam(c, "game_id")
+	if err != nil {
+		return err
 	}
 
 	var game Game
@@ -295,15 +222,9 @@ func deleteGamesHandler(c *fiber.Ctx) error {
 }
 
 func stopGameHandler(c *fiber.Ctx) error {
-	gameId := c.Query("game_id")
-	gameIdInt, gameIdIntErr := strconv.Atoi(gameId)
-
-	if gameId == "" {
-		return c.Status(400).SendString("The `game_id` query param value must be provided")
-	}
-
-	if gameIdIntErr != nil {
-		return c.Status(400).SendString("`game_id` query parameter must be an integer")
+	gameIdInt, err := requireIntParam(c, "game_id")
+	if err != nil {
+		return err
 	}
 
 	var game Game
@@ -316,7 +237,7 @@ func stopGameHandler(c *fiber.Ctx) error {
 		return c.Status(400).SendString(fmt.Sprintf("Game %d is not running (status: %s)", gameIdInt, game.Status))
 	}
 
-	err := StopGame(db, gameIdInt)
+	err = StopGame(db, gameIdInt)
 	if err != nil {
 		return c.Status(400).SendString(err.Error())
 	}
@@ -325,18 +246,12 @@ func stopGameHandler(c *fiber.Ctx) error {
 }
 
 func restartGameHandler(c *fiber.Ctx) error {
-	gameId := c.Query("game_id")
-	gameIdInt, gameIdIntErr := strconv.Atoi(gameId)
-
-	if gameId == "" {
-		return c.Status(400).SendString("The `game_id` query param value must be provided")
+	gameIdInt, err := requireIntParam(c, "game_id")
+	if err != nil {
+		return err
 	}
 
-	if gameIdIntErr != nil {
-		return c.Status(400).SendString("`game_id` query parameter must be an integer")
-	}
-
-	err := RestartGame(db, gameIdInt)
+	err = RestartGame(db, gameIdInt)
 	if err != nil {
 		return c.Status(400).SendString(err.Error())
 	}
@@ -348,20 +263,12 @@ func restartGameHandler(c *fiber.Ctx) error {
 // MATCHES
 // /////////////////////////////////////////////////////////////////////////
 func postMatchesHandler(c *fiber.Ctx) error {
-	numGames := c.Query("num_games")
-	numGamesInt, numGamesIntErr := strconv.Atoi(numGames)
-	playersQuery := c.Query("players")
-
-	if numGamesIntErr != nil {
-		return c.Status(400).SendString("`num_games` query parameter must be an integer")
-	}
-	if numGames == "" {
-		return c.Status(400).SendString("The `num_games` query param value must be provided")
+	numGamesInt, err := requireIntParam(c, "num_games")
+	if err != nil {
+		return err
 	}
 
-	playersList, _ := sliceAtoi(map2(strings.Split(playersQuery, ","), func(s string) string {
-		return strings.ReplaceAll(s, " ", "")
-	}))
+	playersList := parseIntIDList(c.Query("players"))
 
 	if len(playersList) != 2 {
 		return c.Status(400).SendString("The `players` query param value must be a comma-separated list of two ints")
@@ -383,22 +290,13 @@ func postMatchesHandler(c *fiber.Ctx) error {
 }
 
 func deleteMatchesHandler(c *fiber.Ctx) error {
-	matchId := c.Query("match_id")
-	matchIdInt, matchIdIntErr := strconv.Atoi(matchId)
-
-	if matchId == "" {
-		return c.Status(400).SendString("The `match_id` query param value must be provided")
+	matchIdInt, err := requireIntParam(c, "match_id")
+	if err != nil {
+		return err
 	}
-
-	if matchIdIntErr != nil {
-		return c.Status(400).SendString("`match_id` query parameter must be an integer")
-	}
-
-	var emptyMatch Match
 
 	match := getMatch(matchIdInt)
-
-	if compareMatches(match, emptyMatch) {
+	if match.ID == 0 {
 		return c.Status(400).SendString("`match_id` query parameter must point to an existing Match")
 	}
 
@@ -408,29 +306,20 @@ func deleteMatchesHandler(c *fiber.Ctx) error {
 }
 
 func getMatchesHandler(c *fiber.Ctx) error {
-	ids := c.Query("ids")
-	players := c.Query("players")
+	playersList := parseIntIDList(c.Query("players"))
+	idList := parseIntIDList(c.Query("ids"))
 	status := c.Query("status")
 	page, pageSize := parsePaginationParams(c)
 	sortField, sortDir := parseSortParams(c)
 
-	playersList, _ := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
-		return strings.ReplaceAll(s, " ", "")
-	}))
-	idList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
-		return strings.ReplaceAll(s, " ", "")
-	}))
-
-	var matches []Match
-	var totalCount int64
-
-	if len(playersList) > 0 {
-		matches, totalCount = getMatchesWithPlayersPaginated(playersList, page, pageSize, status, sortField, sortDir)
-	} else if len(idList) > 0 {
-		matches, totalCount = getMatchesPaginated(idList, page, pageSize, status, sortField, sortDir)
-	} else {
-		matches, totalCount = getMatchesPaginated([]int{}, page, pageSize, status, sortField, sortDir)
+	fetchMatches := func() ([]Match, int64) {
+		if len(playersList) > 0 {
+			return getMatchesWithPlayersPaginated(playersList, page, pageSize, status, sortField, sortDir)
+		}
+		return getMatchesPaginated(idList, page, pageSize, status, sortField, sortDir)
 	}
+
+	matches, _ := fetchMatches()
 
 	// Check and update status for all in-progress matches
 	for _, match := range matches {
@@ -440,48 +329,19 @@ func getMatchesHandler(c *fiber.Ctx) error {
 	}
 
 	// Reload the current page to reflect any status updates
-	if len(playersList) > 0 {
-		matches, totalCount = getMatchesWithPlayersPaginated(playersList, page, pageSize, status, sortField, sortDir)
-	} else if len(idList) > 0 {
-		matches, totalCount = getMatchesPaginated(idList, page, pageSize, status, sortField, sortDir)
-	} else {
-		matches, totalCount = getMatchesPaginated([]int{}, page, pageSize, status, sortField, sortDir)
-	}
+	matches, totalCount := fetchMatches()
 
-	response := PaginatedResponse{
-		Data:       matches,
-		Page:       page,
-		PageSize:   pageSize,
-		TotalCount: totalCount,
-		TotalPages: int(math.Ceil(float64(totalCount) / float64(pageSize))),
-	}
-
-	jsonMatches, err := json.Marshal(response)
-
-	if err != nil {
-		log.Errorln(fmt.Sprintf("Error marshalling list of matches: %s", err))
-	}
-
-	return c.Status(200).SendString(string(jsonMatches))
+	return sendPaginatedJSON(c, matches, page, pageSize, totalCount)
 }
 
 func startMatchHandler(c *fiber.Ctx) error {
-	matchId := c.Query("match_id")
-	matchIdInt, matchIdIntErr := strconv.Atoi(matchId)
-
-	if matchId == "" {
-		return c.Status(400).SendString("The `match_id` query param value must be provided")
+	matchIdInt, err := requireIntParam(c, "match_id")
+	if err != nil {
+		return err
 	}
-
-	if matchIdIntErr != nil {
-		return c.Status(400).SendString("`match_id` query parameter must be an integer")
-	}
-
-	var emptyMatch Match
 
 	match := getMatch(matchIdInt)
-
-	if compareMatches(match, emptyMatch) {
+	if match.ID == 0 {
 		return c.Status(400).SendString("`match_id` query parameter must point to an existing Match")
 	}
 
@@ -540,15 +400,9 @@ func startMatchHandler(c *fiber.Ctx) error {
 }
 
 func stopMatchHandler(c *fiber.Ctx) error {
-	matchId := c.Query("match_id")
-	matchIdInt, matchIdIntErr := strconv.Atoi(matchId)
-
-	if matchId == "" {
-		return c.Status(400).SendString("The `match_id` query param value must be provided")
-	}
-
-	if matchIdIntErr != nil {
-		return c.Status(400).SendString("`match_id` query parameter must be an integer")
+	matchIdInt, err := requireIntParam(c, "match_id")
+	if err != nil {
+		return err
 	}
 
 	match := getMatch(matchIdInt)
@@ -560,7 +414,7 @@ func stopMatchHandler(c *fiber.Ctx) error {
 		return c.Status(400).SendString(fmt.Sprintf("Match %d is not running (status: %s)", matchIdInt, match.Status))
 	}
 
-	err := StopMatch(db, matchIdInt)
+	err = StopMatch(db, matchIdInt)
 	if err != nil {
 		return c.Status(400).SendString(err.Error())
 	}
@@ -569,15 +423,9 @@ func stopMatchHandler(c *fiber.Ctx) error {
 }
 
 func restartMatchHandler(c *fiber.Ctx) error {
-	matchId := c.Query("match_id")
-	matchIdInt, matchIdIntErr := strconv.Atoi(matchId)
-
-	if matchId == "" {
-		return c.Status(400).SendString("The `match_id` query param value must be provided")
-	}
-
-	if matchIdIntErr != nil {
-		return c.Status(400).SendString("`match_id` query parameter must be an integer")
+	matchIdInt, err := requireIntParam(c, "match_id")
+	if err != nil {
+		return err
 	}
 
 	match := getMatch(matchIdInt)
@@ -585,7 +433,7 @@ func restartMatchHandler(c *fiber.Ctx) error {
 		return c.Status(400).SendString(fmt.Sprintf("Match %d not found", matchIdInt))
 	}
 
-	err := RestartMatch(db, matchIdInt)
+	err = RestartMatch(db, matchIdInt)
 	if err != nil {
 		return c.Status(400).SendString(err.Error())
 	}
@@ -676,7 +524,6 @@ func randomMatchHandler(c *fiber.Ctx) error {
 // TOURNAMENTS
 // /////////////////////////////////////////////////////////////////////////
 func postTournamentsHandler(c *fiber.Ctx) error {
-	playersQuery := c.Query("players")
 	tournamentTypeQuery := c.Query("type")
 
 	var allowedTournamentTypes = []string{"swiss", "round-robin"}
@@ -685,7 +532,7 @@ func postTournamentsHandler(c *fiber.Ctx) error {
 		return c.Status(400).SendString("The `type` query param value must be provided")
 	}
 
-	if playersQuery == "" {
+	if c.Query("players") == "" {
 		return c.Status(400).SendString("The `players` query param value must be provided")
 	}
 
@@ -693,9 +540,7 @@ func postTournamentsHandler(c *fiber.Ctx) error {
 		return c.Status(400).SendString(fmt.Sprintf("The `type` query param value must be one of the following: %v", allowedTournamentTypes))
 	}
 
-	playersList, _ := sliceAtoi(map2(strings.Split(playersQuery, ","), func(s string) string {
-		return strings.ReplaceAll(s, " ", "")
-	}))
+	playersList := parseIntIDList(c.Query("players"))
 
 	// if len(playersList) != 8 {
 	// 	return c.Status(400).SendString("The `players` query param value must be a comma-separated list of eight ints")
@@ -718,52 +563,26 @@ func postTournamentsHandler(c *fiber.Ctx) error {
 }
 
 func getTournamentsHandler(c *fiber.Ctx) error {
-	ids := c.Query("ids")
 	status := c.Query("status")
 	tournamentType := c.Query("type")
 	page, pageSize := parsePaginationParams(c)
 	sortField, sortDir := parseSortParams(c)
 
-	idList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
-		return strings.ReplaceAll(s, " ", "")
-	}))
+	idList := parseIntIDList(c.Query("ids"))
 
 	tournaments, totalCount := getTournamentsPaginated(idList, page, pageSize, status, tournamentType, sortField, sortDir)
 
-	response := PaginatedResponse{
-		Data:       tournaments,
-		Page:       page,
-		PageSize:   pageSize,
-		TotalCount: totalCount,
-		TotalPages: int(math.Ceil(float64(totalCount) / float64(pageSize))),
-	}
-
-	jsonTournaments, err := json.Marshal(response)
-
-	if err != nil {
-		log.Errorln(fmt.Sprintf("Error marshalling list of tournaments: %s", err))
-	}
-
-	return c.Status(200).SendString(string(jsonTournaments))
+	return sendPaginatedJSON(c, tournaments, page, pageSize, totalCount)
 }
 
 func startTournamentsHandler(c *fiber.Ctx) error {
-	tournamentId := c.Query("tournament_id")
-	tournamentIdInt, tournamentIdIntErr := strconv.Atoi(tournamentId)
-
-	if tournamentId == "" {
-		return c.Status(400).SendString("The `tournament_id` query param value must be provided")
+	tournamentIdInt, err := requireIntParam(c, "tournament_id")
+	if err != nil {
+		return err
 	}
-
-	if tournamentIdIntErr != nil {
-		return c.Status(400).SendString("`tournament_id` query parameter must be an integer")
-	}
-
-	var emptyTournament Tournament
 
 	tournament := getTournament(db, tournamentIdInt)
-
-	if compareTournaments(tournament, emptyTournament) {
+	if tournament.ID == 0 {
 		return c.Status(400).SendString("`tournament_id` query parameter must point to an existing Tournament")
 	}
 
@@ -782,22 +601,13 @@ func startTournamentsHandler(c *fiber.Ctx) error {
 }
 
 func deleteTournamentsHandler(c *fiber.Ctx) error {
-	tournamentId := c.Query("tournament_id")
-	tournamentIdInt, tournamentIdIntErr := strconv.Atoi(tournamentId)
-
-	if tournamentId == "" {
-		return c.Status(400).SendString("The `tournament_id` query param value must be provided")
+	tournamentIdInt, err := requireIntParam(c, "tournament_id")
+	if err != nil {
+		return err
 	}
-
-	if tournamentIdIntErr != nil {
-		return c.Status(400).SendString("`tournament_id` query parameter must be an integer")
-	}
-
-	var emptyTournament Tournament
 
 	tournament := getTournament(db, tournamentIdInt)
-
-	if compareTournaments(tournament, emptyTournament) {
+	if tournament.ID == 0 {
 		return c.Status(400).SendString("`tournament_id` query parameter must point to an existing Tournament")
 	}
 

@@ -32,6 +32,19 @@ var matchLock = &sync.Mutex{}
 // Add a dedicated mutex for match-game associations
 var matchGameLock = &sync.Mutex{}
 
+// matchPreloads applies the standard Games/Players/EloHistory preloads for match queries.
+func matchPreloads(q *gorm.DB) *gorm.DB {
+	return q.Preload("Games", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id").Order("games.id ASC")
+	}).
+		Preload("Players", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, elo, client_id")
+		}).
+		Preload("Players.EloHistory", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at DESC").Limit(100)
+		})
+}
+
 // matchCancelFuncs stores context.CancelFunc for each running match,
 // keyed by match ID. Used to stop running matches from the web UI.
 var matchCancelFuncs sync.Map
@@ -62,84 +75,29 @@ func addGameToMatch(db *gorm.DB, match Match, game Game) {
 }
 
 func updateMatchStatus(db *gorm.DB, match Match, status string) {
-	matchLock.Lock()
-	defer matchLock.Unlock()
-
-	var m Match
-
-	db.Where("id = ?", match.ID).First(&m)
-
-	m.Status = status
-
-	db.Save(&m)
+	updateEntityField[Match](db, matchLock, match.ID, func(m *Match) { m.Status = status })
 }
 
 func updateMatchDraw(db *gorm.DB, match Match, draw bool) {
-	matchLock.Lock()
-	defer matchLock.Unlock()
-
-	var m Match
-
-	db.Where("id = ?", match.ID).First(&m)
-
-	m.Draw = draw
-
-	db.Save(&m)
+	updateEntityField[Match](db, matchLock, match.ID, func(m *Match) { m.Draw = draw })
 }
 
-func updateMatchStartTime(db *gorm.DB, match Match, time time.Time) {
-	matchLock.Lock()
-	defer matchLock.Unlock()
-
-	var m Match
-
-	db.Where("id = ?", match.ID).First(&m)
-
-	m.StartTime = time
-
-	db.Save(&m)
+func updateMatchStartTime(db *gorm.DB, match Match, t time.Time) {
+	updateEntityField[Match](db, matchLock, match.ID, func(m *Match) { m.StartTime = t })
 }
 
-func updateMatchEndTime(db *gorm.DB, match Match, time time.Time) {
-	matchLock.Lock()
-	defer matchLock.Unlock()
-
-	var m Match
-
-	db.Where("id = ?", match.ID).First(&m)
-
-	m.EndTime = time
-
-	db.Save(&m)
+func updateMatchEndTime(db *gorm.DB, match Match, t time.Time) {
+	updateEntityField[Match](db, matchLock, match.ID, func(m *Match) { m.EndTime = t })
 }
 
 func getMatches(ids []int) []Match {
 	var matches []Match
 
+	q := matchPreloads(db)
 	if len(ids) > 0 {
-		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id").Order("games.id ASC")
-		}).
-			Preload("Players", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo, client_id")
-			}).
-			Preload("Players.EloHistory", func(db *gorm.DB) *gorm.DB {
-				return db.Order("created_at DESC").Limit(100)
-			}).
-			Where("id = ANY(?)", pq.Array(ids)).
-			Find(&matches)
-	} else {
-		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id").Order("games.id ASC")
-		}).
-			Preload("Players", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo, client_id")
-			}).
-			Preload("Players.EloHistory", func(db *gorm.DB) *gorm.DB {
-				return db.Order("created_at DESC").Limit(100)
-			}).
-			Find(&matches)
+		q = q.Where("id = ANY(?)", pq.Array(ids))
 	}
+	q.Find(&matches)
 
 	return matches
 }
@@ -158,16 +116,7 @@ func getMatchesPaginated(ids []int, page int, pageSize int, status string, sortF
 	}
 	query.Count(&totalCount)
 
-	preloaded := db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id").Order("games.id ASC")
-	}).
-		Preload("Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name, elo, client_id")
-		}).
-		Preload("Players.EloHistory", func(db *gorm.DB) *gorm.DB {
-			return db.Order("created_at DESC").Limit(100)
-		})
-
+	preloaded := matchPreloads(db)
 	if len(ids) > 0 {
 		preloaded = preloaded.Where("id = ANY(?)", pq.Array(ids))
 	}
@@ -185,57 +134,22 @@ func getMatchesWithPlayersPaginated(players []int, page int, pageSize int, statu
 	var totalCount int64
 	offset := (page - 1) * pageSize
 
+	countQuery := db.Model(&Match{})
+	dataQuery := matchPreloads(db)
+
 	if len(players) > 0 {
 		var matchIDs []int
 		db.Table("match_players").Where("player_id = ANY(?)", pq.Array(players)).Select("match_id").Find(&matchIDs)
-
-		countQuery := db.Model(&Match{}).Where("id = ANY(?)", pq.Array(matchIDs))
-		if status != "" {
-			countQuery = countQuery.Where("status = ?", status)
-		}
-		countQuery.Count(&totalCount)
-
-		dataQuery := db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id").Order("games.id ASC")
-		}).
-			Preload("Players", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo, client_id")
-			}).
-			Preload("Players.EloHistory", func(db *gorm.DB) *gorm.DB {
-				return db.Order("created_at DESC").Limit(100)
-			}).
-			Where("id = ANY(?)", pq.Array(matchIDs))
-
-		if status != "" {
-			dataQuery = dataQuery.Where("status = ?", status)
-		}
-
-		dataQuery.Order(fmt.Sprintf("%s %s", sortField, sortDir)).Offset(offset).Limit(pageSize).
-			Find(&matches)
-	} else {
-		countQuery := db.Model(&Match{})
-		if status != "" {
-			countQuery = countQuery.Where("status = ?", status)
-		}
-		countQuery.Count(&totalCount)
-
-		dataQuery := db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id").Order("games.id ASC")
-		}).
-			Preload("Players", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo, client_id")
-			}).
-			Preload("Players.EloHistory", func(db *gorm.DB) *gorm.DB {
-				return db.Order("created_at DESC").Limit(100)
-			})
-
-		if status != "" {
-			dataQuery = dataQuery.Where("status = ?", status)
-		}
-
-		dataQuery.Order(fmt.Sprintf("%s %s", sortField, sortDir)).Offset(offset).Limit(pageSize).
-			Find(&matches)
+		countQuery = countQuery.Where("id = ANY(?)", pq.Array(matchIDs))
+		dataQuery = dataQuery.Where("id = ANY(?)", pq.Array(matchIDs))
 	}
+	if status != "" {
+		countQuery = countQuery.Where("status = ?", status)
+		dataQuery = dataQuery.Where("status = ?", status)
+	}
+
+	countQuery.Count(&totalCount)
+	dataQuery.Order(fmt.Sprintf("%s %s", sortField, sortDir)).Offset(offset).Limit(pageSize).Find(&matches)
 
 	return matches, totalCount
 }
@@ -243,34 +157,13 @@ func getMatchesWithPlayersPaginated(players []int, page int, pageSize int, statu
 func getMatchesWithPlayers(players []int) []Match {
 	var matches []Match
 
+	q := matchPreloads(db)
 	if len(players) > 0 {
 		var matchesWithPlayers []int
-
 		db.Table("match_players").Where("player_id = ANY(?)", pq.Array(players)).Select("match_id").Find(&matchesWithPlayers)
-
-		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id").Order("games.id ASC")
-		}).
-			Preload("Players", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo, client_id")
-			}).
-			Preload("Players.EloHistory", func(db *gorm.DB) *gorm.DB {
-				return db.Order("created_at DESC").Limit(100)
-			}).
-			Where("id = ANY(?)", pq.Array(matchesWithPlayers)).
-			Find(&matches)
-	} else {
-		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id").Order("games.id ASC")
-		}).
-			Preload("Players", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo, client_id")
-			}).
-			Preload("Players.EloHistory", func(db *gorm.DB) *gorm.DB {
-				return db.Order("created_at DESC").Limit(100)
-			}).
-			Find(&matches)
+		q = q.Where("id = ANY(?)", pq.Array(matchesWithPlayers))
 	}
+	q.Find(&matches)
 
 	return matches
 }
@@ -548,13 +441,6 @@ func cleanUpMatchDirectory(match Match) {
 	}
 }
 
-func compareMatches(matchOne Match, matchTwo Match) bool {
-	return matchOne.ID == matchTwo.ID &&
-		matchOne.CreatedAt == matchTwo.CreatedAt &&
-		matchOne.UpdatedAt == matchTwo.UpdatedAt &&
-		matchOne.DeletedAt == matchTwo.DeletedAt
-}
-
 func getPlayerWithMostWins(match Match) (Player, bool) {
 	if len(match.Players) < 2 {
 		log.Errorf("Cannot determine winner for match %d: expected 2 players but found %d", match.ID, len(match.Players))
@@ -593,28 +479,30 @@ func getPlayerWithMostWins(match Match) (Player, bool) {
 }
 
 // CheckAndUpdateMatchStatus checks if all games in a match are in a final state (Complete, Error, Canceled)
-// and updates the match status to Complete if necessary
+// and updates the match status to Complete if necessary.
+// When notifyTournaments is true, it logs tournament progression notifications.
 func CheckAndUpdateMatchStatus(db *gorm.DB, matchID int) {
-	// Get a fresh copy of the match with all games loaded
+	checkAndFinalizeMatch(db, matchID, true)
+}
+
+// updateMatchStatusOnly updates match status without trying to notify tournaments.
+// Used to avoid deadlocks during tournament progression.
+func updateMatchStatusOnly(db *gorm.DB, matchID int) {
+	checkAndFinalizeMatch(db, matchID, false)
+}
+
+func checkAndFinalizeMatch(db *gorm.DB, matchID int, notifyTournaments bool) {
 	match := getMatch(matchID)
 	if match.ID == 0 {
-		log.Warningf("Match ID %d not found in CheckAndUpdateMatchStatus", matchID)
+		log.Warningf("Match ID %d not found in checkAndFinalizeMatch", matchID)
 		return
 	}
 
-	if match.Status == "Complete" {
+	if match.Status == "Complete" || match.Status != "In Progress" {
 		return
 	}
-
-	// If the match isn't in progress yet, there's nothing to check
-	if match.Status != "In Progress" {
-		return
-	}
-
-	allGamesComplete := true
 
 	if len(match.Games) < match.NumGames {
-		// Not all games have been created yet
 		log.Debugf("Match %d has only %d/%d games, not all created yet",
 			matchID, len(match.Games), match.NumGames)
 		return
@@ -622,48 +510,43 @@ func CheckAndUpdateMatchStatus(db *gorm.DB, matchID int) {
 
 	for _, game := range match.Games {
 		if game.Status != "Complete" && game.Status != "Error" && game.Status != "Canceled" {
-			allGamesComplete = false
 			log.Debugf("Match %d has game %d with status %s, waiting for completion",
 				matchID, game.ID, game.Status)
-			break
+			return
 		}
 	}
 
-	if allGamesComplete {
-		log.Infof("Match %d has all games complete. Updating match status to Complete.", matchID)
+	log.Infof("Match %d has all games complete. Updating match status to Complete.", matchID)
 
-		// Calculate if it's a draw
-		player1Wins := 0
-		player2Wins := 0
+	// Calculate if it's a draw
+	player1Wins := 0
+	player2Wins := 0
 
-		if len(match.Players) >= 2 && len(match.Games) > 0 {
-			for _, game := range match.Games {
-				// Include both Complete and Canceled games in win counting
-				if (game.Status == "Complete" || game.Status == "Canceled") && !game.Draw {
-					if game.Winner != nil && game.Winner.ID == match.Players[0].ID {
-						player1Wins++
-					} else if game.Winner != nil && game.Winner.ID == match.Players[1].ID {
-						player2Wins++
-					}
+	if len(match.Players) >= 2 && len(match.Games) > 0 {
+		for _, game := range match.Games {
+			if (game.Status == "Complete" || game.Status == "Canceled") && !game.Draw {
+				if game.Winner != nil && game.Winner.ID == match.Players[0].ID {
+					player1Wins++
+				} else if game.Winner != nil && game.Winner.ID == match.Players[1].ID {
+					player2Wins++
 				}
 			}
-
-			// Update draw status
-			if player1Wins == player2Wins {
-				updateMatchDraw(db, match, true)
-			}
 		}
 
-		updateMatchStatus(db, match, "Complete")
-		if match.EndTime.IsZero() {
-			updateMatchEndTime(db, match, time.Now())
+		if player1Wins == player2Wins {
+			updateMatchDraw(db, match, true)
 		}
+	}
 
-		// Important: Notify any tournament this match belongs to that it might need to progress
+	updateMatchStatus(db, match, "Complete")
+	if match.EndTime.IsZero() {
+		updateMatchEndTime(db, match, time.Now())
+	}
+
+	if notifyTournaments {
 		var tournamentMatches []struct {
 			TournamentID uint
 		}
-
 		db.Table("tournament_matches").
 			Where("match_id = ?", match.ID).
 			Select("tournament_id").
@@ -673,78 +556,6 @@ func CheckAndUpdateMatchStatus(db *gorm.DB, matchID int) {
 			log.Infof("Match %d completed, notifying tournament %d to check for progression",
 				match.ID, tm.TournamentID)
 		}
-	}
-}
-
-// updateMatchStatusOnly updates match status without trying to notify tournaments
-// Used to avoid deadlocks during tournament progression
-func updateMatchStatusOnly(db *gorm.DB, matchID int) {
-	match := getMatch(matchID)
-	if match.ID == 0 {
-		log.Warningf("Match ID %d not found in updateMatchStatusOnly", matchID)
-		return
-	}
-
-	if match.Status == "Complete" {
-		return
-	}
-
-	if match.Status != "In Progress" {
-		return
-	}
-
-	allGamesComplete := true
-
-	if len(match.Games) < match.NumGames {
-		// Not all games have been created yet
-		log.Debugf("Match %d has only %d/%d games, not all created yet",
-			matchID, len(match.Games), match.NumGames)
-		return
-	}
-
-	// Then check each game's status
-	for _, game := range match.Games {
-		if game.Status != "Complete" && game.Status != "Error" && game.Status != "Canceled" {
-			allGamesComplete = false
-			log.Debugf("Match %d has game %d with status %s, waiting for completion",
-				matchID, game.ID, game.Status)
-			break
-		}
-	}
-
-	if allGamesComplete {
-		log.Infof("Match %d has all games complete. Updating match status to Complete (no tournament notification).", matchID)
-
-		// Calculate if it's a draw
-		player1Wins := 0
-		player2Wins := 0
-
-		if len(match.Players) >= 2 && len(match.Games) > 0 {
-			for _, game := range match.Games {
-				// Include both Complete and Canceled games in win counting
-				if (game.Status == "Complete" || game.Status == "Canceled") && !game.Draw {
-					if game.Winner != nil && game.Winner.ID == match.Players[0].ID {
-						player1Wins++
-					} else if game.Winner != nil && game.Winner.ID == match.Players[1].ID {
-						player2Wins++
-					}
-				}
-			}
-
-			// Update draw status
-			if player1Wins == player2Wins {
-				updateMatchDraw(db, match, true)
-			}
-		}
-
-		// Mark the match complete and set end time if not already set
-		updateMatchStatus(db, match, "Complete")
-		if match.EndTime.IsZero() {
-			updateMatchEndTime(db, match, time.Now())
-		}
-
-		// Important: We DO NOT notify tournaments here, as this function is used
-		// specifically to avoid circular dependencies during tournament progression
 	}
 }
 

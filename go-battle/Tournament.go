@@ -63,6 +63,33 @@ type TournamentPlayer struct {
 
 var tournamentLock = &sync.Mutex{}
 
+// tournamentPreloads applies the standard preloads for tournament list queries.
+func tournamentPreloads(q *gorm.DB) *gorm.DB {
+	return q.Preload("Games", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
+	}).
+		Preload("Games.Winner", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name")
+		}).
+		Preload("Games.Loser", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name")
+		}).
+		Preload("Players", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, elo, client_id")
+		}).
+		Preload("Players.Client").
+		Preload("Matches").
+		Preload("Matches.Games", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
+		}).
+		Preload("Matches.Players", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, elo, client_id")
+		}).
+		Preload("Matches.Players.EloHistory", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at DESC").Limit(100)
+		})
+}
+
 func insertTournament(db *gorm.DB, tournament *Tournament) {
 	tournamentLock.Lock()
 	defer tournamentLock.Unlock()
@@ -109,30 +136,7 @@ func getTournamentsPaginated(ids []int, page int, pageSize int, status string, t
 	}
 	query.Count(&totalCount)
 
-	preloaded := db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
-	}).
-		Preload("Games.Winner", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name")
-		}).
-		Preload("Games.Loser", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name")
-		}).
-		Preload("Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name, elo, client_id")
-		}).
-		Preload("Players.Client").
-		Preload("Matches").
-		Preload("Matches.Games", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
-		}).
-		Preload("Matches.Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name, elo, client_id")
-		}).
-		Preload("Matches.Players.EloHistory", func(db *gorm.DB) *gorm.DB {
-			return db.Order("created_at DESC").Limit(100)
-		})
-
+	preloaded := tournamentPreloads(db)
 	if len(ids) > 0 {
 		preloaded = preloaded.Where("id = ANY(?)", pq.Array(ids))
 	}
@@ -151,58 +155,11 @@ func getTournamentsPaginated(ids []int, page int, pageSize int, status string, t
 func getTournaments(ids []int) []Tournament {
 	var tournaments []Tournament
 
+	q := tournamentPreloads(db)
 	if len(ids) > 0 {
-		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
-		}).
-			Preload("Games.Winner", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name")
-			}).
-			Preload("Games.Loser", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name")
-			}).
-			Preload("Players", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo, client_id")
-			}).
-			Preload("Players.Client").
-			Preload("Matches").
-			Preload("Matches.Games", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
-			}).
-			Preload("Matches.Players", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo, client_id")
-			}).
-			Preload("Matches.Players.EloHistory", func(db *gorm.DB) *gorm.DB {
-				return db.Order("created_at DESC").Limit(100)
-			}).
-			Where("id = ANY(?)", pq.Array(ids)).
-			Find(&tournaments)
-	} else {
-		db.Preload("Games", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
-		}).
-			Preload("Games.Winner", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name")
-			}).
-			Preload("Games.Loser", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name")
-			}).
-			Preload("Players", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo, client_id")
-			}).
-			Preload("Players.Client").
-			Preload("Matches").
-			Preload("Matches.Games", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, created_at, updated_at, deleted_at, winner_id, loser_id, draw, status, match_id")
-			}).
-			Preload("Matches.Players", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo, client_id")
-			}).
-			Preload("Matches.Players.EloHistory", func(db *gorm.DB) *gorm.DB {
-				return db.Order("created_at DESC").Limit(100)
-			}).
-			Find(&tournaments)
+		q = q.Where("id = ANY(?)", pq.Array(ids))
 	}
+	q.Find(&tournaments)
 
 	return tournaments
 }
@@ -269,57 +226,23 @@ func addGameToTournament(db *gorm.DB, game Game, tournament Tournament) {
 }
 
 func updateTournamentStatus(db *gorm.DB, tournament Tournament, status string) {
-	tournamentLock.Lock()
-	defer tournamentLock.Unlock()
-
-	var t Tournament
-
-	db.Where("id = ?", tournament.ID).First(&t)
-
-	t.Status = status
-
-	db.Save(&t)
+	updateEntityField[Tournament](db, tournamentLock, tournament.ID, func(t *Tournament) { t.Status = status })
 }
 
 func updateTournamentEndTime(db *gorm.DB, tournament Tournament, date time.Time) {
-	tournamentLock.Lock()
-	defer tournamentLock.Unlock()
-
-	var t Tournament
-
-	db.Where("id = ?", tournament.ID).First(&t)
-
-	t.EndTime = date
-
-	db.Save(&t)
+	updateEntityField[Tournament](db, tournamentLock, tournament.ID, func(t *Tournament) { t.EndTime = date })
 }
 
 func updateTournamentStartTime(db *gorm.DB, tournament Tournament, date time.Time) {
-	tournamentLock.Lock()
-	defer tournamentLock.Unlock()
-
-	var t Tournament
-
-	db.Where("id = ?", tournament.ID).First(&t)
-
-	t.StartTime = date
-
-	db.Save(&t)
+	updateEntityField[Tournament](db, tournamentLock, tournament.ID, func(t *Tournament) { t.StartTime = date })
 }
 
 func updateTournamentWinner(db *gorm.DB, tournament Tournament, winner *Player) {
-	tournamentLock.Lock()
-	defer tournamentLock.Unlock()
-
-	var t Tournament
-
-	db.Where("id = ?", tournament.ID).First(&t)
-
-	winnerID := int(winner.ID)
-	t.WinnerID = &winnerID
-	t.Winner = winner
-
-	db.Save(&t)
+	updateEntityField[Tournament](db, tournamentLock, tournament.ID, func(t *Tournament) {
+		winnerID := int(winner.ID)
+		t.WinnerID = &winnerID
+		t.Winner = winner
+	})
 }
 
 func BuildTournamentPlayers(players []Player) []*TournamentPlayer {
@@ -651,13 +574,6 @@ func ProgressTournament(db *gorm.DB, tournamentID int) {
 		updateTournamentStatus(db, tournament, "Completed")
 		updateTournamentEndTime(db, tournament, time.Now())
 	}
-}
-
-func compareTournaments(tournamentOne Tournament, tournamentTwo Tournament) bool {
-	return tournamentOne.ID == tournamentTwo.ID &&
-		tournamentOne.CreatedAt == tournamentTwo.CreatedAt &&
-		tournamentOne.UpdatedAt == tournamentTwo.UpdatedAt &&
-		tournamentOne.DeletedAt == tournamentTwo.DeletedAt
 }
 
 // buildTournamentPlayersFromResults builds TournamentPlayer records from actual match results

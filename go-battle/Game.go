@@ -100,37 +100,29 @@ func isDrawReason(reason string) bool {
 	return false
 }
 
+// gamePreloads applies the standard Player/Winner/Loser preloads for game queries.
+func gamePreloads(q *gorm.DB) *gorm.DB {
+	return q.Preload("Players", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, name, elo")
+	}).
+		Preload("Winner", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, elo")
+		}).
+		Preload("Loser", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, elo")
+		})
+}
+
 func getGamesWithPlayers(players []int) []Game {
 	var games []Game
 
+	q := gamePreloads(db)
 	if len(players) > 0 {
 		var gamesWithPlayers []int
-
 		db.Table("game_players").Where("player_id = ANY(?)", pq.Array(players)).Select("game_id").Find(&gamesWithPlayers)
-
-		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name, elo")
-		}).
-			Preload("Winner", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo")
-			}).
-			Preload("Loser", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo")
-			}).
-			Where("id = ANY(?)", pq.Array(gamesWithPlayers)).
-			Find(&games)
-	} else {
-		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name, elo")
-		}).
-			Preload("Winner", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo")
-			}).
-			Preload("Loser", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo")
-			}).
-			Find(&games)
+		q = q.Where("id = ANY(?)", pq.Array(gamesWithPlayers))
 	}
+	q.Find(&games)
 
 	return games
 }
@@ -149,16 +141,7 @@ func getGamesByIdPaginated(ids []int, page int, pageSize int, status string, sor
 	}
 	query.Count(&totalCount)
 
-	preloaded := db.Preload("Players", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, name, elo")
-	}).
-		Preload("Winner", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name, elo")
-		}).
-		Preload("Loser", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name, elo")
-		})
-
+	preloaded := gamePreloads(db)
 	if len(ids) > 0 {
 		preloaded = preloaded.Where("id = ANY(?)", pq.Array(ids))
 	}
@@ -176,57 +159,22 @@ func getGamesWithPlayersPaginated(players []int, page int, pageSize int, status 
 	var totalCount int64
 	offset := (page - 1) * pageSize
 
+	countQuery := db.Model(&Game{})
+	dataQuery := gamePreloads(db)
+
 	if len(players) > 0 {
 		var gameIDs []int
 		db.Table("game_players").Where("player_id = ANY(?)", pq.Array(players)).Select("game_id").Find(&gameIDs)
-
-		countQuery := db.Model(&Game{}).Where("id = ANY(?)", pq.Array(gameIDs))
-		if status != "" {
-			countQuery = countQuery.Where("status = ?", status)
-		}
-		countQuery.Count(&totalCount)
-
-		dataQuery := db.Preload("Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name, elo")
-		}).
-			Preload("Winner", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo")
-			}).
-			Preload("Loser", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo")
-			}).
-			Where("id = ANY(?)", pq.Array(gameIDs))
-
-		if status != "" {
-			dataQuery = dataQuery.Where("status = ?", status)
-		}
-
-		dataQuery.Order(fmt.Sprintf("%s %s", sortField, sortDir)).Offset(offset).Limit(pageSize).
-			Find(&games)
-	} else {
-		countQuery := db.Model(&Game{})
-		if status != "" {
-			countQuery = countQuery.Where("status = ?", status)
-		}
-		countQuery.Count(&totalCount)
-
-		dataQuery := db.Preload("Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name, elo")
-		}).
-			Preload("Winner", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo")
-			}).
-			Preload("Loser", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo")
-			})
-
-		if status != "" {
-			dataQuery = dataQuery.Where("status = ?", status)
-		}
-
-		dataQuery.Order(fmt.Sprintf("%s %s", sortField, sortDir)).Offset(offset).Limit(pageSize).
-			Find(&games)
+		countQuery = countQuery.Where("id = ANY(?)", pq.Array(gameIDs))
+		dataQuery = dataQuery.Where("id = ANY(?)", pq.Array(gameIDs))
 	}
+	if status != "" {
+		countQuery = countQuery.Where("status = ?", status)
+		dataQuery = dataQuery.Where("status = ?", status)
+	}
+
+	countQuery.Count(&totalCount)
+	dataQuery.Order(fmt.Sprintf("%s %s", sortField, sortDir)).Offset(offset).Limit(pageSize).Find(&games)
 
 	return games, totalCount
 }
@@ -234,30 +182,11 @@ func getGamesWithPlayersPaginated(players []int, page int, pageSize int, status 
 func getGamesById(ids []int) []Game {
 	var games []Game
 
+	q := gamePreloads(db)
 	if len(ids) > 0 {
-		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name, elo")
-		}).
-			Preload("Winner", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo")
-			}).
-			Preload("Loser", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo")
-			}).
-			Where("id = ANY(?)", pq.Array(ids)).
-			Find(&games)
-	} else {
-		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, name, elo")
-		}).
-			Preload("Winner", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo")
-			}).
-			Preload("Loser", func(db *gorm.DB) *gorm.DB {
-				return db.Select("id, name, elo")
-			}).
-			Find(&games)
+		q = q.Where("id = ANY(?)", pq.Array(ids))
 	}
+	q.Find(&games)
 
 	return games
 }
@@ -276,81 +205,27 @@ func insertGame(db *gorm.DB, game *Game) {
 }
 
 func setGamelogUrl(db *gorm.DB, game Game, gamelogUrl string) {
-	gameLock.Lock()
-	defer gameLock.Unlock()
-
-	var g Game
-
-	db.Where("id = ?", game.ID).First(&g)
-
-	g.GamelogUrl = gamelogUrl
-
-	db.Save(&g)
+	updateEntityField[Game](db, gameLock, game.ID, func(g *Game) { g.GamelogUrl = gamelogUrl })
 }
 
 func setGameWinner(db *gorm.DB, game Game, winner Player) {
-	gameLock.Lock()
-	defer gameLock.Unlock()
-
-	var g Game
-
-	db.Where("id = ?", game.ID).First(&g)
-
-	g.Winner = &winner
-
-	db.Save(&g)
+	updateEntityField[Game](db, gameLock, game.ID, func(g *Game) { g.Winner = &winner })
 }
 
 func setGameLoser(db *gorm.DB, game Game, loser Player) {
-	gameLock.Lock()
-	defer gameLock.Unlock()
-
-	var g Game
-
-	db.Where("id = ?", game.ID).First(&g)
-
-	g.Loser = &loser
-
-	db.Save(&g)
+	updateEntityField[Game](db, gameLock, game.ID, func(g *Game) { g.Loser = &loser })
 }
 
 func updateGameDraw(db *gorm.DB, game Game, draw bool) {
-	gameLock.Lock()
-	defer gameLock.Unlock()
-
-	var g Game
-
-	db.Where("id = ?", game.ID).First(&g)
-
-	g.Draw = draw
-
-	db.Save(&g)
+	updateEntityField[Game](db, gameLock, game.ID, func(g *Game) { g.Draw = draw })
 }
 
 func updateGameStatus(db *gorm.DB, game Game, status string) {
-	var g Game
-
-	gameLock.Lock()
-	defer gameLock.Unlock()
-
-	db.Where("id = ?", game.ID).First(&g)
-
-	g.Status = status
-
-	db.Save(&g)
+	updateEntityField[Game](db, gameLock, game.ID, func(g *Game) { g.Status = status })
 }
 
 func updateGameErrorMessage(db *gorm.DB, game Game, errorMessage string) {
-	var g Game
-
-	gameLock.Lock()
-	defer gameLock.Unlock()
-
-	db.Where("id = ?", game.ID).First(&g)
-
-	g.ErrorMessage = errorMessage
-
-	db.Save(&g)
+	updateEntityField[Game](db, gameLock, game.ID, func(g *Game) { g.ErrorMessage = errorMessage })
 }
 
 func (g Game) PlayGame(ctx context.Context, gameSession int) bool {
