@@ -8,10 +8,7 @@ import range from 'lodash/range';
  * Falls back to the env var value when running on localhost.
  */
 export const getServiceUrl = (envVar: string | undefined, defaultPort: number): string => {
-    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        return `http://${window.location.hostname}:${defaultPort}`;
-    }
-    return envVar || `http://localhost:${defaultPort}`;
+    return envVar || `http://${window.location.hostname}:${defaultPort}`;
 };
 
 export const getApiUrl = () => getServiceUrl(process.env.REACT_APP_API_URL, 3000);
