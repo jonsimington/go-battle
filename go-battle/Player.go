@@ -99,6 +99,12 @@ func updatePlayerElo(db *gorm.DB, player Player, elo int) {
 	playerLock.Lock()
 	defer playerLock.Unlock()
 
+	updatePlayerEloLocked(db, player, elo)
+}
+
+// updatePlayerEloLocked is the inner implementation of updatePlayerElo.
+// The caller must already hold playerLock.
+func updatePlayerEloLocked(db *gorm.DB, player Player, elo int) {
 	var p Player
 
 	// Use First instead of Find, and check for errors

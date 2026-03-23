@@ -681,10 +681,26 @@ func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir stri
 }
 
 func handleEloChanges(player1 Player, player2 Player, winner *Player, draw bool) {
+	// Hold the playerLock for the entire read-calculate-write sequence to
+	// prevent concurrent games from reading the same stale Elo and
+	// overwriting each other's results.
+	playerLock.Lock()
+	defer playerLock.Unlock()
+
+	// Fetch fresh Elo values from the database so calculations aren't based
+	// on stale values from when the game/match was first loaded.
+	var freshP1, freshP2 Player
+	db.First(&freshP1, player1.ID)
+	db.First(&freshP2, player2.ID)
+
+	player1.Elo = freshP1.Elo
+	player2.Elo = freshP2.Elo
+
 	outcomeA, outcomeB := calculateEloOutcomes(player1, player2, winner, draw)
 
-	updatePlayerElo(db, player1, outcomeA.Rating)
-	updatePlayerElo(db, player2, outcomeB.Rating)
+	// Use the lock-free variant since we already hold playerLock.
+	updatePlayerEloLocked(db, player1, outcomeA.Rating)
+	updatePlayerEloLocked(db, player2, outcomeB.Rating)
 }
 
 func makeClient(playerDir string, playerLanguage string) error {
