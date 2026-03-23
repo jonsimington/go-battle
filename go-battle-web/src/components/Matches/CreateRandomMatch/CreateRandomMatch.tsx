@@ -2,48 +2,24 @@ import React, { FC, useState } from 'react';
 import { Alert } from 'react-bootstrap';
 import { FaDice } from 'react-icons/fa6';
 import { getApiUrl } from '../../../utils/utils';
+import { useApiResponse } from '../../../hooks/useApiResponse';
 import '../../shared/CreateForm.css';
 
 interface CreateRandomMatchProps {}
 
 const CreateRandomMatch: FC<CreateRandomMatchProps> = () => {
     const [numGamesValue, setNumGamesValue] = useState('1');
-    
-    const [hasError, setHasError] = useState(false);
-    const [hasWarning, setHasWarning] = useState(false);
-    const [hasApiResponse, setHasApiResponse] = useState(false);
-    const [alertText, setAlertText] = useState('');
-
-    const apiUrl = getApiUrl();
+    const api = useApiResponse();
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
+        const apiUrl = getApiUrl();
 
-        const requestOptions = {
+        fetch(`${apiUrl}/matches/random?num_games=${encodeURI(numGamesValue)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-        };
-
-        const numGames = encodeURI(numGamesValue);
-
-        fetch(`${apiUrl}/matches/random?num_games=${numGames}`, requestOptions)
-            .then(async response => {
-                setHasApiResponse(true);
-                const responseText = await response.text();
-                setAlertText(`HTTP ${response.status}: ${responseText}`);
-                
-                if (response.ok) {
-                    setHasWarning(false);
-                    setHasError(false);
-                } else if (response.status === 400) {
-                    setHasWarning(true);
-                } else if (response.status === 500) {
-                    setHasError(true);
-                }
-            })
+        }).then(response => api.handleResponse(response));
     }
-
-    const alertVariant = hasError ? 'danger' : hasWarning ? 'warning' : 'success';
 
     return (
         <div className="create-page">
@@ -71,9 +47,9 @@ const CreateRandomMatch: FC<CreateRandomMatchProps> = () => {
                     </button>
                 </div>
 
-                {hasApiResponse && (
-                    <Alert variant={alertVariant} className="create-card__alert">
-                        {alertText}
+                {api.showResponse && (
+                    <Alert variant={api.alertVariant} className="create-card__alert">
+                        {api.alertText}
                     </Alert>
                 )}
             </form>

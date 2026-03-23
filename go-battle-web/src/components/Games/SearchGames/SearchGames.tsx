@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Toast } from 'react-bootstrap';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
 import { delay, getApiUrl, getVisUrl, pluck } from '../../../utils/utils';
@@ -7,28 +6,22 @@ import { FaTv, FaTrash, FaCircleStop, FaArrowRotateRight, FaSpinner } from 'reac
 import TimeAgo from 'timeago-react';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../../Common/Modal';
+import { ApiToast } from '../../Common/ApiToast';
 import EloBadge from '../../Common/ELO/ELOBadge';
-import styles from './SearchGames.module.css';
+import { useApiResponse } from '../../../hooks/useApiResponse';
+import { useConfirmDelete } from '../../../hooks/useConfirmDelete';
+import s from '../../shared/SearchTable.module.css';
 
 interface SearchGamesProps {
     tableData: any[]
     refreshData: Function
 }
 
-const toastStyles = {
-    maxWidth: "95%",
-    minWidth: "75%"
-}
-
 export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.Element {
-    const [gameToDelete, setGameToDelete] = useState<number | null>(null);
     const [gamesStopping, setGamesStopping] = useState<number[]>([]);
     const [gamesRestarting, setGamesRestarting] = useState<number[]>([]);
-    const [hasError, setHasError] = useState(false);
-    const [hasWarning, setHasWarning] = useState(false);
-    const [showToast, setShowToast] = useState(false);
-    const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
-    const [alertText, setAlertText] = useState('');
+    const api = useApiResponse();
+    const del = useConfirmDelete<number>();
 
     const visUrl = getVisUrl();
     const navigate = useNavigate();
@@ -44,17 +37,17 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             title: "Players",
             width: 200,
             render: (_, { players, winner, loser, draw }) => {
-                if (!players || players.length === 0) return <span className={styles.muted}>—</span>;
+                if (!players || players.length === 0) return <span className={s.muted}>—</span>;
                 const playerIds = players.map(pluck('ID')).join(', ');
 
                 return (
-                    <div className={styles.playerList}>
+                    <div className={s.playerList}>
                         {players.map((p: any) => {
                             const isWinner = !draw && winner && winner.ID === p.ID;
                             const isLoser = !draw && loser && loser.ID === p.ID;
-                            const colorClass = draw ? styles.playerDraw
-                                : isWinner ? styles.playerWinner
-                                : isLoser ? styles.playerLoser
+                            const colorClass = draw ? s.playerDraw
+                                : isWinner ? s.playerWinner
+                                : isLoser ? s.playerLoser
                                 : '';
                             const label = draw ? 'draw'
                                 : isWinner ? 'W'
@@ -64,12 +57,12 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                             return (
                                 <span
                                     key={p.ID}
-                                    className={`${styles.playerName} ${colorClass}`}
+                                    className={`${s.playerEntry} ${colorClass}`}
                                     onClick={() => navigate(`/players/search?ids=${encodeURI(playerIds)}`)}
                                 >
                                     {p.name}
                                     <EloBadge elo={p.elo} eloHistory={p.elo_history} />
-                                    {label && <span className={styles.resultTag}>{label}</span>}
+                                    {label && <span className={s.resultTag}>{label}</span>}
                                 </span>
                             );
                         })}
@@ -83,10 +76,10 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             width: 80,
             render: (_, { match, match_id }) => {
                 const id = match_id || match?.ID;
-                if (!id) return <span className={styles.muted}>—</span>;
+                if (!id) return <span className={s.muted}>—</span>;
                 return (
                     <span
-                        className={styles.countLink}
+                        className={s.countLink}
                         onClick={() => navigate(`/matches/search?ids=${encodeURI(id.toString())}`)}>
                         #{id}
                     </span>
@@ -100,16 +93,16 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             render: (_, { status, error_message }) => {
                 if (status === "Error" || error_message) {
                     return (
-                        <span className={`${styles.status} ${styles.statusError}`} title={error_message || "An error occurred"}>
+                        <span className={`${s.status} ${s.statusError}`} title={error_message || "An error occurred"}>
                             {status}
                         </span>
                     );
                 }
-                const statusClass = status === "Complete" ? styles.statusComplete
-                    : status === "In Progress" ? styles.statusInProgress
-                    : status === "Canceled" ? styles.statusCanceled
-                    : styles.statusPending;
-                return <span className={`${styles.status} ${statusClass}`}>{status || "Unknown"}</span>;
+                const statusClass = status === "Complete" ? s.statusComplete
+                    : status === "In Progress" ? s.statusInProgress
+                    : status === "Canceled" ? s.statusCanceled
+                    : s.statusPending;
+                return <span className={`${s.status} ${statusClass}`}>{status || "Unknown"}</span>;
             }
         },
         {
@@ -117,7 +110,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             title: "Created",
             width: 120,
             render: (_, { CreatedAt }) => {
-                return <TimeAgo datetime={CreatedAt} className={styles.timeAgo} />;
+                return <TimeAgo datetime={CreatedAt} className={s.timeAgo} />;
             }
         },
         {
@@ -129,10 +122,10 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                 const isRestarting = gamesRestarting.includes(ID);
 
                 return (
-                    <div className={styles.actions}>
+                    <div className={s.actions}>
                         {gamelog_url && gamelog_url !== "" ? (
                             <a
-                                className={styles.actionBtn}
+                                className={s.actionBtn}
                                 href={`${visUrl}/?log=${encodeURI(gamelog_url)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -140,39 +133,39 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                                 <FaTv />
                             </a>
                         ) : (
-                            <span className={`${styles.actionBtn} ${styles.actionDisabled}`} title="No gamelog">
+                            <span className={`${s.actionBtn} ${s.actionDisabled}`} title="No gamelog">
                                 <FaTv />
                             </span>
                         )}
                         {status === "In Progress" && !isStopping && (
                             <button
-                                className={`${styles.actionBtn} ${styles.actionStop}`}
+                                className={`${s.actionBtn} ${s.actionStop}`}
                                 onClick={() => stopGame(ID)}
                                 title="Stop game">
                                 <FaCircleStop />
                             </button>
                         )}
                         {isStopping && (
-                            <span className={styles.spinning} title="Stopping...">
+                            <span className={s.spinning} title="Stopping...">
                                 <FaSpinner className="icon-spin" />
                             </span>
                         )}
                         {(status === "Complete" || status === "Error" || status === "Canceled") && !isRestarting && (
                             <button
-                                className={`${styles.actionBtn} ${styles.actionRestart}`}
+                                className={`${s.actionBtn} ${s.actionRestart}`}
                                 onClick={() => restartGame(ID)}
                                 title="Restart game">
                                 <FaArrowRotateRight />
                             </button>
                         )}
                         {isRestarting && (
-                            <span className={styles.spinning} title="Restarting...">
+                            <span className={s.spinning} title="Restarting...">
                                 <FaSpinner className="icon-spin" />
                             </span>
                         )}
                         <button
-                            className={`${styles.actionBtn} ${styles.actionDelete}`}
-                            onClick={() => confirmDeleteGame(ID)}
+                            className={`${s.actionBtn} ${s.actionDelete}`}
+                            onClick={() => del.confirmDelete(ID)}
                             title="Delete game">
                             <FaTrash />
                         </button>
@@ -182,133 +175,60 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
         },
     ];
 
-    const handleFetchResponse = async (response: Response) => {
-        setShowToast(true);
-        const responseText = await response.text();
-        setAlertText(`HTTP ${response.status}: ${responseText}`);
-
-        if (response.ok) {
-            setHasWarning(false);
-            setHasError(false);
-        } else if (response.status === 400) {
-            setHasWarning(true);
-        } else if (response.status === 500) {
-            console.error(response.text);
-            setHasError(true);
-            return Promise.reject();
-        }
-    }
-
-    const confirmDeleteGame = (gameID: number) => {
-        setGameToDelete(gameID);
-        setShowConfirmDeleteModal(true);
-    }
-
     const stopGame = (gameID: number) => {
         setGamesStopping(prev => [...prev, gameID]);
-
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-        };
-
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/games/stop?game_id=${gameID}`, requestOptions)
-            .then(async response => handleFetchResponse(response))
-            .then(async () => {
-                await delay(1000);
-            })
-            .then(() => {
-                refreshData();
-                setGamesStopping(prev => prev.filter((gID) => gID !== gameID));
-            })
-            .catch(() => {
-                setGamesStopping(prev => prev.filter((gID) => gID !== gameID));
-            });
+        fetch(`${apiUrl}/games/stop?game_id=${gameID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(response => api.handleResponse(response))
+            .then(() => delay(1000))
+            .then(() => { refreshData(); setGamesStopping(prev => prev.filter(id => id !== gameID)); })
+            .catch(() => { setGamesStopping(prev => prev.filter(id => id !== gameID)); });
     }
 
     const restartGame = (gameID: number) => {
         setGamesRestarting(prev => [...prev, gameID]);
-
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-        };
-
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/games/restart?game_id=${gameID}`, requestOptions)
-            .then(async response => handleFetchResponse(response))
-            .then(async () => {
-                await delay(1000);
-            })
-            .then(() => {
-                refreshData();
-                setGamesRestarting(prev => prev.filter((gID) => gID !== gameID));
-            })
-            .catch(() => {
-                setGamesRestarting(prev => prev.filter((gID) => gID !== gameID));
-            });
+        fetch(`${apiUrl}/games/restart?game_id=${gameID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(response => api.handleResponse(response))
+            .then(() => delay(1000))
+            .then(() => { refreshData(); setGamesRestarting(prev => prev.filter(id => id !== gameID)); })
+            .catch(() => { setGamesRestarting(prev => prev.filter(id => id !== gameID)); });
     }
 
     const deleteGame = () => {
-        if (!gameToDelete) return;
-
-        const requestOptions = {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-        };
-
+        if (!del.itemToDelete) return;
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/games?game_id=${gameToDelete}`, requestOptions)
-            .then(async response => handleFetchResponse(response))
-            .then(async () => {
-                await delay(1000);
-                setShowConfirmDeleteModal(false);
-                setGameToDelete(null);
-                refreshData();
-            })
-            .catch(() => {
-                setShowConfirmDeleteModal(false);
-                setGameToDelete(null);
-            });
+        fetch(`${apiUrl}/games?game_id=${del.itemToDelete}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+            .then(response => api.handleResponse(response))
+            .then(() => delay(1000))
+            .then(() => { del.resetDelete(); refreshData(); })
+            .catch(() => { del.resetDelete(); });
     }
 
     return (
         <>
             <h3>Games</h3>
 
-            <Toast className="my-3"
-                bg={hasError ? "danger" : hasWarning ? "warning" : "success"}
-                onClose={() => setShowToast(false)}
-                show={showToast}
-                delay={5000}
-                animation={true}
-                style={toastStyles}
-                autohide>
-                <Toast.Body>{alertText}</Toast.Body>
-            </Toast>
+            <ApiToast
+                show={api.showResponse}
+                onClose={() => api.setShowResponse(false)}
+                variant={api.alertVariant}
+                text={api.alertText}
+            />
 
             <DynamicTable data={tableData} columns={columns} />
 
             <Modal
-                show={showConfirmDeleteModal}
-                title={`Delete Game ${gameToDelete}?`}
-                onHide={() => setShowConfirmDeleteModal(false)}
-                primaryButton={{
-                    variant: "danger",
-                    text: "Delete",
-                    onClick: deleteGame
-                }}
-                secondaryButton={{
-                    variant: "secondary",
-                    text: "Cancel",
-                    onClick: () => setShowConfirmDeleteModal(false)
-                }}
+                show={del.showModal}
+                title={`Delete Game ${del.itemToDelete}?`}
+                onHide={del.cancelDelete}
+                primaryButton={{ variant: "danger", text: "Delete", onClick: deleteGame }}
+                secondaryButton={{ variant: "secondary", text: "Cancel", onClick: del.cancelDelete }}
             >
-                <p>Are you sure you want to delete game #{gameToDelete}?</p>
+                <p>Are you sure you want to delete game #{del.itemToDelete}?</p>
             </Modal>
         </>
     );

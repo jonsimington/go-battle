@@ -2,40 +2,12 @@ import { FC, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardStats } from '../../models/DashboardStats';
 import { getApiUrl, prettyTimeAgo } from '../../utils/utils';
+import { STATUS_COLORS, ELO_TIER_COLORS, getEloTier } from '../../utils/colors';
 import { FaCaretUp, FaCaretDown, FaTrophy } from 'react-icons/fa';
 import RefreshButton from '../Common/RefreshButton';
 import styles from './Dashboard.module.css';
 
 const apiUrl = getApiUrl();
-
-const STATUS_COLORS: Record<string, string> = {
-    'Complete': 'var(--success)',
-    'In Progress': 'var(--primary)',
-    'Pending': 'var(--warning)',
-    'Error': 'var(--danger)',
-    'Canceled': 'var(--text-muted)',
-    'Incomplete': 'var(--text-muted)',
-};
-
-const ELO_TIER_COLORS: Record<string, string> = {
-    beginner: '#8b949e',
-    novice: '#3fb950',
-    intermediate: '#58a6ff',
-    advanced: '#d29922',
-    expert: '#f78166',
-    master: '#f85149',
-    grandmaster: '#bc8cff',
-};
-
-function getEloTier(elo: number): string {
-    if (elo < 1200) return 'beginner';
-    if (elo < 1400) return 'novice';
-    if (elo < 1600) return 'intermediate';
-    if (elo < 1800) return 'advanced';
-    if (elo < 2000) return 'expert';
-    if (elo < 2200) return 'master';
-    return 'grandmaster';
-}
 
 function formatDuration(startTime: string, endTime: string): string {
     const start = new Date(startTime).getTime();

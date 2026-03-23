@@ -1,15 +1,17 @@
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaCircleStop, FaArrowRotateRight, FaSpinner, FaTrash } from 'react-icons/fa6';
-import { Toast } from 'react-bootstrap';
 import { allPlayersHaveSameScore, calculatePlayerScores, delay, elapsedTime, getApiUrl, pluck, prettyTimeAgo } from '../../../utils/utils';
 import { useState } from 'react';
 import TimeAgo from 'timeago-react';
 import { PlayerScore } from '../../../models/PlayerScore';
 import { Modal } from '../../Common/Modal';
+import { ApiToast } from '../../Common/ApiToast';
 import EloBadge from '../../Common/ELO/ELOBadge';
 import { useNavigate } from 'react-router-dom';
-import styles from './SearchMatches.module.css';
+import { useApiResponse } from '../../../hooks/useApiResponse';
+import { useConfirmDelete } from '../../../hooks/useConfirmDelete';
+import s from '../../shared/SearchTable.module.css';
 
 interface SearchMatchesProps {
     tableData: any[]
@@ -21,24 +23,14 @@ interface MatchStartTime {
     startTime: Date;
 }
 
-const toastStyles = {
-    maxWidth: "95%",
-    minWidth: "75%"
-}
-
 export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): JSX.Element {
     const [matchesPlaying, setMatchesPlaying] = useState<number[]>([]);
     const [matchStartTimes, setMatchStartTimes] = useState<MatchStartTime[]>([]);
     const [matchesStopping, setMatchesStopping] = useState<number[]>([]);
     const [matchesRestarting, setMatchesRestarting] = useState<number[]>([]);
-    const [matchIdToDelete, setMatchIdToDelete] = useState<number | null>(null);
 
-    const [hasError, setHasError] = useState(false);
-    const [hasWarning, setHasWarning] = useState(false);
-    const [showToast, setShowToast] = useState(false);
-    const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
-    const [alertText, setAlertText] = useState('');
-
+    const api = useApiResponse();
+    const del = useConfirmDelete<number>();
     const navigate = useNavigate();
 
     const columns: IColumnType<MatchesResult>[] = [
@@ -52,11 +44,11 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             title: "Games",
             width: 80,
             render: (_, { games }) => {
-                if (!games || games.length === 0) return <span className={styles.muted}>—</span>;
+                if (!games || games.length === 0) return <span className={s.muted}>—</span>;
                 const gameIds = games.map(pluck('ID')).join(', ');
                 return (
                     <span
-                        className={styles.countLink}
+                        className={s.countLink}
                         onClick={() => navigate(`/games/search?ids=${encodeURI(gameIds)}`)}>
                         {games.length} game{games.length !== 1 ? 's' : ''}
                     </span>
@@ -67,7 +59,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             key: "players",
             title: "Players",
             render: (_, { players, games }) => {
-                if (!players || players.length === 0) return <span className={styles.muted}>—</span>;
+                if (!players || players.length === 0) return <span className={s.muted}>—</span>;
 
                 const safeGames = games || [];
                 const playerScores = calculatePlayerScores(safeGames, players);
@@ -75,12 +67,12 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                 const playerIds = players.map(pluck('ID')).join(', ');
 
                 return (
-                    <div className={styles.playerList}>
+                    <div className={s.playerList}>
                         {playerScores.map((score) => {
                             const isLeader = !allSame && playerScores[0]?.name === score.name;
-                            const colorClass = allSame ? styles.playerDraw
-                                : isLeader ? styles.playerWinning
-                                : styles.playerLosing;
+                            const colorClass = allSame ? s.playerDraw
+                                : isLeader ? s.playerWinning
+                                : s.playerLosing;
                             const label = allSame ? 'draw'
                                 : isLeader ? 'W'
                                 : 'L';
@@ -88,14 +80,14 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                             return (
                                 <span
                                     key={`ps-${score.id}`}
-                                    className={`${styles.playerScore} ${colorClass}`}
+                                    className={`${s.playerEntry} ${colorClass}`}
                                     onClick={() => navigate(`/players/search?ids=${encodeURI(playerIds)}`)}
                                     title={`Score: ${score.wins + score.draws * 0.5}`}
                                 >
                                     {score.name}
                                     <EloBadge elo={score.elo} eloHistory={score.elo_history} />
-                                    <span className={styles.scoreValue}>({score.wins}-{score.losses}-{score.draws})</span>
-                                    <span className={styles.resultTag}>{label}</span>
+                                    <span className={s.scoreValue}>({score.wins}-{score.losses}-{score.draws})</span>
+                                    <span className={s.resultTag}>{label}</span>
                                 </span>
                             );
                         })}
@@ -109,14 +101,14 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             width: 120,
             render: (_, { status, start_time, end_time }) => {
                 const elapsed = (start_time && end_time) ? prettyTimeAgo(elapsedTime(start_time, end_time)) : '';
-                const statusClass = status === "Complete" ? styles.statusComplete
-                    : status === "In Progress" ? styles.statusInProgress
-                    : status === "Stopped" ? styles.statusStopped
-                    : status === "Error" ? styles.statusError
-                    : styles.statusPending;
+                const statusClass = status === "Complete" ? s.statusComplete
+                    : status === "In Progress" ? s.statusInProgress
+                    : status === "Stopped" ? s.statusStopped
+                    : status === "Error" ? s.statusError
+                    : s.statusPending;
                 return (
                     <span
-                        className={`${styles.status} ${statusClass}`}
+                        className={`${s.status} ${statusClass}`}
                         title={elapsed ? `Elapsed: ${elapsed}` : undefined}
                     >
                         {status || "Unknown"}
@@ -129,7 +121,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             title: "Created",
             width: 120,
             render: (_, { CreatedAt }) => {
-                return <TimeAgo datetime={CreatedAt} className={styles.timeAgo} />;
+                return <TimeAgo datetime={CreatedAt} className={s.timeAgo} />;
             }
         },
         {
@@ -142,33 +134,33 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                 const isRestarting = matchesRestarting.includes(ID);
 
                 return (
-                    <div className={styles.actions}>
+                    <div className={s.actions}>
                         {status === "Pending" && !matchesPlaying.includes(ID) && (
-                            <button className={`${styles.actionBtn} ${styles.actionStart}`} onClick={() => startMatch(ID)} title="Start match">
+                            <button className={`${s.actionBtn} ${s.actionStart}`} onClick={() => startMatch(ID)} title="Start match">
                                 <FaCirclePlay />
                             </button>
                         )}
                         {(status === "In Progress" || matchesPlaying.includes(ID)) && !isStopping && (
-                            <button className={`${styles.actionBtn} ${styles.actionStop}`} onClick={() => stopMatch(ID)} title="Stop match">
+                            <button className={`${s.actionBtn} ${s.actionStop}`} onClick={() => stopMatch(ID)} title="Stop match">
                                 <FaCircleStop />
                             </button>
                         )}
                         {isStopping && (
-                            <span className={styles.spinning} title="Stopping...">
+                            <span className={s.spinning} title="Stopping...">
                                 <FaSpinner className="icon-spin" />
                             </span>
                         )}
                         {(status === "Complete" || status === "Error" || status === "Stopped") && !isRestarting && (
-                            <button className={`${styles.actionBtn} ${styles.actionRestart}`} onClick={() => restartMatch(ID)} title="Restart match">
+                            <button className={`${s.actionBtn} ${s.actionRestart}`} onClick={() => restartMatch(ID)} title="Restart match">
                                 <FaArrowRotateRight />
                             </button>
                         )}
                         {isRestarting && (
-                            <span className={styles.spinning} title="Restarting...">
+                            <span className={s.spinning} title="Restarting...">
                                 <FaSpinner className="icon-spin" />
                             </span>
                         )}
-                        <button className={`${styles.actionBtn} ${styles.actionDelete}`} onClick={() => confirmDelete(ID)} title="Delete match">
+                        <button className={`${s.actionBtn} ${s.actionDelete}`} onClick={() => del.confirmDelete(ID)} title="Delete match">
                             <FaTrash />
                         </button>
                     </div>
@@ -177,159 +169,75 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         },
     ];
 
-    const handleFetchResponse = async (response: Response) => {
-        setShowToast(true);
-        const responseText = await response.text();
-        setAlertText(`HTTP ${response.status}: ${responseText}`);
-
-        if (response.ok) {
-            setHasWarning(false);
-            setHasError(false);
-        } else if (response.status === 400) {
-            setHasWarning(true);
-        } else if (response.status === 500) {
-            console.error(response.text);
-            setHasError(true);
-            return Promise.reject();
-        }
-    }
-
     const startMatch = (matchID: number) => {
         setMatchesPlaying(prev => [...prev, matchID]);
-        setMatchStartTimes(prev => [...prev, {
-            id: matchID,
-            startTime: new Date(),
-        }]);
-
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-        };
-
+        setMatchStartTimes(prev => [...prev, { id: matchID, startTime: new Date() }]);
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/matches/start?match_id=${matchID}`, requestOptions)
-            .then(async response => handleFetchResponse(response))
-            .then(async () => {
-                await delay(1000);
-            })
-            .then(() => {
-                refreshData();
-                setMatchesPlaying(prev => prev.filter((mID) => mID !== matchID));
-            });
+        fetch(`${apiUrl}/matches/start?match_id=${matchID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(response => api.handleResponse(response))
+            .then(() => delay(1000))
+            .then(() => { refreshData(); setMatchesPlaying(prev => prev.filter(id => id !== matchID)); });
     }
 
     const stopMatch = (matchID: number) => {
         setMatchesStopping(prev => [...prev, matchID]);
-
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-        };
-
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/matches/stop?match_id=${matchID}`, requestOptions)
-            .then(async response => handleFetchResponse(response))
-            .then(async () => {
-                await delay(1000);
-            })
+        fetch(`${apiUrl}/matches/stop?match_id=${matchID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(response => api.handleResponse(response))
+            .then(() => delay(1000))
             .then(() => {
                 refreshData();
-                setMatchesStopping(prev => prev.filter((mID) => mID !== matchID));
-                setMatchesPlaying(prev => prev.filter((mID) => mID !== matchID));
+                setMatchesStopping(prev => prev.filter(id => id !== matchID));
+                setMatchesPlaying(prev => prev.filter(id => id !== matchID));
             })
-            .catch(() => {
-                setMatchesStopping(prev => prev.filter((mID) => mID !== matchID));
-            });
+            .catch(() => { setMatchesStopping(prev => prev.filter(id => id !== matchID)); });
     }
 
     const restartMatch = (matchID: number) => {
         setMatchesRestarting(prev => [...prev, matchID]);
-
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-        };
-
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/matches/restart?match_id=${matchID}`, requestOptions)
-            .then(async response => handleFetchResponse(response))
-            .then(async () => {
-                await delay(1000);
-            })
-            .then(() => {
-                refreshData();
-                setMatchesRestarting(prev => prev.filter((mID) => mID !== matchID));
-            })
-            .catch(() => {
-                setMatchesRestarting(prev => prev.filter((mID) => mID !== matchID));
-            });
-    }
-
-    const confirmDelete = (matchID: number) => {
-        setMatchIdToDelete(matchID);
-        setShowConfirmDeleteModal(true);
+        fetch(`${apiUrl}/matches/restart?match_id=${matchID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(response => api.handleResponse(response))
+            .then(() => delay(1000))
+            .then(() => { refreshData(); setMatchesRestarting(prev => prev.filter(id => id !== matchID)); })
+            .catch(() => { setMatchesRestarting(prev => prev.filter(id => id !== matchID)); });
     }
 
     const deleteMatch = () => {
-        if (!matchIdToDelete) return;
-
-        const requestOptions = {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-        };
-
+        if (!del.itemToDelete) return;
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/matches?match_id=${matchIdToDelete}`, requestOptions)
-            .then(async response => handleFetchResponse(response))
-            .then(async () => {
-                await delay(1000);
-                setShowConfirmDeleteModal(false);
-                setMatchIdToDelete(null);
-                refreshData();
-            })
-            .catch(() => {
-                setShowConfirmDeleteModal(false);
-                setMatchIdToDelete(null);
-            });
+        fetch(`${apiUrl}/matches?match_id=${del.itemToDelete}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+            .then(response => api.handleResponse(response))
+            .then(() => delay(1000))
+            .then(() => { del.resetDelete(); refreshData(); })
+            .catch(() => { del.resetDelete(); });
     }
 
     return (
         <>
             <h3>Matches</h3>
 
-            <Toast className="my-3"
-                bg={hasError ? "danger" : hasWarning ? "warning" : "success"}
-                onClose={() => setShowToast(false)}
-                show={showToast}
-                delay={5000}
-                animation={true}
-                style={toastStyles}
-                autohide>
-                <Toast.Body>{alertText}</Toast.Body>
-            </Toast>
+            <ApiToast
+                show={api.showResponse}
+                onClose={() => api.setShowResponse(false)}
+                variant={api.alertVariant}
+                text={api.alertText}
+            />
 
             <DynamicTable data={tableData} columns={columns} />
 
             <Modal
-                show={showConfirmDeleteModal}
-                title={`Delete Match ${matchIdToDelete}?`}
-                onHide={() => setShowConfirmDeleteModal(false)}
-                primaryButton={{
-                    variant: "danger",
-                    text: "Delete",
-                    onClick: deleteMatch
-                }}
-                secondaryButton={{
-                    variant: "secondary",
-                    text: "Cancel",
-                    onClick: () => setShowConfirmDeleteModal(false)
-                }}
+                show={del.showModal}
+                title={`Delete Match ${del.itemToDelete}?`}
+                onHide={del.cancelDelete}
+                primaryButton={{ variant: "danger", text: "Delete", onClick: deleteMatch }}
+                secondaryButton={{ variant: "secondary", text: "Cancel", onClick: del.cancelDelete }}
             >
-                <p>Are you sure you want to delete match #{matchIdToDelete}?</p>
+                <p>Are you sure you want to delete match #{del.itemToDelete}?</p>
             </Modal>
         </>
     );

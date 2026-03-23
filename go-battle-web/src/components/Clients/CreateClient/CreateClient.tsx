@@ -2,6 +2,7 @@ import React, { FC, useState } from 'react';
 import { Alert } from 'react-bootstrap';
 import { FaPlus } from 'react-icons/fa6';
 import { getApiUrl } from '../../../utils/utils';
+import { useApiResponse } from '../../../hooks/useApiResponse';
 import '../../shared/CreateForm.css';
 
 interface CreateClientProps {}
@@ -10,43 +11,17 @@ const CreateClient: FC<CreateClientProps> = () => {
     const [repoUrlValue, setRepoUrlValue] = useState('');
     const [languageValue, setLanguageValue] = useState('py');
     const [gameValue, setGameValue] = useState('chess');
-    const [hasError, setHasError] = useState(false);
-    const [hasWarning, setHasWarning] = useState(false);
-    const [hasApiResponse, setHasApiResponse] = useState(false);
-    const [alertText, setAlertText] = useState('');
-
-    const apiUrl = getApiUrl();
+    const api = useApiResponse();
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
+        const apiUrl = getApiUrl();
 
-        const requestOptions = {
+        fetch(`${apiUrl}/clients?repo_url=${encodeURI(repoUrlValue)}&language=${encodeURI(languageValue)}&game=${encodeURI(gameValue)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-        };
-
-        const repoUrl = encodeURI(repoUrlValue);
-        const language = encodeURI(languageValue);
-        const game = encodeURI(gameValue);
-
-        fetch(`${apiUrl}/clients?repo_url=${repoUrl}&language=${language}&game=${game}`, requestOptions)
-            .then(async response => {
-                setHasApiResponse(true);
-                const responseText = await response.text();
-                setAlertText(`HTTP ${response.status}: ${responseText}`);
-                
-                if (response.ok) {
-                    setHasWarning(false);
-                    setHasError(false);
-                } else if (response.status === 400) {
-                    setHasWarning(true);
-                } else if (response.status === 500) {
-                    setHasError(true);
-                }
-            })
+        }).then(response => api.handleResponse(response));
     }
-
-    const alertVariant = hasError ? 'danger' : hasWarning ? 'warning' : 'success';
 
     return (
         <div className="create-page">
@@ -98,9 +73,9 @@ const CreateClient: FC<CreateClientProps> = () => {
                     </button>
                 </div>
 
-                {hasApiResponse && (
-                    <Alert variant={alertVariant} className="create-card__alert">
-                        {alertText}
+                {api.showResponse && (
+                    <Alert variant={api.alertVariant} className="create-card__alert">
+                        {api.alertText}
                     </Alert>
                 )}
             </form>

@@ -3,6 +3,7 @@ import { Alert } from 'react-bootstrap';
 import { FaPlus } from 'react-icons/fa6';
 import { ClientsResult } from '../../../models/ClientsResult';
 import { getApiUrl, translateClientLanguage } from '../../../utils/utils';
+import { useApiResponse } from '../../../hooks/useApiResponse';
 import '../../shared/CreateForm.css';
 
 interface CreatePlayerProps {}
@@ -10,60 +11,31 @@ interface CreatePlayerProps {}
 const CreatePlayer: FC<CreatePlayerProps> = () => {
     const [nameValue, setNameValue] = useState('');
     const [clientIdValue, setClientIdValue] = useState('1');
-    
-    const [clients, setClients] = useState<ClientsResult[]>()
-    
-    const [hasError, setHasError] = useState(false);
-    const [hasWarning, setHasWarning] = useState(false);
-    const [hasApiResponse, setHasApiResponse] = useState(false);
-    const [alertText, setAlertText] = useState('');
+    const [clients, setClients] = useState<ClientsResult[]>();
+    const api = useApiResponse();
     
     useEffect(() => {
         const apiUrl = getApiUrl();
 
         fetch(`${apiUrl}/clients`, {mode:'cors'})
           .then(response => response.json())
-          .then(json => {
-            setClients(json);
-          })
+          .then(json => { setClients(json); })
           .catch(error => {
             console.error(error);
-            setHasError(true);
-            setAlertText("Error fetching list of clients");
+            api.setShowResponse(true);
+            api.setAlertText("Error fetching list of clients");
         })
     }, []);
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
-
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-        };
-
-        const name = encodeURI(nameValue);
-        const clientId = encodeURI(clientIdValue);
-
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/players?name=${name}&client_id=${clientId}`, requestOptions)
-            .then(async response => {
-                setHasApiResponse(true);
-                const responseText = await response.text();
-                setAlertText(`HTTP ${response.status}: ${responseText}`);
-                
-                if (response.ok) {
-                    setHasWarning(false);
-                    setHasError(false);
-                } else if (response.status === 400) {
-                    setHasWarning(true);
-                } else if (response.status === 500) {
-                    setHasError(true);
-                }
-            })
+        fetch(`${apiUrl}/players?name=${encodeURI(nameValue)}&client_id=${encodeURI(clientIdValue)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        }).then(response => api.handleResponse(response));
     }
-
-    const alertVariant = hasError ? 'danger' : hasWarning ? 'warning' : 'success';
 
     return (
         <div className="create-page">
@@ -104,9 +76,9 @@ const CreatePlayer: FC<CreatePlayerProps> = () => {
                     </button>
                 </div>
 
-                {hasApiResponse && (
-                    <Alert variant={alertVariant} className="create-card__alert">
-                        {alertText}
+                {api.showResponse && (
+                    <Alert variant={api.alertVariant} className="create-card__alert">
+                        {api.alertText}
                     </Alert>
                 )}
             </form>

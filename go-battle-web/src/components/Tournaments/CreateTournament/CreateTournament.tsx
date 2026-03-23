@@ -4,6 +4,7 @@ import { FaPlus, FaDice, FaArrowUpWideShort, FaArrowDownWideShort, FaLock, FaLoc
 import { PlayersResult } from '../../../models/PlayersResult';
 import '../../shared/CreateForm.css';
 import { getApiUrl } from '../../../utils/utils';
+import { useApiResponse } from '../../../hooks/useApiResponse';
 
 interface CreateTournamentProps {}
 
@@ -14,13 +15,8 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
     const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<string>>(new Set());
     const [maxPlayers, setMaxPlayers] = useState(24);
     const [playerValues, setPlayerValues] = useState<string[]>(Array(24).fill(''));
-
     const [lockedSlots, setLockedSlots] = useState<Set<number>>(new Set());
-
-    const [hasError, setHasError] = useState(false);
-    const [hasWarning, setHasWarning] = useState(false);
-    const [hasApiResponse, setHasApiResponse] = useState(false);
-    const [alertText, setAlertText] = useState('');
+    const api = useApiResponse();
 
     const handleIncrementMaxPlayers = () => {
         if (maxPlayers < 24) {
@@ -161,8 +157,8 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
           })
           .catch(error => {
             console.error(error);
-            setHasError(true);
-            setAlertText("Error fetching list of players");
+            api.setShowResponse(true);
+            api.setAlertText("Error fetching list of players");
         })
     }, []);
 
@@ -180,23 +176,10 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
         const apiUrl = getApiUrl();
 
         fetch(`${apiUrl}/tournaments?type=${typeQuery}&players=${playersQuery}`, requestOptions)
-            .then(async response => {
-                setHasApiResponse(true);
-                const responseText = await response.text();
-                setAlertText(`HTTP ${response.status}: ${responseText}`);
-
-                if (response.ok) {
-                    setHasWarning(false);
-                    setHasError(false);
-                } else if (response.status === 400) {
-                    setHasWarning(true);
-                } else if (response.status === 500) {
-                    setHasError(true);
-                }
-            })
+            .then(response => api.handleResponse(response));
     }
 
-    const alertVariant = hasError ? 'danger' : hasWarning ? 'warning' : 'success';
+    const alertVariant = api.alertVariant;
 
     return (
         <div className="create-page create-page--wide">
@@ -311,9 +294,9 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
                     </button>
                 </div>
 
-                {hasApiResponse && (
+                {api.showResponse && (
                     <Alert variant={alertVariant} className="create-card__alert">
-                        {alertText}
+                        {api.alertText}
                     </Alert>
                 )}
             </form>

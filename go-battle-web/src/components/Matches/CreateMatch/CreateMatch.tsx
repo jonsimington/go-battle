@@ -3,6 +3,7 @@ import { PlayersResult } from '../../../models/PlayersResult';
 import { Alert } from 'react-bootstrap';
 import { FaPlus } from 'react-icons/fa6';
 import { getApiUrl } from '../../../utils/utils';
+import { useApiResponse } from '../../../hooks/useApiResponse';
 import '../../shared/CreateForm.css';
 
 interface CreateMatchProps {}
@@ -12,13 +13,8 @@ const CreateMatch: FC<CreateMatchProps> = () => {
     const [playerOneValue, setPlayerOneValue] = useState('1');
     const [playerTwoValue, setPlayerTwoValue] = useState('2');
     const [playersValue, setPlayersValue] = useState('1,2');
-
     const [players, setPlayers] = useState<PlayersResult[]>();
-
-    const [hasError, setHasError] = useState(false);
-    const [hasWarning, setHasWarning] = useState(false);
-    const [hasApiResponse, setHasApiResponse] = useState(false);
-    const [alertText, setAlertText] = useState('');
+    const api = useApiResponse();
 
     const handlePlayerOneValueChange = (value: string) => {
         setPlayerOneValue(value);
@@ -34,44 +30,22 @@ const CreateMatch: FC<CreateMatchProps> = () => {
 
         fetch(`${apiUrl}/players`, {mode:'cors'})
           .then(response => response.json())
-          .then(json => {
-            setPlayers(json);
-          })
+          .then(json => { setPlayers(json); })
           .catch(error => {
             console.error(error);
-            setHasError(true);
-            setAlertText("Error fetching list of players");
+            api.setShowResponse(true);
+            api.setAlertText("Error fetching list of players");
         })
     }, []);
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
-
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-        };
-
-        const numGamesQuery = encodeURI(numGamesValue);
-        const playersQuery = encodeURI(playersValue);
-
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/matches?num_games=${numGamesQuery}&players=${playersQuery}`, requestOptions)
-            .then(async response => {
-                setHasApiResponse(true);
-                const responseText = await response.text();
-                setAlertText(`HTTP ${response.status}: ${responseText}`);
-
-                if (response.ok) {
-                    setHasWarning(false);
-                    setHasError(false);
-                } else if (response.status === 400) {
-                    setHasWarning(true);
-                } else if (response.status === 500) {
-                    setHasError(true);
-                }
-            })
+        fetch(`${apiUrl}/matches?num_games=${encodeURI(numGamesValue)}&players=${encodeURI(playersValue)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        }).then(response => api.handleResponse(response));
     }
 
     const renderPlayerOption = (player: PlayersResult, keyContext: string) => (
@@ -80,7 +54,7 @@ const CreateMatch: FC<CreateMatchProps> = () => {
         </option>
     );
 
-    const alertVariant = hasError ? 'danger' : hasWarning ? 'warning' : 'success';
+    const alertVariant = api.alertVariant;
 
     return (
         <div className="create-page">
@@ -134,9 +108,9 @@ const CreateMatch: FC<CreateMatchProps> = () => {
                     </button>
                 </div>
 
-                {hasApiResponse && (
+                {api.showResponse && (
                     <Alert variant={alertVariant} className="create-card__alert">
-                        {alertText}
+                        {api.alertText}
                     </Alert>
                 )}
             </form>
