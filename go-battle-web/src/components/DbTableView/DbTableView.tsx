@@ -1,4 +1,4 @@
-import { SyntheticEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FaSpinner } from "react-icons/fa6";
 import { SearchPlayers } from '../Players/SearchPlayers/SearchPlayers';
 import { SearchGames } from '../Games/SearchGames/SearchGames';
@@ -8,9 +8,10 @@ import { useSearchParams } from 'react-router-dom';
 import { ApiResult } from '../../models/ApiResult';
 import { PaginatedResponse } from '../../models/PaginatedResponse';
 import { SearchTournaments } from '../Tournaments/SearchTournaments/SearchTournaments';
-import { Col, Container, Dropdown, Pagination, Row } from 'react-bootstrap';
 import range from 'lodash/range';
 import { getApiUrl, getPagesToDisplay } from '../../utils/utils';
+import { FilterBar, FilterConfig, SortOption } from '../shared/FilterBar';
+import p from '../shared/Pagination.module.css';
 
 interface DbTableViewProps {
     context: string;
@@ -20,6 +21,92 @@ interface DbTableViewProps {
 const apiUrl = getApiUrl();
 const resultsPerPageOptions = [5, 10, 15, 20];
 const pagesWithPagination = ["matches", "games", "tournaments"];
+
+const filterConfigs: Record<string, FilterConfig[]> = {
+    games: [
+        {
+            key: 'status',
+            label: 'Status',
+            options: [
+                { value: 'Complete', label: 'Complete' },
+                { value: 'In Progress', label: 'In Progress' },
+                { value: 'Pending', label: 'Pending' },
+                { value: 'Error', label: 'Error' },
+                { value: 'Canceled', label: 'Canceled' },
+            ],
+        },
+    ],
+    matches: [
+        {
+            key: 'status',
+            label: 'Status',
+            options: [
+                { value: 'Complete', label: 'Complete' },
+                { value: 'In Progress', label: 'In Progress' },
+                { value: 'Pending', label: 'Pending' },
+                { value: 'Stopped', label: 'Stopped' },
+                { value: 'Error', label: 'Error' },
+            ],
+        },
+    ],
+    tournaments: [
+        {
+            key: 'status',
+            label: 'Status',
+            options: [
+                { value: 'Completed', label: 'Completed' },
+                { value: 'In Progress', label: 'In Progress' },
+                { value: 'Pending', label: 'Pending' },
+            ],
+        },
+        {
+            key: 'type',
+            label: 'Type',
+            options: [
+                { value: 'swiss', label: 'Swiss' },
+                { value: 'round-robin', label: 'Round Robin' },
+            ],
+        },
+    ],
+    clients: [
+        {
+            key: 'language',
+            label: 'Language',
+            options: [
+                { value: 'py', label: 'Python' },
+                { value: 'js', label: 'JavaScript' },
+                { value: 'cpp', label: 'C++' },
+            ],
+        },
+        {
+            key: 'game',
+            label: 'Game',
+            options: [
+                { value: 'chess', label: 'Chess' },
+            ],
+        },
+    ],
+};
+
+const sortConfigs: Record<string, SortOption[]> = {
+    games: [
+        { field: 'created_at', label: 'Date' },
+        { field: 'id', label: 'ID' },
+        { field: 'status', label: 'Status' },
+    ],
+    matches: [
+        { field: 'created_at', label: 'Date' },
+        { field: 'id', label: 'ID' },
+        { field: 'status', label: 'Status' },
+    ],
+    tournaments: [
+        { field: 'created_at', label: 'Date' },
+        { field: 'id', label: 'ID' },
+        { field: 'status', label: 'Status' },
+        { field: 'name', label: 'Name' },
+    ],
+    clients: [],
+};
 
 export function DbTableView({ context }: DbTableViewProps): JSX.Element {
     const [data, setData] = useState<ApiResult[]>();
@@ -33,7 +120,23 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
     const [totalCount, setTotalCount] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
 
+    // Filter & sort state
+    const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+    const [sortField, setSortField] = useState('created_at');
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
     const shouldShowPagination = pagesWithPagination.includes(context);
+    const contextFilters = filterConfigs[context] ?? [];
+    const contextSorts = sortConfigs[context] ?? [];
+    const hasFilterBar = contextFilters.length > 0 || contextSorts.length > 0;
+
+    // Use a ref so fetchFromApi always sees the latest filter/sort values
+    const filtersRef = useRef(filterValues);
+    filtersRef.current = filterValues;
+    const sortFieldRef = useRef(sortField);
+    sortFieldRef.current = sortField;
+    const sortDirRef = useRef(sortDir);
+    sortDirRef.current = sortDir;
 
     // Fetch data from api
     const fetchFromApi = useCallback((page?: number, pageSize?: number) => {
@@ -57,6 +160,20 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
             params.set("page_size", String(pageSize ?? resultsPerPage));
         }
 
+        // Add filter params
+        const currentFilters = filtersRef.current;
+        for (const [key, value] of Object.entries(currentFilters)) {
+            if (value) {
+                params.set(key, value);
+            }
+        }
+
+        // Add sort params for server-side paginated contexts
+        if (shouldShowPagination) {
+            params.set("sort", sortFieldRef.current);
+            params.set("sort_dir", sortDirRef.current);
+        }
+
         const qs = params.toString();
         if (qs) {
             url += `?${qs}`;
@@ -76,6 +193,7 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                 const arr = json as ApiResult[];
                 arr.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0);
                 setData(arr);
+                setTotalCount(arr.length);
             }
           })
           .catch(error => console.error(error))
@@ -85,10 +203,45 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
     useEffect(() => {
         setData(undefined);
         setSelectedPage(1);
+        setFilterValues({});
+        setSortField('created_at');
+        setSortDir('desc');
         fetchFromApi(1, resultsPerPage);
     // Only re-fetch when the context or search params change, not on every page/pageSize change
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [context, searchParams]);
+
+    const handleFilterChange = (key: string, value: string) => {
+        setFilterValues(prev => {
+            const next = { ...prev, [key]: value };
+            // Update the ref synchronously so fetchFromApi sees the new value
+            filtersRef.current = next;
+            return next;
+        });
+        setSelectedPage(1);
+        // Use setTimeout(0) to ensure state and ref are consistent before fetch
+        setTimeout(() => fetchFromApi(1, resultsPerPage), 0);
+    };
+
+    const handleSortChange = (field: string, dir: 'asc' | 'desc') => {
+        setSortField(field);
+        setSortDir(dir);
+        sortFieldRef.current = field;
+        sortDirRef.current = dir;
+        setSelectedPage(1);
+        setTimeout(() => fetchFromApi(1, resultsPerPage), 0);
+    };
+
+    const handleClearFilters = () => {
+        setFilterValues({});
+        setSortField('created_at');
+        setSortDir('desc');
+        filtersRef.current = {};
+        sortFieldRef.current = 'created_at';
+        sortDirRef.current = 'desc';
+        setSelectedPage(1);
+        setTimeout(() => fetchFromApi(1, resultsPerPage), 0);
+    };
 
     // Derive pagination for non-paginated contexts (players, clients) — client-side
     const numPages = useMemo(() => {
@@ -134,19 +287,24 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
         }
     };
 
-    function handleResultsPerPageChange(eventKey: string | null, e: SyntheticEvent<unknown, Event>): void {
-        if(eventKey !== null) {
-            const newPageSize = +eventKey;
-            setResultsPerPage(newPageSize);
-            setSelectedPage(1);
-            if (shouldShowPagination) {
-                fetchFromApi(1, newPageSize);
-            }
-        }
-    }
+    const title = context.charAt(0).toUpperCase() + context.slice(1);
 
     return (
         <>
+            <h3>{title}</h3>
+            {hasFilterBar && !loading && (
+                <FilterBar
+                    filters={contextFilters}
+                    filterValues={filterValues}
+                    onFilterChange={handleFilterChange}
+                    sortOptions={contextSorts}
+                    sortField={sortField}
+                    sortDir={sortDir}
+                    onSortChange={handleSortChange}
+                    totalCount={shouldShowPagination ? totalCount : (data?.length ?? 0)}
+                    onClear={handleClearFilters}
+                />
+            )}
             {loading ? (
                 <h3><FaSpinner className="icon-spin"></FaSpinner></h3>
             ) : (
@@ -164,46 +322,75 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                     ) : null}
                     
                     {data !== undefined && data.length > 0 && (shouldShowPagination || (data.length > resultsPerPage)) ? (
-                        <Container>
-                            <Row className="my-2 align-items-center gy-2">
-                                <Col xs={12} md={3}>
-                                    <Dropdown autoClose={true} onSelect={handleResultsPerPageChange}>
-                                        <Dropdown.Toggle variant="outline-info" id="dropdown-basic" size="sm">
-                                            Results Per Page ({resultsPerPage})
-                                        </Dropdown.Toggle>
-                                        <Dropdown.Menu>
-                                            {resultsPerPageOptions.map((o) => (
-                                                <Dropdown.Item eventKey={o} active={resultsPerPage === o} key={`results-dropdown-${o}`}>{o}</Dropdown.Item>
-                                            ))}
-                                        </Dropdown.Menu>
-                                    </Dropdown>
-                                </Col>
-                                <Col xs={12} md={6} className="d-flex justify-content-center">
-                                    <Pagination size="sm" className="flex-wrap mb-0">
-                                        <Pagination.First onClick={() => handlePageChange(1)} disabled={selectedPage === 1} />
-                                        <Pagination.Prev onClick={() => handlePageChange(selectedPage - 1)} disabled={selectedPage === 1} />
-                                        <Pagination.Ellipsis hidden={!showEllipsesBefore} disabled />
-                                        {displayedPages.map((n) => (
-                                            <Pagination.Item
-                                                onClick={() => handlePageChange(n)}
-                                                key={`pagination-page-${n}`}    
-                                                active={n === selectedPage}
-                                            >
-                                                {n}
-                                            </Pagination.Item>
-                                        ))}
-                                        <Pagination.Ellipsis hidden={!showEllipsesAfter} disabled />
-                                        <Pagination.Next onClick={() => handlePageChange(selectedPage + 1)} disabled={selectedPage === numPages} />
-                                        <Pagination.Last onClick={() => handlePageChange(numPages)} disabled={selectedPage === numPages} />
-                                    </Pagination>
-                                </Col>
-                                {shouldShowPagination ? (
-                                    <Col xs={12} md={3} className="text-end">
-                                        <small className="text-muted">{totalCount} total results</small>
-                                    </Col>
-                                ) : null}
-                            </Row>
-                        </Container>
+                        <div className={p.paginationBar}>
+                            <div className={p.perPageGroup}>
+                                <span className={p.perPageLabel}>Per page</span>
+                                <select
+                                    className={p.perPageSelect}
+                                    value={resultsPerPage}
+                                    onChange={e => {
+                                        const newSize = +e.target.value;
+                                        setResultsPerPage(newSize);
+                                        setSelectedPage(1);
+                                        if (shouldShowPagination) {
+                                            fetchFromApi(1, newSize);
+                                        }
+                                    }}
+                                >
+                                    {resultsPerPageOptions.map(o => (
+                                        <option key={o} value={o}>{o}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className={p.pageButtons}>
+                                <button
+                                    className={p.pageBtn}
+                                    onClick={() => handlePageChange(1)}
+                                    disabled={selectedPage === 1}
+                                    aria-label="First page"
+                                >
+                                    &laquo;
+                                </button>
+                                <button
+                                    className={p.pageBtn}
+                                    onClick={() => handlePageChange(selectedPage - 1)}
+                                    disabled={selectedPage === 1}
+                                    aria-label="Previous page"
+                                >
+                                    &lsaquo;
+                                </button>
+                                {showEllipsesBefore && <span className={p.ellipsis}>&hellip;</span>}
+                                {displayedPages.map(n => (
+                                    <button
+                                        key={n}
+                                        className={`${p.pageBtn} ${n === selectedPage ? p.pageBtnActive : ''}`}
+                                        onClick={() => handlePageChange(n)}
+                                    >
+                                        {n}
+                                    </button>
+                                ))}
+                                {showEllipsesAfter && <span className={p.ellipsis}>&hellip;</span>}
+                                <button
+                                    className={p.pageBtn}
+                                    onClick={() => handlePageChange(selectedPage + 1)}
+                                    disabled={selectedPage === numPages}
+                                    aria-label="Next page"
+                                >
+                                    &rsaquo;
+                                </button>
+                                <button
+                                    className={p.pageBtn}
+                                    onClick={() => handlePageChange(numPages)}
+                                    disabled={selectedPage === numPages}
+                                    aria-label="Last page"
+                                >
+                                    &raquo;
+                                </button>
+                            </div>
+                            {shouldShowPagination ? (
+                                <span className={p.resultCount}>{totalCount} result{totalCount !== 1 ? 's' : ''}</span>
+                            ) : <span />}
+                        </div>
                     ) : null}
                 </>
             )}

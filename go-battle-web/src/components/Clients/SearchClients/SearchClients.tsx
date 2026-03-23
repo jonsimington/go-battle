@@ -82,7 +82,6 @@ export function SearchClients({ tableData, refreshData }: SearchClientsProps): J
 
     return (
         <>
-            <h3>Clients</h3>
             <DynamicTable data={tableData} columns={columns} />
         </>
     );

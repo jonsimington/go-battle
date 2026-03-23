@@ -307,7 +307,6 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
         <>
         <Card className="player-table-card">
             <Card.Body>
-                <Card.Title>Players</Card.Title>
                 <Row className="filters-container mb-3">
                     <Col md={6} className="search-container">
                         <InputGroup>

@@ -427,25 +427,6 @@ a:hover {
   color: var(--primary);
 }
 
-/* Pagination */
-.page-link {
-  background-color: var(--surface);
-  border-color: var(--border);
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.page-link:hover {
-  background-color: var(--primary-muted);
-  border-color: var(--border);
-  color: var(--text-primary);
-}
-
-.page-item.active .page-link {
-  background-color: var(--primary);
-  border-color: var(--primary);
-}
-
 /* Tooltip */
 .tooltip .tooltip-inner {
   background-color: var(--surface);
@@ -499,13 +480,5 @@ a:hover {
 
   .btn {
     min-height: 36px;
-  }
-
-  .pagination .page-link {
-    min-width: 32px;
-    min-height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 }

@@ -210,8 +210,6 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
 
     return (
         <>
-            <h3>Games</h3>
-
             <ApiToast
                 show={api.showResponse}
                 onClose={() => api.setShowResponse(false)}

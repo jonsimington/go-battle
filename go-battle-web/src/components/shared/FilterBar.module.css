@@ -1,0 +1,111 @@
+.filterBar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.filterGroup {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filterLabel {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.filterSelect {
+    appearance: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding: 5px 28px 5px 10px;
+    cursor: pointer;
+    transition: border-color 150ms ease, color 150ms ease;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8.5L1.5 4h9z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+}
+
+.filterSelect:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+}
+
+.filterSelect:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.filterSelectActive {
+    border-color: var(--primary);
+    color: var(--text-primary);
+}
+
+.sortBtn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding: 5px 10px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: border-color 150ms ease, color 150ms ease;
+}
+
+.sortBtn:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+}
+
+.sortBtnActive {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.sortIcon {
+    font-size: 11px;
+}
+
+.clearBtn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 5px 8px;
+    cursor: pointer;
+    transition: color 150ms ease, border-color 150ms ease;
+}
+
+.clearBtn:hover {
+    color: var(--text-secondary);
+    border-color: var(--border);
+}
+
+.separator {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 4px;
+}
+
+.resultCount {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+    white-space: nowrap;
+}

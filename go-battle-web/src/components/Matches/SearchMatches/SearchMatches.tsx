@@ -219,8 +219,6 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
     return (
         <>
-            <h3>Matches</h3>
-
             <ApiToast
                 show={api.showResponse}
                 onClose={() => api.setShowResponse(false)}

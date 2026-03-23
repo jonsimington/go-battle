@@ -1,0 +1,107 @@
+.paginationBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0 4px;
+    flex-wrap: wrap;
+}
+
+.perPageGroup {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.perPageLabel {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.perPageSelect {
+    appearance: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding: 4px 28px 4px 10px;
+    cursor: pointer;
+    transition: border-color 150ms ease, color 150ms ease;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8.5L1.5 4h9z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+}
+
+.perPageSelect:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+}
+
+.perPageSelect:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.pageButtons {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-wrap: wrap;
+}
+
+.pageBtn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+    user-select: none;
+}
+
+.pageBtn:hover:not(:disabled) {
+    color: var(--text-primary);
+    background-color: var(--surface);
+    border-color: var(--border);
+}
+
+.pageBtnActive {
+    background-color: var(--primary-muted);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.pageBtnActive:hover:not(:disabled) {
+    background-color: var(--primary-muted);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.pageBtn:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.ellipsis {
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 0 4px;
+    user-select: none;
+}
+
+.resultCount {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}

@@ -25,6 +25,14 @@ type PaginatedResponse struct {
 const defaultPageSize = 10
 const maxPageSize = 100
 
+// allowedSortFields restricts which columns can be sorted on to prevent SQL injection
+var allowedSortFields = map[string]bool{
+	"created_at": true,
+	"id":         true,
+	"status":     true,
+	"name":       true,
+}
+
 func parsePaginationParams(c *fiber.Ctx) (int, int) {
 	page := parseIntWithDefault(c.Query("page"), 1)
 	pageSize := parseIntWithDefault(c.Query("page_size"), defaultPageSize)
@@ -40,6 +48,21 @@ func parsePaginationParams(c *fiber.Ctx) (int, int) {
 	}
 
 	return page, pageSize
+}
+
+// parseSortParams parses sort and sort_dir query params with validation
+func parseSortParams(c *fiber.Ctx) (string, string) {
+	sortField := c.Query("sort", "created_at")
+	sortDir := c.Query("sort_dir", "desc")
+
+	if !allowedSortFields[sortField] {
+		sortField = "created_at"
+	}
+	if sortDir != "asc" && sortDir != "desc" {
+		sortDir = "desc"
+	}
+
+	return sortField, sortDir
 }
 
 // /////////////////////////////////////////////////////////////////////////
@@ -77,12 +100,14 @@ func postClientsHandler(c *fiber.Ctx) error {
 
 func getClientsHandler(c *fiber.Ctx) error {
 	ids := c.Query("ids")
+	language := c.Query("language")
+	game := c.Query("game")
 
 	clientsList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
 	}))
 
-	clients := getClients(clientsList)
+	clients := getClientsFiltered(clientsList, language, game)
 
 	jsonClients, err := json.Marshal(clients)
 
@@ -207,7 +232,9 @@ func postGamesHandler(c *fiber.Ctx) error {
 func getGamesHandler(c *fiber.Ctx) error {
 	players := c.Query("players")
 	ids := c.Query("ids")
+	status := c.Query("status")
 	page, pageSize := parsePaginationParams(c)
+	sortField, sortDir := parseSortParams(c)
 
 	playersList, _ := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
@@ -220,11 +247,11 @@ func getGamesHandler(c *fiber.Ctx) error {
 	var totalCount int64
 
 	if len(playersList) > 0 {
-		games, totalCount = getGamesWithPlayersPaginated(playersList, page, pageSize)
+		games, totalCount = getGamesWithPlayersPaginated(playersList, page, pageSize, status, sortField, sortDir)
 	} else if len(idList) > 0 {
-		games, totalCount = getGamesByIdPaginated(idList, page, pageSize)
+		games, totalCount = getGamesByIdPaginated(idList, page, pageSize, status, sortField, sortDir)
 	} else {
-		games, totalCount = getGamesByIdPaginated([]int{}, page, pageSize)
+		games, totalCount = getGamesByIdPaginated([]int{}, page, pageSize, status, sortField, sortDir)
 	}
 
 	response := PaginatedResponse{
@@ -383,7 +410,9 @@ func deleteMatchesHandler(c *fiber.Ctx) error {
 func getMatchesHandler(c *fiber.Ctx) error {
 	ids := c.Query("ids")
 	players := c.Query("players")
+	status := c.Query("status")
 	page, pageSize := parsePaginationParams(c)
+	sortField, sortDir := parseSortParams(c)
 
 	playersList, _ := sliceAtoi(map2(strings.Split(players, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
@@ -396,11 +425,11 @@ func getMatchesHandler(c *fiber.Ctx) error {
 	var totalCount int64
 
 	if len(playersList) > 0 {
-		matches, totalCount = getMatchesWithPlayersPaginated(playersList, page, pageSize)
+		matches, totalCount = getMatchesWithPlayersPaginated(playersList, page, pageSize, status, sortField, sortDir)
 	} else if len(idList) > 0 {
-		matches, totalCount = getMatchesPaginated(idList, page, pageSize)
+		matches, totalCount = getMatchesPaginated(idList, page, pageSize, status, sortField, sortDir)
 	} else {
-		matches, totalCount = getMatchesPaginated([]int{}, page, pageSize)
+		matches, totalCount = getMatchesPaginated([]int{}, page, pageSize, status, sortField, sortDir)
 	}
 
 	// Check and update status for all in-progress matches
@@ -412,11 +441,11 @@ func getMatchesHandler(c *fiber.Ctx) error {
 
 	// Reload the current page to reflect any status updates
 	if len(playersList) > 0 {
-		matches, totalCount = getMatchesWithPlayersPaginated(playersList, page, pageSize)
+		matches, totalCount = getMatchesWithPlayersPaginated(playersList, page, pageSize, status, sortField, sortDir)
 	} else if len(idList) > 0 {
-		matches, totalCount = getMatchesPaginated(idList, page, pageSize)
+		matches, totalCount = getMatchesPaginated(idList, page, pageSize, status, sortField, sortDir)
 	} else {
-		matches, totalCount = getMatchesPaginated([]int{}, page, pageSize)
+		matches, totalCount = getMatchesPaginated([]int{}, page, pageSize, status, sortField, sortDir)
 	}
 
 	response := PaginatedResponse{
@@ -690,13 +719,16 @@ func postTournamentsHandler(c *fiber.Ctx) error {
 
 func getTournamentsHandler(c *fiber.Ctx) error {
 	ids := c.Query("ids")
+	status := c.Query("status")
+	tournamentType := c.Query("type")
 	page, pageSize := parsePaginationParams(c)
+	sortField, sortDir := parseSortParams(c)
 
 	idList, _ := sliceAtoi(map2(strings.Split(ids, ","), func(s string) string {
 		return strings.ReplaceAll(s, " ", "")
 	}))
 
-	tournaments, totalCount := getTournamentsPaginated(idList, page, pageSize)
+	tournaments, totalCount := getTournamentsPaginated(idList, page, pageSize, status, tournamentType, sortField, sortDir)
 
 	response := PaginatedResponse{
 		Data:       tournaments,

@@ -171,8 +171,6 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
 
     return (
         <>
-            <h3>Tournaments</h3>
-
             <ApiToast
                 show={api.showResponse}
                 onClose={() => api.setShowResponse(false)}

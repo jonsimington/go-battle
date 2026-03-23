@@ -135,7 +135,7 @@ func getGamesWithPlayers(players []int) []Game {
 	return games
 }
 
-func getGamesByIdPaginated(ids []int, page int, pageSize int) ([]Game, int64) {
+func getGamesByIdPaginated(ids []int, page int, pageSize int, status string, sortField string, sortDir string) ([]Game, int64) {
 	var games []Game
 	var totalCount int64
 	offset := (page - 1) * pageSize
@@ -143,6 +143,9 @@ func getGamesByIdPaginated(ids []int, page int, pageSize int) ([]Game, int64) {
 	query := db.Model(&Game{})
 	if len(ids) > 0 {
 		query = query.Where("id = ANY(?)", pq.Array(ids))
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
 	}
 	query.Count(&totalCount)
 
@@ -159,13 +162,16 @@ func getGamesByIdPaginated(ids []int, page int, pageSize int) ([]Game, int64) {
 	if len(ids) > 0 {
 		preloaded = preloaded.Where("id = ANY(?)", pq.Array(ids))
 	}
+	if status != "" {
+		preloaded = preloaded.Where("status = ?", status)
+	}
 
-	preloaded.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&games)
+	preloaded.Order(fmt.Sprintf("%s %s", sortField, sortDir)).Offset(offset).Limit(pageSize).Find(&games)
 
 	return games, totalCount
 }
 
-func getGamesWithPlayersPaginated(players []int, page int, pageSize int) ([]Game, int64) {
+func getGamesWithPlayersPaginated(players []int, page int, pageSize int, status string, sortField string, sortDir string) ([]Game, int64) {
 	var games []Game
 	var totalCount int64
 	offset := (page - 1) * pageSize
@@ -174,9 +180,13 @@ func getGamesWithPlayersPaginated(players []int, page int, pageSize int) ([]Game
 		var gameIDs []int
 		db.Table("game_players").Where("player_id = ANY(?)", pq.Array(players)).Select("game_id").Find(&gameIDs)
 
-		db.Model(&Game{}).Where("id = ANY(?)", pq.Array(gameIDs)).Count(&totalCount)
+		countQuery := db.Model(&Game{}).Where("id = ANY(?)", pq.Array(gameIDs))
+		if status != "" {
+			countQuery = countQuery.Where("status = ?", status)
+		}
+		countQuery.Count(&totalCount)
 
-		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
+		dataQuery := db.Preload("Players", func(db *gorm.DB) *gorm.DB {
 			return db.Select("id, name, elo")
 		}).
 			Preload("Winner", func(db *gorm.DB) *gorm.DB {
@@ -185,13 +195,22 @@ func getGamesWithPlayersPaginated(players []int, page int, pageSize int) ([]Game
 			Preload("Loser", func(db *gorm.DB) *gorm.DB {
 				return db.Select("id, name, elo")
 			}).
-			Where("id = ANY(?)", pq.Array(gameIDs)).
-			Order("created_at DESC").Offset(offset).Limit(pageSize).
+			Where("id = ANY(?)", pq.Array(gameIDs))
+
+		if status != "" {
+			dataQuery = dataQuery.Where("status = ?", status)
+		}
+
+		dataQuery.Order(fmt.Sprintf("%s %s", sortField, sortDir)).Offset(offset).Limit(pageSize).
 			Find(&games)
 	} else {
-		db.Model(&Game{}).Count(&totalCount)
+		countQuery := db.Model(&Game{})
+		if status != "" {
+			countQuery = countQuery.Where("status = ?", status)
+		}
+		countQuery.Count(&totalCount)
 
-		db.Preload("Players", func(db *gorm.DB) *gorm.DB {
+		dataQuery := db.Preload("Players", func(db *gorm.DB) *gorm.DB {
 			return db.Select("id, name, elo")
 		}).
 			Preload("Winner", func(db *gorm.DB) *gorm.DB {
@@ -199,8 +218,13 @@ func getGamesWithPlayersPaginated(players []int, page int, pageSize int) ([]Game
 			}).
 			Preload("Loser", func(db *gorm.DB) *gorm.DB {
 				return db.Select("id, name, elo")
-			}).
-			Order("created_at DESC").Offset(offset).Limit(pageSize).
+			})
+
+		if status != "" {
+			dataQuery = dataQuery.Where("status = ?", status)
+		}
+
+		dataQuery.Order(fmt.Sprintf("%s %s", sortField, sortDir)).Offset(offset).Limit(pageSize).
 			Find(&games)
 	}
 

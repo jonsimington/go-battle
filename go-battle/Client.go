@@ -46,6 +46,24 @@ func getClients(ids []int) []Client {
 	return clients
 }
 
+func getClientsFiltered(ids []int, language string, game string) []Client {
+	var clients []Client
+
+	query := db.Model(&Client{})
+	if len(ids) > 0 {
+		query = query.Where("id = ANY(?)", pq.Array(ids))
+	}
+	if language != "" {
+		query = query.Where("language = ?", language)
+	}
+	if game != "" {
+		query = query.Where("game = ?", game)
+	}
+	query.Order("created_at DESC").Find(&clients)
+
+	return clients
+}
+
 // CloneRepo clones a git repo and its submodules recursively
 func (c Client) CloneRepo(dir string) *git.Repository {
 	r, err := git.PlainClone(dir, false, &git.CloneOptions{

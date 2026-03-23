@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"sort"
 	"sync"
@@ -91,7 +92,7 @@ func insertTournament(db *gorm.DB, tournament *Tournament) {
 	}
 }
 
-func getTournamentsPaginated(ids []int, page int, pageSize int) ([]Tournament, int64) {
+func getTournamentsPaginated(ids []int, page int, pageSize int, status string, tournamentType string, sortField string, sortDir string) ([]Tournament, int64) {
 	var tournaments []Tournament
 	var totalCount int64
 	offset := (page - 1) * pageSize
@@ -99,6 +100,12 @@ func getTournamentsPaginated(ids []int, page int, pageSize int) ([]Tournament, i
 	query := db.Model(&Tournament{})
 	if len(ids) > 0 {
 		query = query.Where("id = ANY(?)", pq.Array(ids))
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if tournamentType != "" {
+		query = query.Where("type = ?", tournamentType)
 	}
 	query.Count(&totalCount)
 
@@ -129,8 +136,14 @@ func getTournamentsPaginated(ids []int, page int, pageSize int) ([]Tournament, i
 	if len(ids) > 0 {
 		preloaded = preloaded.Where("id = ANY(?)", pq.Array(ids))
 	}
+	if status != "" {
+		preloaded = preloaded.Where("status = ?", status)
+	}
+	if tournamentType != "" {
+		preloaded = preloaded.Where("type = ?", tournamentType)
+	}
 
-	preloaded.Order("created_at DESC").Offset(offset).Limit(pageSize).Find(&tournaments)
+	preloaded.Order(fmt.Sprintf("%s %s", sortField, sortDir)).Offset(offset).Limit(pageSize).Find(&tournaments)
 
 	return tournaments, totalCount
 }
