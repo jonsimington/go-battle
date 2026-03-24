@@ -11,7 +11,9 @@ import { SearchTournaments } from '../Tournaments/SearchTournaments/SearchTourna
 import range from 'lodash/range';
 import { getApiUrl, getPagesToDisplay } from '../../utils/utils';
 import { FilterBar, FilterConfig, SortOption } from '../shared/FilterBar';
+import RefreshButton from '../Common/RefreshButton';
 import p from '../shared/Pagination.module.css';
+import d from './DbTableView.module.css';
 
 interface DbTableViewProps {
     context: string;
@@ -291,19 +293,26 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
 
     return (
         <>
-            <h3>{title}</h3>
-            {hasFilterBar && !loading && (
-                <FilterBar
-                    filters={contextFilters}
-                    filterValues={filterValues}
-                    onFilterChange={handleFilterChange}
-                    sortOptions={contextSorts}
-                    sortField={sortField}
-                    sortDir={sortDir}
-                    onSortChange={handleSortChange}
-                    totalCount={shouldShowPagination ? totalCount : (data?.length ?? 0)}
-                    onClear={handleClearFilters}
-                />
+            <h3 className={d.title}>{title}</h3>
+            {!loading && (
+                <div className={d.toolbar}>
+                    {hasFilterBar ? (
+                        <FilterBar
+                            filters={contextFilters}
+                            filterValues={filterValues}
+                            onFilterChange={handleFilterChange}
+                            sortOptions={contextSorts}
+                            sortField={sortField}
+                            sortDir={sortDir}
+                            onSortChange={handleSortChange}
+                            totalCount={shouldShowPagination ? totalCount : (data?.length ?? 0)}
+                            onClear={handleClearFilters}
+                        />
+                    ) : <span />}
+                    <RefreshButton
+                        onRefresh={async () => { fetchFromApi(selectedPage, resultsPerPage); }}
+                    />
+                </div>
             )}
             {loading ? (
                 <h3><FaSpinner className="icon-spin"></FaSpinner></h3>

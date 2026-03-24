@@ -356,7 +356,6 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                 </Row>
                 <div className="d-flex justify-content-between align-items-center mb-2">
                     <span className="text-muted">{filteredData.length} players</span>
-                    <Button variant="outline-primary" size="sm" onClick={() => refreshData()}>Refresh</Button>
                 </div>
                 <DynamicTable data={filteredData} columns={columns} />
             </Card.Body>

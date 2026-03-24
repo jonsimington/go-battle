@@ -49,7 +49,7 @@ const Dashboard: FC = () => {
         <div className={styles.container}>
             <div className={styles.header}>
                 <h2 className={styles.title}>Dashboard</h2>
-                <RefreshButton onRefresh={fetchStats} size="sm" />
+                <RefreshButton onRefresh={fetchStats} />
             </div>
 
             {/* Summary counts */}

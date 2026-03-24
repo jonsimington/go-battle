@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Button, Spinner, Dropdown, ButtonGroup } from 'react-bootstrap';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FaSync, FaClock } from 'react-icons/fa';
+import s from './RefreshButton.module.css';
 
 interface RefreshButtonProps {
   onRefresh: () => Promise<void>;
   label?: string;
-  variant?: string;
   className?: string;
   size?: 'sm' | 'lg' | undefined;
 }
@@ -21,76 +20,51 @@ const AUTO_REFRESH_INTERVALS = [
 
 export const RefreshButton: React.FC<RefreshButtonProps> = ({ 
   onRefresh, 
-  label = 'Refresh Data', 
-  variant = 'outline-primary',
+  label = 'Refresh', 
   className = '',
-  size
 }) => {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
-    
     setIsRefreshing(true);
     try {
       await onRefresh();
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [isRefreshing, onRefresh]);
 
   // Effect for handling auto-refresh
   useEffect(() => {
-    let timer: NodeJS.Timeout | null = null;
-    
-    const refreshCycle = () => {
-      if (autoRefreshInterval) {
+    if (!autoRefreshInterval) return;
+
+    handleRefresh();
+    let remaining = autoRefreshInterval;
+    setTimeRemaining(remaining);
+
+    const id = setInterval(() => {
+      remaining -= 1;
+      setTimeRemaining(remaining);
+      if (remaining <= 0) {
+        handleRefresh();
+        remaining = autoRefreshInterval;
         setTimeRemaining(autoRefreshInterval);
-        
-        let remaining = autoRefreshInterval;
-        
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-        }
-        
-        timerRef.current = setInterval(() => {
-          remaining -= 1;
-          setTimeRemaining(remaining);
-          
-          if (remaining <= 0) {
-            handleRefresh();
-            remaining = autoRefreshInterval;
-            setTimeRemaining(autoRefreshInterval);
-          }
-        }, 1000);
-        
-        timer = timerRef.current;
       }
-    };
-    
-    if (autoRefreshInterval) {
-      handleRefresh(); // Initial refresh
-      refreshCycle();
-    }
-    
-    return () => {
-      if (timer) {
-        clearInterval(timer);
-      }
-    };
-  }, [autoRefreshInterval]); // Re-run effect when autoRefreshInterval changes
-  
-  const startAutoRefresh = (seconds: number) => {
-    setAutoRefreshInterval(seconds);
-  };
+    }, 1000);
+    timerRef.current = id;
+
+    return () => clearInterval(id);
+  }, [autoRefreshInterval]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopAutoRefresh = () => {
     setAutoRefreshInterval(null);
     setTimeRemaining(0);
-    
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -100,75 +74,81 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
   // Clean up on unmount
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  const btnClass = `${s.btn} ${s.btnWithSplit} ${autoRefreshInterval ? s.btnActive : ''}`;
+
   return (
-    <Dropdown as={ButtonGroup} className={className}>
-      <Button 
-        variant={variant}
+    <div ref={wrapperRef} className={`${s.wrapper} ${className}`}>
+      <button
+        className={btnClass}
         onClick={handleRefresh}
         disabled={isRefreshing}
-        size={size}
       >
         {isRefreshing ? (
-          <>
-            <Spinner
-              as="span"
-              animation="border"
-              size="sm"
-              role="status"
-              aria-hidden="true"
-              className="me-1"
-            />
-            Refreshing...
-          </>
-        ) : autoRefreshInterval ? (
-          <>
-            <FaSync className="me-1" />
-            {`Auto (${timeRemaining}s)`}
-          </>
+          <FaSync className={s.spinner} />
         ) : (
-          <>
-            <FaSync className="me-1" />
-            {label}
-          </>
+          <FaSync className={s.icon} />
         )}
-      </Button>
+        {isRefreshing
+          ? 'Refreshing…'
+          : autoRefreshInterval
+            ? `Auto (${timeRemaining}s)`
+            : label}
+      </button>
 
-      <Dropdown.Toggle
-        split
-        variant={variant}
-        disabled={isRefreshing}
-        size={size}
-        id="refresh-dropdown"
-      />
+      <button
+        className={s.splitBtn}
+        onClick={() => setMenuOpen(prev => !prev)}
+        aria-label="Auto-refresh options"
+      >
+        ▾
+      </button>
 
-      <Dropdown.Menu>
-        <Dropdown.Header>Auto-refresh</Dropdown.Header>
-        {AUTO_REFRESH_INTERVALS.map((interval) => (
-          <Dropdown.Item 
-            key={interval.value}
-            onClick={() => startAutoRefresh(interval.value)}
-            active={autoRefreshInterval === interval.value}
-          >
-            <FaClock className="me-2" />
-            Every {interval.label}
-          </Dropdown.Item>
-        ))}
-        {autoRefreshInterval && (
-          <>
-            <Dropdown.Divider />
-            <Dropdown.Item onClick={stopAutoRefresh}>
-              Turn off auto-refresh
-            </Dropdown.Item>
-          </>
-        )}
-      </Dropdown.Menu>
-    </Dropdown>
+      {menuOpen && (
+        <div className={s.menu}>
+          <div className={s.menuHeader}>Auto-refresh</div>
+          {AUTO_REFRESH_INTERVALS.map((interval) => (
+            <button 
+              key={interval.value}
+              className={`${s.menuItem} ${autoRefreshInterval === interval.value ? s.menuItemActive : ''}`}
+              onClick={() => {
+                setAutoRefreshInterval(interval.value);
+                setMenuOpen(false);
+              }}
+            >
+              <FaClock />
+              Every {interval.label}
+            </button>
+          ))}
+          {autoRefreshInterval && (
+            <>
+              <div className={s.menuDivider} />
+              <button
+                className={s.menuItem}
+                onClick={() => { stopAutoRefresh(); setMenuOpen(false); }}
+              >
+                Turn off auto-refresh
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 
