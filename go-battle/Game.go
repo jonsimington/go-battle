@@ -32,6 +32,7 @@ type Game struct {
 	Draw         bool     `json:"draw"`
 	Status       string   `json:"status"`
 	ErrorMessage string   `json:"error_message"` // Store error messages for display in UI
+	ResultReason string   `json:"result_reason"` // Human-readable reason why the game ended (e.g. "Checkmate!", "Stalemate...")
 }
 
 var _httpClient = &http.Client{
@@ -238,6 +239,10 @@ func updateGameErrorMessage(db *gorm.DB, game Game, errorMessage string) {
 	updateEntityField[Game](db, gameLock, game.ID, func(g *Game) { g.ErrorMessage = errorMessage })
 }
 
+func setGameResultReason(db *gorm.DB, game Game, reason string) {
+	updateEntityField[Game](db, gameLock, game.ID, func(g *Game) { g.ResultReason = reason })
+}
+
 func (g Game) PlayGame(ctx context.Context, gameSession int) bool {
 	// Create a per-game cancellable context (child of match context)
 	gameCtx, gameCancel := context.WithCancel(ctx)
@@ -337,6 +342,7 @@ func RestartGame(db *gorm.DB, gameID int) error {
 	g.Draw = false
 	g.GamelogUrl = ""
 	g.ErrorMessage = ""
+	g.ResultReason = ""
 	g.SessionID = newSession
 	db.Save(&g)
 	gameLock.Unlock()
@@ -606,9 +612,7 @@ func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir stri
 						if len(glog.Losers) == 2 && (isDrawReason(glog.Losers[0].Reason) || isDrawReason(glog.Losers[1].Reason)) {
 							log.Infof("Game %d resulted in a draw (both players in losers with Draw/Stalemate reason)", gameSession)
 							updateGameDraw(db, g, true)
-
-							// Set an error message with the draw reason for UI display
-							updateGameErrorMessage(db, g, glog.Losers[0].Reason)
+							setGameResultReason(db, g, glog.Losers[0].Reason)
 
 							// Handle ELO changes for draw
 							handleEloChanges(g.Players[0], g.Players[1], nil, true)
@@ -638,6 +642,7 @@ func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir stri
 								setGameLoser(db, g, loser)
 							}
 
+							setGameResultReason(db, g, glog.Winners[0].Reason)
 							handleEloChanges(winner, loser, &winner, false)
 							// No winners or losers means it's a draw (fallback case)
 						} else if len(glog.Winners) == 0 && len(glog.Losers) == 0 {

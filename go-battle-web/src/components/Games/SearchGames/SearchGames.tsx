@@ -36,7 +36,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             key: "players",
             title: "Players",
             width: 200,
-            render: (_, { players, winner, loser, draw }) => {
+            render: (_, { players, winner, loser, draw, result_reason }) => {
                 if (!players || players.length === 0) return <span className={s.muted}>—</span>;
                 const playerIds = players.map(pluck('ID')).join(', ');
 
@@ -66,6 +66,9 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                                 </span>
                             );
                         })}
+                        {result_reason && (
+                            <span className={s.resultReason}>{result_reason}</span>
+                        )}
                     </div>
                 );
             }
@@ -90,8 +93,8 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             key: "status",
             title: "Status",
             width: 100,
-            render: (_, { status, error_message }) => {
-                if (status === "Error" || error_message) {
+            render: (_, { status, error_message, draw }) => {
+                if (status === "Error" || (error_message && !draw)) {
                     return (
                         <span className={`${s.status} ${s.statusError}`} title={error_message || "An error occurred"}>
                             {status}
