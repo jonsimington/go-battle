@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { delay, getApiUrl, pluck } from '../../../utils/utils';
+import { apiFetch } from '../../../utils/apiFetch';
 import { TournamentsResult } from '../../../models/TournamentsResult';
 import { FaCirclePlay, FaSpinner, FaDiagramProject, FaTrash } from 'react-icons/fa6';
 import TimeAgo from 'timeago-react';
@@ -152,7 +153,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
         setTournamentStartTimes(prev => [...prev, { id: tournamentID, startTime: new Date() }]);
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/tournaments/start?tournament_id=${tournamentID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+        apiFetch(`${apiUrl}/tournaments/start?tournament_id=${tournamentID}`, { method: 'POST' })
             .then(response => api.handleResponse(response))
             .then(() => delay(1000))
             .then(() => { refreshData(); setTournamentsPlaying(prev => prev.filter(id => id !== tournamentID)); });
@@ -162,7 +163,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
         if (!del.itemToDelete) return;
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/tournaments?tournament_id=${del.itemToDelete}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+        apiFetch(`${apiUrl}/tournaments?tournament_id=${del.itemToDelete}`, { method: 'DELETE' })
             .then(response => api.handleResponse(response))
             .then(() => delay(1000))
             .then(() => { del.resetDelete(); refreshData(); })

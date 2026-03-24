@@ -277,4 +277,20 @@ func FillDbWithTestData() {
 	}
 
 	insertTournament(db, &sampleTournament)
+
+	sampleUser := User{
+		Username: "jon",
+		Role:     RoleAdmin,
+	}
+	hashed, err := hashPassword("redwhiteblue")
+	if err != nil {
+		log.Errorf("Error hashing password for test user: %v", err)
+	} else {
+		sampleUser.PasswordHash = hashed
+		if err := insertUser(db, &sampleUser); err != nil {
+			log.Errorf("Error inserting test user: %v", err)
+		}
+	}
+
+	log.Infoln("Finished filling DB with test data")
 }

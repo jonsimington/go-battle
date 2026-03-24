@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
 import { delay, getApiUrl, getVisUrl, pluck } from '../../../utils/utils';
+import { apiFetch } from '../../../utils/apiFetch';
 import { FaTv, FaTrash, FaCircleStop, FaArrowRotateRight, FaSpinner } from 'react-icons/fa6';
 import TimeAgo from 'timeago-react';
 import { useNavigate } from 'react-router-dom';
@@ -182,7 +183,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
         setGamesStopping(prev => [...prev, gameID]);
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/games/stop?game_id=${gameID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+        apiFetch(`${apiUrl}/games/stop?game_id=${gameID}`, { method: 'POST' })
             .then(response => api.handleResponse(response))
             .then(() => delay(1000))
             .then(() => { refreshData(); setGamesStopping(prev => prev.filter(id => id !== gameID)); })
@@ -193,7 +194,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
         setGamesRestarting(prev => [...prev, gameID]);
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/games/restart?game_id=${gameID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+        apiFetch(`${apiUrl}/games/restart?game_id=${gameID}`, { method: 'POST' })
             .then(response => api.handleResponse(response))
             .then(() => delay(1000))
             .then(() => { refreshData(); setGamesRestarting(prev => prev.filter(id => id !== gameID)); })
@@ -204,7 +205,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
         if (!del.itemToDelete) return;
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/games?game_id=${del.itemToDelete}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+        apiFetch(`${apiUrl}/games?game_id=${del.itemToDelete}`, { method: 'DELETE' })
             .then(response => api.handleResponse(response))
             .then(() => delay(1000))
             .then(() => { del.resetDelete(); refreshData(); })

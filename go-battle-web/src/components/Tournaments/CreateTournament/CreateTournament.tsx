@@ -5,6 +5,7 @@ import { PlayersResult } from '../../../models/PlayersResult';
 import '../../shared/CreateForm.css';
 import { getApiUrl } from '../../../utils/utils';
 import { useApiResponse } from '../../../hooks/useApiResponse';
+import { apiFetch } from '../../../utils/apiFetch';
 
 interface CreateTournamentProps {}
 
@@ -165,17 +166,12 @@ const CreateTournament: FC<CreateTournamentProps> = () => {
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
 
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-        };
-
         const typeQuery = encodeURI(typeValue);
         const playersQuery = encodeURI(playersValue);
 
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/tournaments?type=${typeQuery}&players=${playersQuery}`, requestOptions)
+        apiFetch(`${apiUrl}/tournaments?type=${typeQuery}&players=${playersQuery}`, { method: 'POST' })
             .then(response => api.handleResponse(response));
     }
 

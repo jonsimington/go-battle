@@ -13,9 +13,13 @@ import CreateTournament from './components/Tournaments/CreateTournament/CreateTo
 import CreateRandomMatch from './components/Matches/CreateRandomMatch/CreateRandomMatch';
 import Dashboard from './components/Dashboard/Dashboard';
 import TournamentBracket from './components/Tournaments/TournamentBracket/TournamentBracket';
+import { AuthProvider } from './hooks/useAuth';
+import Login from './components/Auth/Login/Login';
+import Register from './components/Auth/Register/Register';
 
 function App() {
   return (
+    <AuthProvider>
     <BrowserRouter>
         <div className="wrapper">
             <Navigation />
@@ -23,6 +27,8 @@ function App() {
             <div className="body" data-bs-theme="dark">
                 <Routes>
                     <Route path="/" element={<Dashboard />} />
+                    <Route path="login" element={<Login />} />
+                    <Route path="register" element={<Register />} />
                     <Route path="players/create" element={<CreatePlayer />} />
                     <Route path="players/search" element={<DbTableView context="players" />} />
                     <Route path="clients/create" element={<CreateClient />} />
@@ -39,6 +45,7 @@ function App() {
             </div>
         </div>
     </BrowserRouter>
+    </AuthProvider>
   );
 }
 

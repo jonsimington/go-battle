@@ -3,6 +3,7 @@ import { Alert } from 'react-bootstrap';
 import { FaDice } from 'react-icons/fa6';
 import { getApiUrl } from '../../../utils/utils';
 import { useApiResponse } from '../../../hooks/useApiResponse';
+import { apiFetch } from '../../../utils/apiFetch';
 import '../../shared/CreateForm.css';
 
 interface CreateRandomMatchProps {}
@@ -15,9 +16,8 @@ const CreateRandomMatch: FC<CreateRandomMatchProps> = () => {
         event.preventDefault();
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/matches/random?num_games=${encodeURI(numGamesValue)}`, {
+        apiFetch(`${apiUrl}/matches/random?num_games=${encodeURI(numGamesValue)}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
         }).then(response => api.handleResponse(response));
     }
 

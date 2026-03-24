@@ -4,6 +4,7 @@ import { FaPlus } from 'react-icons/fa6';
 import { ClientsResult } from '../../../models/ClientsResult';
 import { getApiUrl, translateClientLanguage } from '../../../utils/utils';
 import { useApiResponse } from '../../../hooks/useApiResponse';
+import { apiFetch } from '../../../utils/apiFetch';
 import '../../shared/CreateForm.css';
 
 interface CreatePlayerProps {}
@@ -31,9 +32,8 @@ const CreatePlayer: FC<CreatePlayerProps> = () => {
         event.preventDefault();
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/players?name=${encodeURI(nameValue)}&client_id=${encodeURI(clientIdValue)}`, {
+        apiFetch(`${apiUrl}/players?name=${encodeURI(nameValue)}&client_id=${encodeURI(clientIdValue)}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
         }).then(response => api.handleResponse(response));
     }
 

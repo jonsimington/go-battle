@@ -2,6 +2,7 @@ import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaCircleStop, FaArrowRotateRight, FaSpinner, FaTrash } from 'react-icons/fa6';
 import { allPlayersHaveSameScore, calculatePlayerScores, delay, elapsedTime, getApiUrl, pluck, prettyTimeAgo } from '../../../utils/utils';
+import { apiFetch } from '../../../utils/apiFetch';
 import { useState } from 'react';
 import TimeAgo from 'timeago-react';
 import { PlayerScore } from '../../../models/PlayerScore';
@@ -174,7 +175,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         setMatchStartTimes(prev => [...prev, { id: matchID, startTime: new Date() }]);
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/matches/start?match_id=${matchID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+        apiFetch(`${apiUrl}/matches/start?match_id=${matchID}`, { method: 'POST' })
             .then(response => api.handleResponse(response))
             .then(() => delay(1000))
             .then(() => { refreshData(); setMatchesPlaying(prev => prev.filter(id => id !== matchID)); });
@@ -184,7 +185,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         setMatchesStopping(prev => [...prev, matchID]);
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/matches/stop?match_id=${matchID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+        apiFetch(`${apiUrl}/matches/stop?match_id=${matchID}`, { method: 'POST' })
             .then(response => api.handleResponse(response))
             .then(() => delay(1000))
             .then(() => {
@@ -199,7 +200,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         setMatchesRestarting(prev => [...prev, matchID]);
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/matches/restart?match_id=${matchID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+        apiFetch(`${apiUrl}/matches/restart?match_id=${matchID}`, { method: 'POST' })
             .then(response => api.handleResponse(response))
             .then(() => delay(1000))
             .then(() => { refreshData(); setMatchesRestarting(prev => prev.filter(id => id !== matchID)); })
@@ -210,7 +211,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         if (!del.itemToDelete) return;
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/matches?match_id=${del.itemToDelete}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+        apiFetch(`${apiUrl}/matches?match_id=${del.itemToDelete}`, { method: 'DELETE' })
             .then(response => api.handleResponse(response))
             .then(() => delay(1000))
             .then(() => { del.resetDelete(); refreshData(); })

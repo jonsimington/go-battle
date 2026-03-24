@@ -83,7 +83,10 @@ func initDB() {
 		&Tournament{},
 		&HistoricalElo{},
 		&Metadata{},
+		&User{},
 	)
+
+	initJWTSecret()
 
 	if dbEmpty() {
 		FillDbWithTestData()
@@ -111,38 +114,46 @@ func main() {
 	app := fiber.New()
 
 	app.Use(cors.New(cors.Config{
-		AllowHeaders:     "Origin, Content-Type, Accept, Content-Length, Accept-Language, Accept-Encoding, Connection, Access-Control-Allow-Origin",
-		AllowOrigins:     conf.Get("ALLOWED_ORIGINS"),
-		AllowCredentials: true,
-		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
+		AllowHeaders: "Origin, Content-Type, Accept, Content-Length, Accept-Language, Accept-Encoding, Connection, Access-Control-Allow-Origin, Authorization",
+		AllowOrigins: conf.Get("ALLOWED_ORIGINS"),
+		AllowMethods: "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
 	}))
 
-	app.Post("/clients", postClientsHandler)
+	// Auth routes (public)
+	app.Post("/auth/register", registerHandler)
+	app.Post("/auth/login", loginHandler)
+	app.Get("/auth/me", RequireAuth(), meHandler)
+
+	// Public GET routes - anyone can view
 	app.Get("/clients", getClientsHandler)
-
-	app.Post("/players", postPlayersHandler)
 	app.Get("/players", getPlayersHandler)
-
-	app.Post("/games", postGamesHandler)
 	app.Get("/games", getGamesHandler)
-	app.Delete("/games", deleteGamesHandler)
-	app.Post("/games/stop", stopGameHandler)
-	app.Post("/games/restart", restartGameHandler)
-
-	app.Post("/matches", postMatchesHandler)
-	app.Delete("/matches", deleteMatchesHandler)
-	app.Post("/matches/start", startMatchHandler)
-	app.Post("/matches/stop", stopMatchHandler)
-	app.Post("/matches/restart", restartMatchHandler)
 	app.Get("/matches", getMatchesHandler)
-	app.Post("/matches/random", randomMatchHandler)
-
-	app.Post("/tournaments", postTournamentsHandler)
 	app.Get("/tournaments", getTournamentsHandler)
-	app.Post("/tournaments/start", startTournamentsHandler)
-	app.Delete("/tournaments", deleteTournamentsHandler)
-
 	app.Get("/stats/dashboard", getDashboardStatsHandler)
+
+	// Admin-only write routes
+	admin := app.Group("", RequireAuth(), RequireAdmin())
+
+	admin.Post("/clients", postClientsHandler)
+
+	admin.Post("/players", postPlayersHandler)
+
+	admin.Post("/games", postGamesHandler)
+	admin.Delete("/games", deleteGamesHandler)
+	admin.Post("/games/stop", stopGameHandler)
+	admin.Post("/games/restart", restartGameHandler)
+
+	admin.Post("/matches", postMatchesHandler)
+	admin.Delete("/matches", deleteMatchesHandler)
+	admin.Post("/matches/start", startMatchHandler)
+	admin.Post("/matches/stop", stopMatchHandler)
+	admin.Post("/matches/restart", restartMatchHandler)
+	admin.Post("/matches/random", randomMatchHandler)
+
+	admin.Post("/tournaments", postTournamentsHandler)
+	admin.Post("/tournaments/start", startTournamentsHandler)
+	admin.Delete("/tournaments", deleteTournamentsHandler)
 
 	log.Infof("Initializing tournament controller")
 	InitializeTournamentController(db)

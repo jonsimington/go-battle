@@ -4,6 +4,7 @@ import { Alert } from 'react-bootstrap';
 import { FaPlus } from 'react-icons/fa6';
 import { getApiUrl } from '../../../utils/utils';
 import { useApiResponse } from '../../../hooks/useApiResponse';
+import { apiFetch } from '../../../utils/apiFetch';
 import '../../shared/CreateForm.css';
 
 interface CreateMatchProps {}
@@ -42,9 +43,8 @@ const CreateMatch: FC<CreateMatchProps> = () => {
         event.preventDefault();
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/matches?num_games=${encodeURI(numGamesValue)}&players=${encodeURI(playersValue)}`, {
+        apiFetch(`${apiUrl}/matches?num_games=${encodeURI(numGamesValue)}&players=${encodeURI(playersValue)}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
         }).then(response => api.handleResponse(response));
     }
 

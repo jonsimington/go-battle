@@ -3,6 +3,7 @@ import { Alert } from 'react-bootstrap';
 import { FaPlus } from 'react-icons/fa6';
 import { getApiUrl } from '../../../utils/utils';
 import { useApiResponse } from '../../../hooks/useApiResponse';
+import { apiFetch } from '../../../utils/apiFetch';
 import '../../shared/CreateForm.css';
 
 interface CreateClientProps {}
@@ -17,9 +18,8 @@ const CreateClient: FC<CreateClientProps> = () => {
         event.preventDefault();
         const apiUrl = getApiUrl();
 
-        fetch(`${apiUrl}/clients?repo_url=${encodeURI(repoUrlValue)}&language=${encodeURI(languageValue)}&game=${encodeURI(gameValue)}`, {
+        apiFetch(`${apiUrl}/clients?repo_url=${encodeURI(repoUrlValue)}&language=${encodeURI(languageValue)}&game=${encodeURI(gameValue)}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
         }).then(response => api.handleResponse(response));
     }
 

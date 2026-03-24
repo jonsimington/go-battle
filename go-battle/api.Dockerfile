@@ -1,12 +1,18 @@
-FROM golang:1.24.2-bullseye AS builder
+FROM golang:1.25.8-bookworm AS builder
 
 WORKDIR /usr/src/app
 
 RUN go install github.com/air-verse/air@v1.61.7
 
-# Install Python 2.7 from Debian bullseye
-RUN apt update
-RUN apt install -y curl cmake build-essential python2.7 python2.7-dev pkg-config libssl-dev
+# Install base packages
+RUN apt update && apt install -y curl cmake build-essential pkg-config libssl-dev
+
+# Install Python 2.7 from Debian bullseye (removed in bookworm)
+RUN echo "deb http://deb.debian.org/debian bullseye main" > /etc/apt/sources.list.d/bullseye.list \
+    && apt update \
+    && apt install -y python2.7 python2.7-dev \
+    && rm /etc/apt/sources.list.d/bullseye.list \
+    && apt update
 
 # install node so we can run js clients
 ENV NODE_VERSION=10.24.1
