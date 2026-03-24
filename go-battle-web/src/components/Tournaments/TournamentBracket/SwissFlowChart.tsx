@@ -60,6 +60,15 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
     const [hoveredId, setHoveredId] = useState<number | null>(null);
     const [hoveredDot, setHoveredDot] = useState<HoveredDot | null>(null);
 
+    // When hovering a game dot, highlight both the player and their opponent
+    const hoveredMatchPlayerIds = useMemo(() => {
+        if (!hoveredDot) return new Set<number>();
+        const opponentName = hoveredDot.tickResult.opponent;
+        if (!opponentName) return new Set([hoveredDot.playerId]);
+        const opponent = players.find(p => p.playerName === opponentName);
+        return new Set([hoveredDot.playerId, ...(opponent ? [opponent.playerId] : [])]);
+    }, [hoveredDot, players]);
+
     const totalTicks = 1 + gamesPerRound * roundCount;
 
     const margin = { top: 20, right: 150, bottom: 48, left: 44 };
@@ -235,7 +244,7 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
             {/* Player lines, dots, and labels */}
             {sorted.map((player, idx) => {
                 const color = COLORS[idx % COLORS.length];
-                const isHovered = hoveredId === player.playerId;
+                const isHovered = hoveredId === player.playerId || hoveredMatchPlayerIds.has(player.playerId);
                 const isDimmed = hoveredId !== null && !isHovered;
                 const label = labels.get(player.playerId);
                 const lastScore = player.cumulativeScores[player.cumulativeScores.length - 1] || 0;
