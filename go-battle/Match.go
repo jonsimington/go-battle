@@ -305,7 +305,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 
 	// Check if any games are still not in a final state (this shouldn't happen since we waited)
 	for _, game := range games {
-		if game.Status != "Complete" && game.Status != "Error" {
+		if !isGameTerminalStatus(game.Status) {
 			log.Warningf("Game %d in match %d has unexpected status %s after wait completed",
 				game.ID, m.ID, game.Status)
 		}
@@ -316,7 +316,7 @@ func (m Match) StartMatch(db *gorm.DB) {
 
 	// for each game played, calculate the winner/loser tally
 	for _, game := range games {
-		if game.Status == "Complete" || game.Status == "Error" {
+		if isGameTerminalStatus(game.Status) {
 			// Count wins for overall match result
 			if game.Draw {
 				log.Infoln("Game was a draw!")
@@ -509,7 +509,7 @@ func checkAndFinalizeMatch(db *gorm.DB, matchID int, notifyTournaments bool) {
 	}
 
 	for _, game := range match.Games {
-		if game.Status != "Complete" && game.Status != "Error" && game.Status != "Canceled" {
+		if !isGameTerminalStatus(game.Status) {
 			log.Debugf("Match %d has game %d with status %s, waiting for completion",
 				matchID, game.ID, game.Status)
 			return

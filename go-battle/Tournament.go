@@ -793,13 +793,21 @@ func checkTournaments(db *gorm.DB) {
 				break
 			}
 
-			// Verify all games in the match are in a final state (Complete, Error, or Canceled)
+			// Verify all games in the match are in a final state (Complete, Error, Canceled, or Incomplete)
 			for _, game := range updatedMatch.Games {
-				if game.Status != "Complete" && game.Status != "Error" && game.Status != "Canceled" {
-					allMatchesComplete = false
-					log.Warnf("Match %d has game %d with status %s, waiting for completion",
-						updatedMatch.ID, game.ID, game.Status)
-					break
+				if !isGameTerminalStatus(game.Status) {
+					// If the game has been stuck for too long, force it to Incomplete
+					if !game.CreatedAt.IsZero() && time.Since(game.CreatedAt) > StaleGameTimeout {
+						log.Warnf("Game %d in match %d has been stuck with status %s for %v, forcing to Incomplete",
+							game.ID, updatedMatch.ID, game.Status, time.Since(game.CreatedAt))
+						updateGameStatus(db, game, "Incomplete")
+						updateGameErrorMessage(db, game, fmt.Sprintf("Game timed out after %v with status %s", time.Since(game.CreatedAt), game.Status))
+					} else {
+						allMatchesComplete = false
+						log.Warnf("Match %d has game %d with status %s, waiting for completion",
+							updatedMatch.ID, game.ID, game.Status)
+						break
+					}
 				}
 			}
 

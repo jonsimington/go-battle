@@ -100,6 +100,16 @@ func isDrawReason(reason string) bool {
 	return false
 }
 
+// isGameTerminalStatus returns true if the game status is a final/terminal state
+// that will not change further (Complete, Error, Canceled, or Incomplete).
+func isGameTerminalStatus(status string) bool {
+	return status == "Complete" || status == "Error" || status == "Canceled" || status == "Incomplete"
+}
+
+// StaleGameTimeout is how long a game can sit in a non-terminal state before
+// the tournament controller forces it to "Incomplete" so the tournament can progress.
+const StaleGameTimeout = 10 * time.Minute
+
 // gamePreloads applies the standard Player/Winner/Loser preloads for game queries.
 func gamePreloads(q *gorm.DB) *gorm.DB {
 	return q.Preload("Players", func(db *gorm.DB) *gorm.DB {
