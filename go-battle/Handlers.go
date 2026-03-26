@@ -532,6 +532,94 @@ func randomMatchHandler(c *fiber.Ctx) error {
 	}
 }
 
+// rankedMatchHandler pairs two players with the most similar ELO ratings and starts a match.
+func rankedMatchHandler(c *fiber.Ctx) error {
+	numGames := c.Query("num_games")
+	numGamesInt, numGamesIntErr := strconv.Atoi(numGames)
+
+	if numGames != "" && numGamesIntErr != nil {
+		return c.Status(400).SendString("`num_games` query parameter must be an integer")
+	}
+
+	players := getPlayersElo()
+
+	if len(players) < 2 {
+		log.Warnf("Ranked matchmaker: not enough players (%d) to create a match", len(players))
+		return c.Status(400).SendString("Not enough players available to create a match (minimum 2 required)")
+	}
+
+	// Pick a random seed player, then find the opponent with the closest ELO.
+	seedIdx := rand.Intn(len(players))
+	seed := players[seedIdx]
+
+	bestDiff := -1
+	opponentIdx := -1
+	for i, p := range players {
+		if p.ID == seed.ID {
+			continue
+		}
+		diff := p.Elo - seed.Elo
+		if diff < 0 {
+			diff = -diff
+		}
+		if bestDiff == -1 || diff < bestDiff {
+			bestDiff = diff
+			opponentIdx = i
+		}
+	}
+
+	opponent := players[opponentIdx]
+	log.Infof("Ranked pairing: Player %d (%s, ELO %d) vs Player %d (%s, ELO %d) | ELO diff: %d",
+		seed.ID, seed.Name, seed.Elo, opponent.ID, opponent.Name, opponent.Elo, bestDiff)
+
+	playerIds := []int{int(seed.ID), int(opponent.ID)}
+	playersToInclude := getPlayers(playerIds)
+
+	if len(playersToInclude) != 2 {
+		log.Errorf("Ranked matchmaker: failed to load players with IDs %d and %d", seed.ID, opponent.ID)
+		return c.Status(404).SendString(fmt.Sprintf("Could not find players with IDs %d and %d", seed.ID, opponent.ID))
+	}
+
+	numGamesInMatch := 1
+	if numGames != "" {
+		numGamesInMatch = numGamesInt
+	}
+
+	match := Match{
+		NumGames: numGamesInMatch,
+		Players:  playersToInclude,
+		Status:   "Pending",
+	}
+
+	insertMatch(db, &match)
+
+	if match.ID == 0 {
+		log.Errorf("Ranked matchmaker: failed to insert match into the database")
+		return c.Status(500).SendString("Failed to create match due to a database error")
+	}
+
+	log.Infof("Ranked match created: ID %d, %d game(s), Players %d (%s) vs %d (%s)",
+		match.ID, match.NumGames, seed.ID, seed.Name, opponent.ID, opponent.Name)
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("Panic recovered in ranked match goroutine (match %d): %v", match.ID, r)
+				updateMatchStatus(db, match, "Error")
+			}
+		}()
+		match.StartMatch(db)
+	}()
+
+	return c.Status(200).SendString(fmt.Sprintf(
+		"Started Ranked Match: ID %d, %d Games, Players %d (%s, ELO %d) & %d (%s, ELO %d), ELO diff: %d",
+		match.ID, match.NumGames,
+		seed.ID, seed.Name, seed.Elo,
+		opponent.ID, opponent.Name, opponent.Elo,
+		bestDiff,
+	))
+}
+
 // /////////////////////////////////////////////////////////////////////////
 // TOURNAMENTS
 // /////////////////////////////////////////////////////////////////////////

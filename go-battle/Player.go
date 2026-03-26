@@ -50,6 +50,20 @@ func getPlayerIDs() []int {
 	return ids
 }
 
+// PlayerEloRecord is a lightweight projection used for ELO-based matchmaking.
+type PlayerEloRecord struct {
+	ID   uint
+	Elo  int
+	Name string
+}
+
+// getPlayersElo returns all active players with only their ID, ELO, and name loaded.
+func getPlayersElo() []PlayerEloRecord {
+	var records []PlayerEloRecord
+	db.Model(&Player{}).Select("id, elo, name").Scan(&records)
+	return records
+}
+
 func getPlayer(id int) Player {
 	var player Player
 

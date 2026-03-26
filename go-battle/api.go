@@ -151,6 +151,7 @@ func main() {
 	admin.Post("/matches/stop", stopMatchHandler)
 	admin.Post("/matches/restart", restartMatchHandler)
 	admin.Post("/matches/random", randomMatchHandler)
+	admin.Post("/matches/ranked", rankedMatchHandler)
 
 	admin.Post("/tournaments", postTournamentsHandler)
 	admin.Post("/tournaments/start", startTournamentsHandler)
@@ -160,13 +161,13 @@ func main() {
 	InitializeTournamentController(db)
 
 	matchmakerPeriod := 5 * time.Minute
-	log.Infof("Starting matchmaker with random games every %v", matchmakerPeriod)
+	log.Infof("Starting matchmaker — ranked pairing every %v", matchmakerPeriod)
 	serviceUser := &User{Username: "matchmaker-service", Role: RoleAdmin}
 	serviceToken, err := generateToken(serviceUser)
 	if err != nil {
 		log.Fatalf("failed to generate matchmaker service token: %v", err)
 	}
-	go matchmaker.StartRandomMatch(matchmakerPeriod, serviceToken)
+	go matchmaker.StartRankedMatch(matchmakerPeriod, serviceToken)
 
 	app.Listen(":3000")
 }
@@ -177,18 +178,21 @@ func dbEmpty() bool {
 	var numGames int64 = 0
 	var numMatches int64 = 0
 	var numTournaments int64 = 0
+	var numUsers int64 = 0
 
 	db.Model(&Player{}).Count(&numPlayers)
 	db.Model(&Client{}).Count(&numClients)
 	db.Model(&Game{}).Count(&numGames)
 	db.Model(&Match{}).Count(&numMatches)
 	db.Model(&Tournament{}).Count(&numTournaments)
+	db.Model(&User{}).Count(&numUsers)
 
 	log.Infof("# players: %d", numPlayers)
 	log.Infof("# clients: %d", numClients)
 	log.Infof("# games: %d", numGames)
 	log.Infof("# matches: %d", numMatches)
 	log.Infof("# tournaments: %d", numTournaments)
+	log.Infof("# users: %d", numUsers)
 
-	return numPlayers == 0 && numClients == 0 && numGames == 0 && numMatches == 0 && numTournaments == 0
+	return numPlayers == 0 && numClients == 0 && numGames == 0 && numMatches == 0 && numTournaments == 0 && numUsers == 0
 }
