@@ -140,7 +140,6 @@ export function TournamentBracket(): JSX.Element {
             const matchesJson = await response.json();
             // Handle paginated response format: { data: [...], page, pageSize, totalCount, totalPages }
             const matchesData = Array.isArray(matchesJson) ? matchesJson : matchesJson.data;
-            console.log("Detailed matches data fetched:", matchesData);
             
             const detailedMatchesMap = new Map<number, MatchesResult>();
             (matchesData ?? []).forEach((match: MatchesResult) => {
@@ -155,9 +154,7 @@ export function TournamentBracket(): JSX.Element {
         }
     };
 
-    const organizeTournamentData = (tournament: TournamentsResult) => {
-        console.log(`got tournament data: ${JSON.stringify(tournament)}`);
-        
+    const organizeTournamentData = (tournament: TournamentsResult) => {       
         // Group matches by round (based on creation time)
         const sortedMatches = [...tournament.matches].sort((a, b) => 
             new Date(a.CreatedAt).getTime() - new Date(b.CreatedAt).getTime()

@@ -6,6 +6,7 @@ import { COLORS } from '../../../utils/colors';
 interface TableRowProps<T> {
     data: T[];
     columns: IColumnType<T>[];
+    onRowClick?: (item: T) => void;
 }
 
 const TableRowItem = styled("tr", {
@@ -22,11 +23,15 @@ const TableRowItem = styled("tr", {
     }
 });
 
-export function TableRow<T>({ data, columns }: TableRowProps<T>): JSX.Element {
+export function TableRow<T>({ data, columns, onRowClick }: TableRowProps<T>): JSX.Element {
     return (
         <>
         {data.map((item, itemIndex) => (
-            <TableRowItem key={`table-body-${itemIndex}`}>
+            <TableRowItem
+                key={`table-body-${itemIndex}`}
+                onClick={onRowClick ? () => onRowClick(item) : undefined}
+                css={{ cursor: onRowClick ? 'pointer' : 'auto' }}
+            >
                 {columns.map((column, columnIndex) => (
                     <TableRowCell
                         key={`table-row-cell-${columnIndex}`}

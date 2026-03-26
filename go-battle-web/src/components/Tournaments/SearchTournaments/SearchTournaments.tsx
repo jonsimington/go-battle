@@ -51,7 +51,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                 return (
                     <span
                         className={s.countLink}
-                        onClick={() => navigate(`/players/search?ids=${encodeURI(playerIds)}`)}>
+                        onClick={(e) => { e.stopPropagation(); navigate(`/players/search?ids=${encodeURI(playerIds)}`); }}>
                         {players.length} player{players.length !== 1 ? 's' : ''}
                     </span>
                 );
@@ -68,7 +68,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                 return (
                     <span
                         className={s.countLink}
-                        onClick={() => navigate(`/games/search?ids=${encodeURI(gameIds)}`)}>
+                        onClick={(e) => { e.stopPropagation(); navigate(`/games/search?ids=${encodeURI(gameIds)}`); }}>
                         {allGames.length} game{allGames.length !== 1 ? 's' : ''}
                     </span>
                 );
@@ -84,7 +84,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                 return (
                     <span
                         className={s.countLink}
-                        onClick={() => navigate(`/matches/search?ids=${encodeURI(matchIds)}`)}>
+                        onClick={(e) => { e.stopPropagation(); navigate(`/matches/search?ids=${encodeURI(matchIds)}`); }}>
                         {matches.length} match{matches.length !== 1 ? 'es' : ''}
                     </span>
                 );
@@ -99,7 +99,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                 return (
                     <span
                         className={s.winnerLink}
-                        onClick={() => navigate(`/players/search?ids=${encodeURI(winner.ID.toString())}`)}>
+                        onClick={(e) => { e.stopPropagation(); navigate(`/players/search?ids=${encodeURI(winner.ID.toString())}`); }}>
                         {winner.name}
                     </span>
                 );
@@ -126,7 +126,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             title: "",
             width: 140,
             render: (_, { ID, status }) => (
-                <div className={s.actions}>
+                <div className={s.actions} onClick={e => e.stopPropagation()}>
                     <button className={s.actionBtn} onClick={() => navigate(`/tournaments/bracket/${ID}`)} title="View bracket">
                         <FaDiagramProject />
                     </button>
@@ -179,7 +179,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
                 text={api.alertText}
             />
 
-            <DynamicTable data={tableData} columns={columns} />
+            <DynamicTable data={tableData} columns={columns} onRowClick={({ ID }: any) => navigate(`/tournaments/bracket/${ID}`)} />
 
             <Modal
                 show={del.showModal}

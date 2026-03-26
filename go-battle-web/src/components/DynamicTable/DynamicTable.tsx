@@ -5,6 +5,7 @@ import { TableRow } from './TableRow/TableRow';
 interface DynamicTableProps<T> {
     data: T[]
     columns: IColumnType<T>[]
+    onRowClick?: (item: T) => void
 }
 
 export interface IColumnType<T> {
@@ -30,7 +31,7 @@ const TableWrapper = styled("table", {
     overflow: "hidden"
 });
 
-export function DynamicTable<T>({ data, columns }: DynamicTableProps<T>): JSX.Element {
+export function DynamicTable<T>({ data, columns, onRowClick }: DynamicTableProps<T>): JSX.Element {
     return (
         <ScrollWrapper>
             <TableWrapper>
@@ -38,7 +39,7 @@ export function DynamicTable<T>({ data, columns }: DynamicTableProps<T>): JSX.El
                     <TableHeader columns={columns} />
                 </thead>
                 <tbody>
-                    <TableRow data={data} columns={columns} />
+                    <TableRow data={data} columns={columns} onRowClick={onRowClick} />
                 </tbody>
             </TableWrapper>
         </ScrollWrapper>
