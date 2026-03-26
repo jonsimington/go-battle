@@ -1,0 +1,486 @@
+/* Layout */
+.container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  margin-bottom: 16px;
+  transition: color 150ms ease;
+}
+
+.backLink:hover {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.playerName {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.loading {
+  color: var(--text-secondary);
+  padding: 60px 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+.notFound {
+  color: var(--text-muted);
+  padding: 60px 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* Stats row */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.statLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.statValue {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.statSubtext {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: -2px;
+}
+
+/* Two-column layout */
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+/* Panel */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.panelHeader {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.panelBody {
+  padding: 16px;
+}
+
+/* ELO chart */
+.chartContainer {
+  padding: 20px 20px 16px;
+  position: relative;
+}
+
+.chart {
+  width: 100%;
+  display: block;
+}
+
+.chartEmpty {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.chartLabel {
+  font-size: 10px;
+  fill: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chartGridLine {
+  stroke: var(--border-muted, #21262d);
+  stroke-width: 1;
+}
+
+.chartLine {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chartArea {
+  opacity: 0.1;
+}
+
+.chartDot {
+  stroke-width: 2;
+  stroke: var(--surface);
+}
+
+.chartTooltipLine {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.chartTooltip {
+  position: absolute;
+  transform: translate(-50%, -100%) translateY(-12px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.chartTooltipElo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.chartTooltipDate {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Win rate donut */
+.donutContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 24px 20px;
+  flex: 1;
+}
+
+.donut {
+  flex-shrink: 0;
+}
+
+.donutCenter {
+  font-size: 20px;
+  font-weight: 600;
+  fill: var(--text-primary);
+  text-anchor: middle;
+  dominant-baseline: central;
+  font-variant-numeric: tabular-nums;
+}
+
+.donutSublabel {
+  font-size: 13px;
+  fill: var(--text-muted);
+  text-anchor: middle;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: default;
+  transition: opacity 150ms ease;
+}
+
+.legendItemActive {
+  opacity: 1;
+}
+
+.legendItem:not(.legendItemActive):has(~ .legendItemActive),
+.legendItemActive ~ .legendItem:not(.legendItemActive) {
+  opacity: 0.5;
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legendValue {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+/* Game history table */
+.historyTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.historyTable thead th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.historyTable tbody td {
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--border-muted, #21262d);
+  vertical-align: middle;
+}
+
+.historyTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.historyTable tbody tr:hover {
+  background: rgba(88, 166, 255, 0.04);
+}
+
+.historyShowMore {
+  padding: 10px 16px;
+  text-align: center;
+  border-top: 1px solid var(--border-muted, #21262d);
+}
+
+.historyShowMoreBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.historyShowMoreBtn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.resultBadge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.resultWin {
+  color: var(--success);
+  background: var(--success-muted);
+}
+
+.resultLoss {
+  color: var(--danger);
+  background: var(--danger-muted);
+}
+
+.resultDraw {
+  color: var(--warning);
+  background: var(--warning-muted);
+}
+
+.opponentLink {
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.opponentLink:hover {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.matchLink {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 12px;
+  transition: color 150ms ease;
+}
+
+.matchLink:hover {
+  color: var(--primary);
+}
+
+.date {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.eloDelta {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.eloUp { color: var(--success); }
+.eloDown { color: var(--danger); }
+.eloFlat { color: var(--text-muted); }
+
+.empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+/* Full-width panel */
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+/* Client info */
+.clientCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.clientRepoLink {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 150ms ease;
+}
+
+.clientRepoLink:hover {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.clientSep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.clientTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--border-muted, #21262d);
+  color: var(--text-primary);
+}
+
+/* Legacy clientInfo - kept for compat */
+.clientInfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.clientLink {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.clientLink:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 960px) {
+  .statsRow {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+
+  .statsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .donutContainer {
+    flex-direction: column;
+  }
+
+  .clientCard {
+    flex-wrap: wrap;
+  }
+}

@@ -127,6 +127,7 @@ func main() {
 	// Public GET routes - anyone can view
 	app.Get("/clients", getClientsHandler)
 	app.Get("/players", getPlayersHandler)
+	app.Get("/players/:id", getPlayerByIdHandler)
 	app.Get("/games", getGamesHandler)
 	app.Get("/matches", getMatchesHandler)
 	app.Get("/tournaments", getTournamentsHandler)

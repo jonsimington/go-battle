@@ -143,6 +143,18 @@ func getPlayersHandler(c *fiber.Ctx) error {
 	return sendJSON(c, players)
 }
 
+func getPlayerByIdHandler(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(400).SendString("Invalid player ID")
+	}
+	player := getPlayer(id)
+	if player.ID == 0 {
+		return c.Status(404).SendString("Player not found")
+	}
+	return sendJSON(c, player)
+}
+
 // /////////////////////////////////////////////////////////////////////////
 // GAMES
 // /////////////////////////////////////////////////////////////////////////

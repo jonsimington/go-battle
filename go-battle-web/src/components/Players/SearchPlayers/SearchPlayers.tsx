@@ -357,7 +357,11 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
                 <div className="d-flex justify-content-between align-items-center mb-2">
                     <span className="text-muted">{filteredData.length} players</span>
                 </div>
-                <DynamicTable data={filteredData} columns={columns} />
+                <DynamicTable
+                    data={filteredData}
+                    columns={columns}
+                    onRowClick={(player: PlayersResult) => navigate(`/players/${player.ID}`)}
+                />
             </Card.Body>
         </Card>
         </>

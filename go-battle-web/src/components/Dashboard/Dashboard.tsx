@@ -105,7 +105,7 @@ const Dashboard: FC = () => {
                                                 {i < 3 ? <FaTrophy style={{ color: ['#d4a017', '#a8a8a8', '#cd7f32'][i], fontSize: 12 }} /> : i + 1}
                                             </td>
                                             <td className={styles.playerCell}>
-                                                <Link to={`/players/search?ids=${p.id}`} className={styles.playerLink}>
+                                                <Link to={`/players/${p.id}`} className={styles.playerLink}>
                                                     <span className={styles.playerName}>{p.name}</span>
                                                     <span className={styles.winRate}>{winRate}% win</span>
                                                 </Link>
@@ -219,11 +219,11 @@ const Dashboard: FC = () => {
                             {(stats.recent_matches || []).map(m => (
                                 <Link key={m.id} to={`/matches/search?ids=${m.id}`} className={styles.matchRow}>
                                     <div className={styles.matchPlayers}>
-                                        <Link to={`/players/search?ids=${m.player1_id}`} className={styles.matchPlayerLink} onClick={e => e.stopPropagation()}>
+                                        <Link to={`/players/${m.player1_id}`} className={styles.matchPlayerLink} onClick={e => e.stopPropagation()}>
                                             {m.player1 || '—'}
                                         </Link>
                                         <span className={styles.vs}>vs</span>
-                                        <Link to={`/players/search?ids=${m.player2_id}`} className={styles.matchPlayerLink} onClick={e => e.stopPropagation()}>
+                                        <Link to={`/players/${m.player2_id}`} className={styles.matchPlayerLink} onClick={e => e.stopPropagation()}>
                                             {m.player2 || '—'}
                                         </Link>
                                     </div>

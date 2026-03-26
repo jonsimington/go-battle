@@ -16,6 +16,7 @@ import TournamentBracket from './components/Tournaments/TournamentBracket/Tourna
 import { AuthProvider } from './hooks/useAuth';
 import Login from './components/Auth/Login/Login';
 import Register from './components/Auth/Register/Register';
+import PlayerDetail from './components/Players/PlayerDetail/PlayerDetail';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
                     <Route path="register" element={<Register />} />
                     <Route path="players/create" element={<CreatePlayer />} />
                     <Route path="players/search" element={<DbTableView context="players" />} />
+                    <Route path="players/:id" element={<PlayerDetail />} />
                     <Route path="clients/create" element={<CreateClient />} />
                     <Route path="clients/search" element={<DbTableView context="clients" />} />
                     <Route path="matches/create" element={<CreateMatch />} />
