@@ -167,7 +167,11 @@ const Dashboard: FC = () => {
                         <div className={styles.panelHeader}>Game Status</div>
                         <div className={styles.statusList}>
                             {Object.entries(stats.games_by_status).map(([status, count]) => (
-                                <div key={status} className={styles.statusRow}>
+                                <Link
+                                    key={status}
+                                    to={`/games/search?status=${encodeURIComponent(status)}`}
+                                    className={styles.statusRow}
+                                >
                                     <span className={styles.statusDot} style={{ background: STATUS_COLORS[status] || 'var(--text-muted)' }} />
                                     <span className={styles.statusLabel}>{status}</span>
                                     <span className={styles.statusCount}>{count}</span>
@@ -180,7 +184,7 @@ const Dashboard: FC = () => {
                                             }}
                                         />
                                     </div>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     </div>

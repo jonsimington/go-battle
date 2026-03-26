@@ -205,7 +205,14 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
     useEffect(() => {
         setData(undefined);
         setSelectedPage(1);
-        setFilterValues({});
+        // Initialize filter values from URL params (e.g. ?status=Complete from dashboard)
+        const initialFilters: Record<string, string> = {};
+        for (const config of filterConfigs[context] ?? []) {
+            const val = searchParams.get(config.key);
+            if (val) initialFilters[config.key] = val;
+        }
+        setFilterValues(initialFilters);
+        filtersRef.current = initialFilters;
         setSortField('created_at');
         setSortDir('desc');
         fetchFromApi(1, resultsPerPage);
