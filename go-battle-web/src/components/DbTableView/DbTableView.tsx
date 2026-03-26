@@ -299,7 +299,7 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
     const title = context.charAt(0).toUpperCase() + context.slice(1);
 
     return (
-        <>
+        <div className={d.container}>
             <h3 className={d.title}>{title}</h3>
             {!loading && (
                 <div className={d.toolbar}>
@@ -328,13 +328,13 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                     {context === "players" ? (
                         <SearchPlayers tableData={data ?? []} refreshData={() => fetchFromApi()} />
                     ) : context === "games" ? (
-                        <SearchGames tableData={displayedData ?? []} refreshData={() => fetchFromApi(selectedPage, resultsPerPage)} />
+                        <div className={d.tableCard}><SearchGames tableData={displayedData ?? []} refreshData={() => fetchFromApi(selectedPage, resultsPerPage)} /></div>
                     ) : context === "matches" ? (
-                        <SearchMatches tableData={displayedData ?? []} refreshData={() => fetchFromApi(selectedPage, resultsPerPage)} />
+                        <div className={d.tableCard}><SearchMatches tableData={displayedData ?? []} refreshData={() => fetchFromApi(selectedPage, resultsPerPage)} /></div>
                     ) : context === "clients" ? (
-                        <SearchClients tableData={data ?? []} refreshData={() => fetchFromApi()} />
+                        <div className={d.tableCard}><SearchClients tableData={data ?? []} refreshData={() => fetchFromApi()} /></div>
                     ) : context === "tournaments" ? (
-                        <SearchTournaments tableData={displayedData ?? []} refreshData={() => fetchFromApi(selectedPage, resultsPerPage)} />
+                        <div className={d.tableCard}><SearchTournaments tableData={displayedData ?? []} refreshData={() => fetchFromApi(selectedPage, resultsPerPage)} /></div>
                     ) : null}
                     
                     {data !== undefined && data.length > 0 && (shouldShowPagination || (data.length > resultsPerPage)) ? (
@@ -410,6 +410,6 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                     ) : null}
                 </>
             )}
-        </>
+        </div>
     );
 }
