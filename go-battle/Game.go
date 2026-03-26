@@ -391,25 +391,27 @@ func (g Game) playGame(ctx context.Context, player Player, playerDir string, wg 
 		return
 	}
 
-	// Build the client first
-	buildErr := makeClient(playerDir, playerLanguage)
-	if buildErr != nil {
-		log.Warningf("Failed to build client for player %s: %v", player.Name, buildErr)
+	// In container mode the image handles cloning and building; skip the host build step.
+	if conf.Get("useContainers") != "true" {
+		buildErr := makeClient(playerDir, playerLanguage)
+		if buildErr != nil {
+			log.Warningf("Failed to build client for player %s: %v", player.Name, buildErr)
 
-		// Use hasProcessedGameResult to ensure only one goroutine sets winner/loser
-		if !hasProcessedGameResult(gameSession) {
-			opponent := g.findOpponent(player)
+			// Use hasProcessedGameResult to ensure only one goroutine sets winner/loser
+			if !hasProcessedGameResult(gameSession) {
+				opponent := g.findOpponent(player)
 
-			errorMsg := fmt.Sprintf("Build failed for player %s: %v", player.Name, buildErr)
-			updateGameStatus(db, g, "Error")
-			updateGameErrorMessage(db, g, errorMsg)
+				errorMsg := fmt.Sprintf("Build failed for player %s: %v", player.Name, buildErr)
+				updateGameStatus(db, g, "Error")
+				updateGameErrorMessage(db, g, errorMsg)
 
-			// Mark this player as loser since their code failed to build
-			setGameWinner(db, g, opponent)
-			setGameLoser(db, g, player)
+				// Mark this player as loser since their code failed to build
+				setGameWinner(db, g, opponent)
+				setGameLoser(db, g, player)
+			}
+
+			return
 		}
-
-		return
 	}
 
 	errorOccurred := false
@@ -429,67 +431,136 @@ func (g Game) playGame(ctx context.Context, player Player, playerDir string, wg 
 	}
 }
 
+// getPlayerDockerImage returns the configured Docker image name for the given language,
+// or an empty string if none is configured.
+func getPlayerDockerImage(language string) string {
+	switch language {
+	case "py":
+		return conf.Get("playerImagePython")
+	case "js":
+		return conf.Get("playerImageJs")
+	case "cpp":
+		return conf.Get("playerImageCpp")
+	default:
+		return ""
+	}
+}
+
 func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir string, gameType string, gameSession int, player *Player, errorOccurred *bool) {
-	m := make(map[string]string)
-	m["js"] = "node"
-	m["cpp"] = "./build/cpp-client"
-
-	// check if host uses python vs python3 command, and if it's python, make sure the version is 3.x.x
-	if playerLanguage == "py" {
-		if checkIfCommandExistsOnHost("python3") {
-			m["py"] = "python3"
-		} else if checkIfCommandExistsOnHost("python") {
-			m["py"] = "python"
-
-			if checkPythonVersionOnHost(m["py"]) != 3 {
-				errorMsg := "Host does not support python3. Cerveau python clients require python3."
-				log.Errorf(errorMsg)
-				updateGameStatus(db, g, "Error")
-				updateGameErrorMessage(db, g, errorMsg)
-				*errorOccurred = true
-				return
-			}
-		}
-	}
-
-	if !checkIfCommandExistsOnHost(m[playerLanguage]) {
-		errorMsg := fmt.Sprintf("`%s` does not exist on host! Game %d cannot be played until `%s` is available.", m[playerLanguage], gameSession, m[playerLanguage])
-		log.Errorf(errorMsg)
-		updateGameStatus(db, g, "Error")
-		updateGameErrorMessage(db, g, errorMsg)
-		*errorOccurred = true
-		return
-	}
-
 	var gameserverURL = conf.Get("cerveauApiHost")
 	var port = conf.Get("cerveauApiPort")
-
-	var exePath string
-
-	if playerLanguage == "cpp" {
-		exePath = m[playerLanguage]
-	} else {
-		exePath = playerDir + "main." + playerLanguage
-	}
-
-	if _, err := os.Stat(exePath); errors.Is(err, os.ErrNotExist) {
-		log.Warnf(fmt.Sprintf("`%s` doesn't exist!", exePath))
-	}
 
 	gameTimeoutContext, cancel := context.WithTimeout(ctx, 90*time.Minute)
 	defer cancel()
 
-	var runCmd *exec.Cmd
+	useContainers := conf.Get("useContainers") == "true"
 
-	if playerLanguage == "cpp" {
-		log.Infof("Executing command: `%s %s %s %s %s %d`", exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
-		runCmd = exec.CommandContext(gameTimeoutContext, exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
-		runCmd.Dir = playerDir
+	// buildCmd is a closure that creates the appropriate process or container command.
+	var buildCmd func() *exec.Cmd
+
+	if useContainers {
+		image := getPlayerDockerImage(playerLanguage)
+		if image == "" {
+			errorMsg := fmt.Sprintf("No container image configured for language %q", playerLanguage)
+			log.Errorf(errorMsg)
+			updateGameStatus(db, g, "Error")
+			updateGameErrorMessage(db, g, errorMsg)
+			*errorOccurred = true
+			return
+		}
+
+		// Container names must be unique per player per session.
+		containerName := fmt.Sprintf("gb-%d-%d", gameSession, int(player.ID))
+		dockerNetwork := conf.Get("dockerNetwork")
+
+		// When the context is cancelled (e.g. StopGame), exec.CommandContext kills only
+		// the docker CLI process. We must explicitly stop the container so it doesn't
+		// keep running after the game is cancelled.
+		ctxDone := make(chan struct{})
+		defer close(ctxDone)
+		go func() {
+			select {
+			case <-gameTimeoutContext.Done():
+				exec.Command("docker", "stop", "--time", "3", containerName).Run() //nolint:errcheck
+			case <-ctxDone:
+			}
+		}()
+
+		log.Infof("Starting container %s for player %s (session %d, image %s)", containerName, player.Name, gameSession, image)
+
+		buildCmd = func() *exec.Cmd {
+			return exec.CommandContext(gameTimeoutContext, "docker", "run",
+				"--rm",
+				"--name", containerName,
+				"--network", dockerNetwork,
+				"--memory=512m",
+				"--cpus=1",
+				"-e", "REPO_URL="+player.Client.Repo,
+				"-e", "GAME_TYPE="+gameType,
+				"-e", "SERVER_HOST="+gameserverURL,
+				"-e", "SERVER_PORT="+port,
+				"-e", "GAME_SESSION="+strconv.Itoa(gameSession),
+				image,
+			)
+		}
 	} else {
-		log.Infof("Executing command: `%s %s %s %s %s %s %d`", m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
-		runCmd = exec.CommandContext(gameTimeoutContext, m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
+		// Non-container mode: resolve the language runtime on the host.
+		m := make(map[string]string)
+		m["js"] = "node"
+		m["cpp"] = "./build/cpp-client"
+
+		if playerLanguage == "py" {
+			if checkIfCommandExistsOnHost("python3") {
+				m["py"] = "python3"
+			} else if checkIfCommandExistsOnHost("python") {
+				m["py"] = "python"
+
+				if checkPythonVersionOnHost(m["py"]) != 3 {
+					errorMsg := "Host does not support python3. Cerveau python clients require python3."
+					log.Errorf(errorMsg)
+					updateGameStatus(db, g, "Error")
+					updateGameErrorMessage(db, g, errorMsg)
+					*errorOccurred = true
+					return
+				}
+			}
+		}
+
+		if !checkIfCommandExistsOnHost(m[playerLanguage]) {
+			errorMsg := fmt.Sprintf("`%s` does not exist on host! Game %d cannot be played until `%s` is available.", m[playerLanguage], gameSession, m[playerLanguage])
+			log.Errorf(errorMsg)
+			updateGameStatus(db, g, "Error")
+			updateGameErrorMessage(db, g, errorMsg)
+			*errorOccurred = true
+			return
+		}
+
+		var exePath string
+		if playerLanguage == "cpp" {
+			exePath = m[playerLanguage]
+		} else {
+			exePath = playerDir + "main." + playerLanguage
+		}
+
+		if _, err := os.Stat(exePath); errors.Is(err, os.ErrNotExist) {
+			log.Warnf(fmt.Sprintf("`%s` doesn't exist!", exePath))
+		}
+
+		buildCmd = func() *exec.Cmd {
+			var cmd *exec.Cmd
+			if playerLanguage == "cpp" {
+				log.Infof("Executing command: `%s %s %s %s %s %d`", exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
+				cmd = exec.CommandContext(gameTimeoutContext, exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
+				cmd.Dir = playerDir
+			} else {
+				log.Infof("Executing command: `%s %s %s %s %s %s %d`", m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", gameSession)
+				cmd = exec.CommandContext(gameTimeoutContext, m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
+			}
+			return cmd
+		}
 	}
 
+	runCmd := buildCmd()
 	_, runErr := runCmd.CombinedOutput()
 
 	if gameTimeoutContext.Err() != context.DeadlineExceeded && gameTimeoutContext.Err() != nil {
@@ -512,12 +583,7 @@ func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir stri
 			}
 
 			// Create a new command for each retry - can't reuse runCmd because Stdout is already set
-			if playerLanguage == "cpp" {
-				runCmd = exec.CommandContext(gameTimeoutContext, exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
-				runCmd.Dir = playerDir
-			} else {
-				runCmd = exec.CommandContext(gameTimeoutContext, m[playerLanguage], exePath, gameType, "-s", gameserverURL+":"+port, "-r", strconv.Itoa(gameSession))
-			}
+			runCmd = buildCmd()
 
 			// Retry running the game
 			_, runErr = runCmd.CombinedOutput()

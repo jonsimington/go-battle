@@ -9,5 +9,10 @@
     "DB_NAME": "go-battle",
     "DB_HOST": "db",
     "DB_PORT": 5432,
-    "ALLOWED_ORIGINS": "*"
+    "ALLOWED_ORIGINS": "*",
+    "useContainers": "true",
+    "dockerNetwork": "go-battle_localnet",
+    "playerImagePython": "go-battle-player-py",
+    "playerImageJs": "go-battle-player-js",
+    "playerImageCpp": "go-battle-player-cpp"
 }

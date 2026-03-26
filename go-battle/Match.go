@@ -219,12 +219,15 @@ func (m Match) StartMatch(db *gorm.DB) {
 
 	var matchDir = filepath.FromSlash("tmp/" + strconv.Itoa(int(m.ID)))
 
-	// clone each player's repo, store in tmp loc
-	log.Infof("Cloning %s's repo: %s to %s", player1.Name, player1.Client.Repo, matchDir)
-	player1.Client.CloneRepo(matchDir + "/" + player1.Name)
+	// In container mode each player's code is cloned inside its own container;
+	// no host-side clone is needed.
+	if conf.Get("useContainers") != "true" {
+		log.Infof("Cloning %s's repo: %s to %s", player1.Name, player1.Client.Repo, matchDir)
+		player1.Client.CloneRepo(matchDir + "/" + player1.Name)
 
-	log.Infof("Cloning %s's repo: %s to %s", player2.Name, player2.Client.Repo, matchDir)
-	player2.Client.CloneRepo(matchDir + "/" + player2.Name)
+		log.Infof("Cloning %s's repo: %s to %s", player2.Name, player2.Client.Repo, matchDir)
+		player2.Client.CloneRepo(matchDir + "/" + player2.Name)
+	}
 
 	// Check if cancelled during cloning
 	if ctx.Err() != nil {
@@ -595,12 +598,15 @@ func createGamesForMatchWithOptions(db *gorm.DB, matchID uint, isPartOfProgressi
 
 	var matchDir = filepath.FromSlash("tmp/" + strconv.Itoa(int(match.ID)))
 
-	// Clone repositories up front (not in the goroutines)
-	log.Infof("Cloning %s's repo: %s to %s", player1.Name, player1.Client.Repo, matchDir)
-	player1.Client.CloneRepo(matchDir + "/" + player1.Name)
+	// In container mode each player's code is cloned inside its own container;
+	// no host-side clone is needed.
+	if conf.Get("useContainers") != "true" {
+		log.Infof("Cloning %s's repo: %s to %s", player1.Name, player1.Client.Repo, matchDir)
+		player1.Client.CloneRepo(matchDir + "/" + player1.Name)
 
-	log.Infof("Cloning %s's repo: %s to %s", player2.Name, player2.Client.Repo, matchDir)
-	player2.Client.CloneRepo(matchDir + "/" + player2.Name)
+		log.Infof("Cloning %s's repo: %s to %s", player2.Name, player2.Client.Repo, matchDir)
+		player2.Client.CloneRepo(matchDir + "/" + player2.Name)
+	}
 
 	// Create a wait group to track game completion
 	var matchWG sync.WaitGroup

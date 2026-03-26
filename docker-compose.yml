@@ -25,6 +25,7 @@ services:
       - "3000:3000"
     volumes:
       - ./go-battle:/usr/src/app
+      - /var/run/docker.sock:/var/run/docker.sock
     command: air -c .air.toml
     environment:
       - JWT_SECRET=SecretValueForJWTSigning
