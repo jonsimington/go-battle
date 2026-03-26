@@ -26,6 +26,8 @@ services:
     volumes:
       - ./go-battle:/usr/src/app
     command: air -c .air.toml
+    environment:
+      - JWT_SECRET=SecretValueForJWTSigning
 
   cerveau:
     networks:
@@ -33,6 +35,13 @@ services:
     build:
       context: ./cerveau
       dockerfile: Dockerfile
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').createConnection({port:3000}).on('connect',()=>{process.exit(0)}).on('error',()=>{process.exit(1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     volumes:
       - ./cerveau:/cerveau:delegated
       - /cerveau/node_modules
