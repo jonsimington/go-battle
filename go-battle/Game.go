@@ -498,16 +498,18 @@ func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir stri
 
 	var numRetries = 0
 	maxRetries := 3
+	cerveauAlreadyOver := false
 
 	if runErr != nil {
 		for numRetries < maxRetries {
 			log.Warningf("Game error occurred for player %s, attempt %d of %d: %v", player.Name, numRetries+1, maxRetries, runErr)
 
 			// Check if the cerveau session is already over before retrying.
-			// Retrying against a finished session will hang indefinitely.
+			// Retrying against a finished session will shadow it with a new "open" session.
 			cerveauStatus := getGameStatus(gameType, gameSession)
 			if cerveauStatus.Status == "over" {
-				log.Infof("Cerveau session %d is already 'over', skipping retry for player %s", gameSession, player.Name)
+				log.Infof("Cerveau session %d is already 'over', skipping retry for player %s — proceeding to gamelog retrieval", gameSession, player.Name)
+				cerveauAlreadyOver = true
 				break
 			}
 
@@ -532,7 +534,7 @@ func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir stri
 		}
 
 		// If we still have an error after retries
-		if runErr != nil {
+		if runErr != nil && !cerveauAlreadyOver {
 			if runErr.Error() == "signal: killed" {
 				updateGameStatus(db, g, "Canceled")
 				g.Status = "Canceled"
@@ -669,6 +671,17 @@ func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir stri
 			break
 		}
 
+		// If getGamelogFilenameWithTimeout failed, check whether the session is
+		// permanently gone before sleeping and retrying — avoids wasting up to
+		// 5 minutes re-polling a session that will never return "over".
+		if !gamelogFound && gamelogFilename == "" {
+			quickStatus := getGameStatus(gameType, gameSession)
+			if quickStatus.Status == "empty" || quickStatus.Status == "" {
+				log.Warningf("Session %d is permanently gone (status=%q), aborting gamelog retrieval after %d attempt(s)", gameSession, quickStatus.Status, gamelogAttempt)
+				break
+			}
+		}
+
 		time.Sleep(gamelogBackoff)
 		gamelogElapsed += gamelogBackoff
 		if gamelogBackoff < maxGamelogBackoff {
@@ -680,6 +693,17 @@ func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir stri
 	}
 
 	if gamelogFound {
+		*errorOccurred = false
+		return
+	}
+
+	// Check if the other goroutine (for the other player) already processed the
+	// game result. This happens when both goroutines poll simultaneously — one
+	// succeeds while the other keeps retrying with a now-stale/empty session.
+	// Use a read-only check so we don't accidentally mark it as processed.
+	processedKey := fmt.Sprintf("game_processed_%d", gameSession)
+	if _, alreadyProcessed := gameResultMutexes.Load(processedKey); alreadyProcessed {
+		log.Infof("Game result for session %d was already processed by other goroutine, skipping Incomplete", gameSession)
 		*errorOccurred = false
 		return
 	}
@@ -822,6 +846,11 @@ func getGamelogFilenameWithTimeout(gameType string, gameSession int, maxWait tim
 	elapsed := time.Duration(0)
 	status := "running"
 	pollAttempt := 0
+	// Track how long status has been "open" or "empty" — a completed game should
+	// never be in these states. If we see them for > 60s the session was likely
+	// shadowed or lost; bail early instead of burning the full maxWait timeout.
+	staleStatusElapsed := time.Duration(0)
+	maxStaleWait := 60 * time.Second
 
 	for status != "over" {
 		gameStatus := getGameStatus(gameType, gameSession)
@@ -835,6 +864,17 @@ func getGamelogFilenameWithTimeout(gameType string, gameSession int, maxWait tim
 		}
 		if status == "" {
 			log.Warningf("Game session %d returned empty status from cerveau (attempt %d, elapsed %v)", gameSession, pollAttempt, elapsed)
+		}
+		// Detect stale "open"/"empty" status — indicates the original session was
+		// replaced or cleaned up. No point waiting the full timeout.
+		if status == "open" || status == "empty" {
+			staleStatusElapsed += backoff
+			if staleStatusElapsed >= maxStaleWait {
+				log.Warningf("Game session %d stuck in %q status for %v (total elapsed ~%v) — session likely shadowed or lost", gameSession, status, staleStatusElapsed, elapsed+backoff)
+				return ""
+			}
+		} else {
+			staleStatusElapsed = 0
 		}
 		if elapsed >= maxWait {
 			log.Warningf("Game session %d status never reached 'over' after %v (last status=%q)", gameSession, elapsed, status)
@@ -850,15 +890,35 @@ func getGamelogFilenameWithTimeout(gameType string, gameSession int, maxWait tim
 		}
 	}
 
-	gameStatus := new(GameStatus)
+	// Status is "over". Now poll briefly for the gamelog filename, which may
+	// still be empty if Cerveau is writing the compressed gamelog to disk.
+	filenameBackoff := 1 * time.Second
+	maxFilenameWait := 30 * time.Second
+	filenameElapsed := time.Duration(0)
 
-	getJSON(url, gameStatus)
+	for filenameElapsed < maxFilenameWait {
+		gameStatus := new(GameStatus)
+		getJSON(url, gameStatus)
 
-	if gameStatus.GamelogFilename != "" {
-		return gameStatus.GamelogFilename
+		if gameStatus.GamelogFilename != "" {
+			return gameStatus.GamelogFilename
+		}
+
+		// If the session disappeared between polls, stop waiting.
+		if gameStatus.Status != "" && gameStatus.Status != "over" {
+			log.Warningf("Game session %d status changed from 'over' to %q while waiting for gamelog filename", gameSession, gameStatus.Status)
+			return ""
+		}
+
+		log.Debugf("Game session %d is 'over' but gamelog filename not yet available, retrying... (elapsed %v)", gameSession, filenameElapsed)
+		time.Sleep(filenameBackoff)
+		filenameElapsed += filenameBackoff
+		if filenameBackoff < 5*time.Second {
+			filenameBackoff *= 2
+		}
 	}
 
-	log.Warningf("Game session %d status is 'over' but gamelog filename is empty", gameSession)
+	log.Warningf("Game session %d status is 'over' but gamelog filename still empty after %v", gameSession, filenameElapsed)
 	return ""
 }
 
