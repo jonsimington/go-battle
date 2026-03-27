@@ -452,6 +452,13 @@
     padding: 16px;
 }
 
+/* ─── Scroll wrapper for standings table ─── */
+
+.tb-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 /* ─── Responsive ─── */
 
 @media (max-width: 640px) {
@@ -469,8 +476,21 @@
         min-width: 240px;
     }
 
+    .tb-standings {
+        min-width: 480px;
+    }
+
     .tb-standings thead th,
     .tb-standings-row td {
         padding: 8px 8px;
+    }
+
+    .tb-tab {
+        padding: 10px 14px;
+    }
+
+    .tb-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }

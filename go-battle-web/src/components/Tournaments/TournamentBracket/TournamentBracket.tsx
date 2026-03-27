@@ -472,6 +472,7 @@ export function TournamentBracket(): JSX.Element {
     const hasByes = standings.some(e => e.byes > 0);
 
     const renderStandings = () => (
+        <div className="tb-table-scroll">
         <table className="tb-standings">
             <thead>
                 <tr>
@@ -510,6 +511,7 @@ export function TournamentBracket(): JSX.Element {
                 ))}
             </tbody>
         </table>
+        </div>
     );
 
     // Build lookup: playerId -> sorted list of matchIds the player is in

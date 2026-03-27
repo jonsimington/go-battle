@@ -460,6 +460,12 @@
   text-decoration: underline;
 }
 
+/* Scroll wrapper for tables */
+.tableScroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Responsive */
 @media (max-width: 960px) {
   .statsRow {
@@ -482,5 +488,13 @@
 
   .clientCard {
     flex-wrap: wrap;
+  }
+
+  .historyTable {
+    min-width: 480px;
+  }
+
+  .container {
+    padding: 16px 12px;
   }
 }

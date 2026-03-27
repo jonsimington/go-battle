@@ -98,6 +98,21 @@
     gap: 8px;
 }
 
+/* ── Mobile ── */
+@media (max-width: 540px) {
+    .create-card__row {
+        grid-template-columns: 1fr;
+    }
+
+    .create-card {
+        padding: 16px;
+    }
+
+    .create-page {
+        padding: 0 12px;
+    }
+}
+
 .create-card__player-slot {
     background: var(--bg);
     border: 1px solid var(--border-muted);

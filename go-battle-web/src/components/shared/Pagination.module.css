@@ -105,3 +105,29 @@
     color: var(--text-muted);
     white-space: nowrap;
 }
+
+/* ── Mobile ── */
+@media (max-width: 767px) {
+    .paginationBar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .pageButtons {
+        justify-content: center;
+    }
+
+    .pageBtn {
+        min-width: 40px;
+        height: 40px;
+    }
+
+    .perPageGroup {
+        justify-content: center;
+    }
+
+    .perPageSelect {
+        min-height: 40px;
+    }
+}

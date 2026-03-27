@@ -129,3 +129,21 @@
   background: var(--border);
   margin: 4px 0;
 }
+
+/* ── Mobile ── */
+@media (max-width: 767px) {
+  .btn {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  .splitBtn {
+    min-height: 44px;
+    padding: 8px 10px;
+  }
+
+  .menuItem {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+}

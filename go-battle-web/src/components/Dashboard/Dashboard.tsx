@@ -84,6 +84,7 @@ const Dashboard: FC = () => {
                     {/* Leaderboard */}
                     <div className={styles.panel}>
                         <div className={styles.panelHeader}>Leaderboard</div>
+                        <div className={styles.tableScroll}>
                         <table className={styles.table}>
                             <thead>
                                 <tr>
@@ -135,6 +136,7 @@ const Dashboard: FC = () => {
                                 })}
                             </tbody>
                         </table>
+                        </div>
                         {(!stats.top_players || stats.top_players.length === 0) && (
                             <div className={styles.empty}>No players yet</div>
                         )}

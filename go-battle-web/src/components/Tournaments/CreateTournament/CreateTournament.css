@@ -99,6 +99,21 @@
     border-radius: 6px;
 }
 
+/* ── Mobile ── */
+@media (max-width: 640px) {
+    .create-tournament-container {
+        padding: 16px 12px;
+    }
+
+    .tournament-form {
+        padding: 16px;
+    }
+
+    .players-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .form-select:focus, .form-control:focus {
     background-color: var(--bg, #0d1117);
     border-color: var(--primary, #58a6ff);

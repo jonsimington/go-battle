@@ -248,3 +248,15 @@
     color: var(--text-secondary);
     white-space: nowrap;
 }
+/* ── Mobile touch targets ── */
+@media (max-width: 767px) {
+  .actionBtn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px;
+  }
+
+  .actions {
+    gap: 6px;
+  }
+}

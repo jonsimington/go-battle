@@ -176,6 +176,7 @@ const PlayerDetail: FC = () => {
                         <div className={s.empty}>No games played yet.</div>
                     ) : (
                         <>
+                            <div className={s.tableScroll}>
                             <table className={s.historyTable}>
                                 <thead>
                                     <tr>
@@ -192,6 +193,7 @@ const PlayerDetail: FC = () => {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                             {completedGames.length > gamesShown && (
                                 <div className={s.historyShowMore}>
                                     <button
