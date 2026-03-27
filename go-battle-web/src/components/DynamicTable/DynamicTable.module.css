@@ -1,1 +1,90 @@
 .DynamicTable {}
+
+/* ── Mobile card layout ────────────────────────────────────────────── */
+
+.cardList {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.cardRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 3px 0;
+}
+
+.cardRow + .cardRow {
+  border-top: 1px solid var(--border-muted);
+  margin-top: 4px;
+  padding-top: 7px;
+}
+
+.cardLabel {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  min-width: 68px;
+  padding-top: 1px;
+}
+
+.cardValue {
+  font-size: 13px;
+  color: var(--text-primary);
+  text-align: right;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Stacked variant: label on its own line, value full-width below */
+
+.cardRowStacked {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.cardRowStacked + .cardRow,
+.cardRow + .cardRowStacked,
+.cardRowStacked + .cardRowStacked {
+  border-top: 1px solid var(--border-muted);
+  margin-top: 4px;
+  padding-top: 7px;
+}
+
+.cardValueFull {
+  width: 100%;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.cardActions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border-muted);
+}
+
+@media (max-width: 767px) {
+  .tableScrollWrapper {
+    display: none;
+  }
+
+  .cardList {
+    display: flex;
+  }
+}

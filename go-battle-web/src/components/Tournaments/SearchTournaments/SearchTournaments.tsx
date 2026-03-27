@@ -45,6 +45,7 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             key: "players",
             title: "Players",
             width: 100,
+            mobileLayout: 'stacked',
             render: (_, { players }) => {
                 if (!players || players.length === 0) return <span className={s.muted}>—</span>;
                 const playerIds = players.map(pluck('ID')).join(', ');

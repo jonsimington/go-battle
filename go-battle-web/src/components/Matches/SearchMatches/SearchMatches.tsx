@@ -59,6 +59,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         {
             key: "players",
             title: "Players",
+            mobileLayout: 'stacked',
             render: (_, { players, games, status }) => {
                 if (!players || players.length === 0) return <span className={s.muted}>—</span>;
 

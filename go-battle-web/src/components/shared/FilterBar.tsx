@@ -53,55 +53,57 @@ export function FilterBar({
 
     return (
         <div className={s.filterBar}>
-            {filters.map(filter => (
-                <div key={filter.key} className={s.filterGroup}>
-                    <span className={s.filterLabel}>{filter.label}</span>
-                    <select
-                        className={`${s.filterSelect} ${filterValues[filter.key] ? s.filterSelectActive : ''}`}
-                        value={filterValues[filter.key] || ''}
-                        onChange={e => onFilterChange(filter.key, e.target.value)}
-                    >
-                        <option value="">All</option>
-                        {filter.options.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                    </select>
-                </div>
-            ))}
+            <div className={s.filtersRow}>
+                {filters.map(filter => (
+                    <div key={filter.key} className={s.filterGroup}>
+                        <span className={s.filterLabel}>{filter.label}</span>
+                        <select
+                            className={`${s.filterSelect} ${filterValues[filter.key] ? s.filterSelectActive : ''}`}
+                            value={filterValues[filter.key] || ''}
+                            onChange={e => onFilterChange(filter.key, e.target.value)}
+                        >
+                            <option value="">All</option>
+                            {filter.options.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                ))}
+                {(hasActiveFilters || isNonDefaultSort) && (
+                    <button className={s.clearBtn} onClick={onClear}>
+                        Clear
+                    </button>
+                )}
+            </div>
 
             {filters.length > 0 && sortOptions.length > 0 && (
                 <div className={s.separator} />
             )}
 
-            {sortOptions.map(opt => {
-                const isActive = sortField === opt.field;
-                return (
-                    <button
-                        key={opt.field}
-                        className={`${s.sortBtn} ${isActive ? s.sortBtnActive : ''}`}
-                        onClick={() => handleSortClick(opt.field)}
-                    >
-                        {opt.label}
-                        {isActive && (
-                            <span className={s.sortIcon}>
-                                {sortDir === 'asc' ? <FaSortUp /> : <FaSortDown />}
-                            </span>
-                        )}
-                    </button>
-                );
-            })}
-
-            {(hasActiveFilters || isNonDefaultSort) && (
-                <button className={s.clearBtn} onClick={onClear}>
-                    Clear
-                </button>
-            )}
-
-            {totalCount !== undefined && (
-                <span className={s.resultCount}>
-                    {totalCount} result{totalCount !== 1 ? 's' : ''}
-                </span>
-            )}
+            <div className={s.sortRow}>
+                {sortOptions.map(opt => {
+                    const isActive = sortField === opt.field;
+                    return (
+                        <button
+                            key={opt.field}
+                            className={`${s.sortBtn} ${isActive ? s.sortBtnActive : ''}`}
+                            onClick={() => handleSortClick(opt.field)}
+                        >
+                            {opt.label}
+                            {isActive && (
+                                <span className={s.sortIcon}>
+                                    {sortDir === 'asc' ? <FaSortUp /> : <FaSortDown />}
+                                </span>
+                            )}
+                        </button>
+                    );
+                })}
+                {totalCount !== undefined && (
+                    <span className={s.resultCount}>
+                        {totalCount} result{totalCount !== 1 ? 's' : ''}
+                    </span>
+                )}
+            </div>
         </div>
     );
 }

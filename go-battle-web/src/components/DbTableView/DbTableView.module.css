@@ -26,3 +26,21 @@
   margin-bottom: 24px;
   overflow: hidden;
 }
+
+@media (max-width: 767px) {
+  .container {
+    padding: 0 16px;
+  }
+
+  .tableCard {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

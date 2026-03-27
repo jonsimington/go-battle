@@ -8,6 +8,13 @@
     flex: 1;
 }
 
+/* On desktop, filtersRow and sortRow are transparent —
+   their children flow directly into the parent flex row */
+.filtersRow,
+.sortRow {
+    display: contents;
+}
+
 .filterGroup {
     display: flex;
     align-items: center;
@@ -65,6 +72,8 @@
     align-items: center;
     gap: 4px;
     transition: border-color 150ms ease, color 150ms ease;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .sortBtn:hover {
@@ -89,6 +98,8 @@
     font-size: 12px;
     padding: 5px 8px;
     cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
     transition: color 150ms ease, border-color 150ms ease;
 }
 
@@ -102,6 +113,7 @@
     height: 20px;
     background: var(--border);
     margin: 0 4px;
+    flex-shrink: 0;
 }
 
 .resultCount {
@@ -109,4 +121,54 @@
     color: var(--text-muted);
     margin-left: auto;
     white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Mobile ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+    .filterBar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        width: 100%;
+    }
+
+    /* Give filtersRow and sortRow real boxes on mobile */
+    .filtersRow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .filterGroup {
+        flex: 1 1 auto;
+    }
+
+    .filterSelect {
+        width: 100%;
+    }
+
+    .separator {
+        display: none;
+    }
+
+    .sortRow {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+    }
+
+    .sortRow::-webkit-scrollbar {
+        display: none;
+    }
+
+    .resultCount {
+        margin-left: auto;
+    }
 }

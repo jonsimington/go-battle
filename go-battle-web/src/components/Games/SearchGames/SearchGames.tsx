@@ -37,6 +37,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             key: "players",
             title: "Players",
             width: 200,
+            mobileLayout: 'stacked',
             render: (_, { players, winner, loser, draw, result_reason, status }) => {
                 if (!players || players.length === 0) return <span className={s.muted}>—</span>;
                 const playerIds = players.map(pluck('ID')).join(', ');
