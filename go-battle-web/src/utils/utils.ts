@@ -11,9 +11,9 @@ export const getServiceUrl = (envVar: string | undefined, defaultPort: number): 
     return envVar || `http://${window.location.hostname}:${defaultPort}`;
 };
 
-export const getApiUrl = () => getServiceUrl(process.env.REACT_APP_API_URL, 3000);
-export const getCerveauUrl = () => getServiceUrl(process.env.REACT_APP_CERVEAU_URL, 3080);
-export const getVisUrl = () => getServiceUrl(process.env.REACT_APP_VIS_URL, 8080);
+export const getApiUrl = () => getServiceUrl(import.meta.env.VITE_API_URL, 3000);
+export const getCerveauUrl = () => getServiceUrl(import.meta.env.VITE_CERVEAU_URL, 3080);
+export const getVisUrl = () => getServiceUrl(import.meta.env.VITE_VIS_URL, 8080);
 
 export const translateClientLanguage = (languageCode: string) => {
     switch(languageCode) {
