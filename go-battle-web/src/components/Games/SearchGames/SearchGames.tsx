@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
-import { delay, getApiUrl, getVisUrl, pluck } from '../../../utils/utils';
+import { delay, elapsedTime, getApiUrl, getVisUrl, pluck, prettyTimeAgo } from '../../../utils/utils';
 import { apiFetch } from '../../../utils/apiFetch';
 import { FaTv, FaTrash, FaCircleStop, FaArrowRotateRight, FaSpinner } from 'react-icons/fa6';
 import TimeAgo from 'timeago-react';
@@ -37,20 +37,21 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             key: "players",
             title: "Players",
             width: 200,
-            render: (_, { players, winner, loser, draw, result_reason }) => {
+            render: (_, { players, winner, loser, draw, result_reason, status }) => {
                 if (!players || players.length === 0) return <span className={s.muted}>—</span>;
                 const playerIds = players.map(pluck('ID')).join(', ');
+                const isComplete = status === 'Complete';
 
                 return (
                     <div className={s.playerList}>
                         {players.map((p: any) => {
-                            const isWinner = !draw && winner && winner.ID === p.ID;
-                            const isLoser = !draw && loser && loser.ID === p.ID;
-                            const colorClass = draw ? s.playerDraw
+                            const isWinner = isComplete && !draw && winner && winner.ID === p.ID;
+                            const isLoser = isComplete && !draw && loser && loser.ID === p.ID;
+                            const colorClass = isComplete && draw ? s.playerDraw
                                 : isWinner ? s.playerWinner
                                 : isLoser ? s.playerLoser
                                 : '';
-                            const label = draw ? 'draw'
+                            const label = isComplete && draw ? 'draw'
                                 : isWinner ? 'W'
                                 : isLoser ? 'L'
                                 : null;
@@ -107,6 +108,16 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                     : status === "Canceled" ? s.statusCanceled
                     : s.statusPending;
                 return <span className={`${s.status} ${statusClass}`}>{status || "Unknown"}</span>;
+            }
+        },
+        {
+            key: "elapsed",
+            title: "Elapsed",
+            width: 100,
+            render: (_, { CreatedAt, UpdatedAt, status }) => {
+                const terminal = ["Complete", "Error", "Canceled", "Incomplete"];
+                if (!terminal.includes(status)) return <span className={s.muted}>—</span>;
+                return <span className={s.elapsed}>{prettyTimeAgo(elapsedTime(CreatedAt, UpdatedAt))}</span>;
             }
         },
         {

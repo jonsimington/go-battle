@@ -59,24 +59,27 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
         {
             key: "players",
             title: "Players",
-            render: (_, { players, games }) => {
+            render: (_, { players, games, status }) => {
                 if (!players || players.length === 0) return <span className={s.muted}>—</span>;
 
                 const safeGames = games || [];
                 const playerScores = calculatePlayerScores(safeGames, players);
-                const allSame = allPlayersHaveSameScore(playerScores);
+                const isComplete = status === 'Complete';
+                const allSame = isComplete && allPlayersHaveSameScore(playerScores);
                 const playerIds = players.map(pluck('ID')).join(', ');
 
                 return (
                     <div className={s.playerList}>
                         {playerScores.map((score) => {
-                            const isLeader = !allSame && playerScores[0]?.name === score.name;
+                            const isLeader = isComplete && !allSame && playerScores[0]?.name === score.name;
                             const colorClass = allSame ? s.playerDraw
-                                : isLeader ? s.playerWinning
-                                : s.playerLosing;
+                                : isComplete && isLeader ? s.playerWinning
+                                : isComplete ? s.playerLosing
+                                : '';
                             const label = allSame ? 'draw'
                                 : isLeader ? 'W'
-                                : 'L';
+                                : isComplete ? 'L'
+                                : null;
 
                             return (
                                 <span
@@ -88,7 +91,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
                                     {score.name}
                                     <EloBadge elo={score.elo} eloHistory={score.elo_history} />
                                     <span className={s.scoreValue}>({score.wins}-{score.losses}-{score.draws})</span>
-                                    <span className={s.resultTag}>{label}</span>
+                                    {label && <span className={s.resultTag}>{label}</span>}
                                 </span>
                             );
                         })}
@@ -123,6 +126,16 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
             width: 120,
             render: (_, { CreatedAt }) => {
                 return <TimeAgo datetime={CreatedAt} className={s.timeAgo} />;
+            }
+        },
+        {
+            key: "elapsed",
+            title: "Elapsed",
+            width: 100,
+            render: (_, { start_time, end_time }) => {
+                const isZero = (t: any) => !t || t.toString() === "0001-01-01T00:00:00Z";
+                if (isZero(start_time) || isZero(end_time)) return <span className={s.muted}>—</span>;
+                return <span className={s.elapsed}>{prettyTimeAgo(elapsedTime(start_time, end_time))}</span>;
             }
         },
         {

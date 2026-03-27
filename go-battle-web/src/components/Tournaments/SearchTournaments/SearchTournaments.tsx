@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
-import { delay, getApiUrl, pluck } from '../../../utils/utils';
+import { delay, elapsedTime, getApiUrl, pluck, prettyTimeAgo } from '../../../utils/utils';
 import { apiFetch } from '../../../utils/apiFetch';
 import { TournamentsResult } from '../../../models/TournamentsResult';
 import { FaCirclePlay, FaSpinner, FaDiagramProject, FaTrash } from 'react-icons/fa6';
@@ -120,6 +120,16 @@ export function SearchTournaments({ tableData, refreshData }: SearchTournamentsP
             key: "type",
             title: "Type",
             width: 100,
+        },
+        {
+            key: "elapsed",
+            title: "Elapsed",
+            width: 100,
+            render: (_, { start_time, end_time }) => {
+                const isZero = (t: any) => !t || t.toString() === "0001-01-01T00:00:00Z";
+                if (isZero(start_time) || isZero(end_time)) return <span className={s.muted}>—</span>;
+                return <span className={s.elapsed}>{prettyTimeAgo(elapsedTime(start_time, end_time))}</span>;
+            }
         },
         {
             key: "actions",
