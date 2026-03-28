@@ -9,7 +9,9 @@ export interface FilterOption {
 export interface FilterConfig {
     key: string;
     label: string;
-    options: FilterOption[];
+    type?: 'select' | 'text';
+    options?: FilterOption[];
+    placeholder?: string;
 }
 
 export interface SortOption {
@@ -27,6 +29,7 @@ export interface FilterBarProps {
     onSortChange: (field: string, dir: 'asc' | 'desc') => void;
     totalCount?: number;
     onClear: () => void;
+    defaultSortField?: string;
 }
 
 export function FilterBar({
@@ -39,9 +42,10 @@ export function FilterBar({
     onSortChange,
     totalCount,
     onClear,
+    defaultSortField = 'created_at',
 }: FilterBarProps): JSX.Element {
     const hasActiveFilters = Object.values(filterValues).some(v => v !== '');
-    const isNonDefaultSort = sortField !== 'created_at' || sortDir !== 'desc';
+    const isNonDefaultSort = sortField !== defaultSortField || sortDir !== 'desc';
 
     const handleSortClick = (field: string) => {
         if (sortField === field) {
@@ -56,17 +60,27 @@ export function FilterBar({
             <div className={s.filtersRow}>
                 {filters.map(filter => (
                     <div key={filter.key} className={s.filterGroup}>
-                        <span className={s.filterLabel}>{filter.label}</span>
-                        <select
-                            className={`${s.filterSelect} ${filterValues[filter.key] ? s.filterSelectActive : ''}`}
-                            value={filterValues[filter.key] || ''}
-                            onChange={e => onFilterChange(filter.key, e.target.value)}
-                        >
-                            <option value="">All</option>
-                            {filter.options.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                        </select>
+                        {filter.label && <span className={s.filterLabel}>{filter.label}</span>}
+                        {filter.type === 'text' ? (
+                            <input
+                                type="text"
+                                className={`${s.filterInput} ${filterValues[filter.key] ? s.filterInputActive : ''}`}
+                                value={filterValues[filter.key] || ''}
+                                placeholder={filter.placeholder ?? 'Filter...'}
+                                onChange={e => onFilterChange(filter.key, e.target.value)}
+                            />
+                        ) : (
+                            <select
+                                className={`${s.filterSelect} ${filterValues[filter.key] ? s.filterSelectActive : ''}`}
+                                value={filterValues[filter.key] || ''}
+                                onChange={e => onFilterChange(filter.key, e.target.value)}
+                            >
+                                <option value="">All</option>
+                                {(filter.options ?? []).map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </select>
+                        )}
                     </div>
                 ))}
                 {(hasActiveFilters || isNonDefaultSort) && (

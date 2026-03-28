@@ -88,6 +88,14 @@ const filterConfigs: Record<string, FilterConfig[]> = {
             ],
         },
     ],
+    players: [
+        {
+            key: 'name',
+            type: 'text' as const,
+            label: '',
+            placeholder: 'Search by name...',
+        },
+    ],
 };
 
 const sortConfigs: Record<string, SortOption[]> = {
@@ -108,7 +116,20 @@ const sortConfigs: Record<string, SortOption[]> = {
         { field: 'name', label: 'Name' },
     ],
     clients: [],
+    players: [
+        { field: 'elo', label: 'ELO' },
+        { field: 'win_percent', label: 'Win %' },
+        { field: 'name', label: 'Name' },
+        { field: 'activity', label: 'Activity' },
+        { field: 'created_at', label: 'Date' },
+    ],
 };
+
+// Per-context default sort (used for FilterBar "Clear" and initial state)
+const defaultSortByContext: Record<string, { field: string; dir: 'asc' | 'desc' }> = {
+    players: { field: 'elo', dir: 'desc' },
+};
+const getDefaultSort = (ctx: string) => defaultSortByContext[ctx] ?? { field: 'created_at', dir: 'desc' };
 
 export function DbTableView({ context }: DbTableViewProps): JSX.Element {
     const [data, setData] = useState<ApiResult[]>();
@@ -213,8 +234,11 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
         }
         setFilterValues(initialFilters);
         filtersRef.current = initialFilters;
-        setSortField('created_at');
-        setSortDir('desc');
+        const { field: defaultField, dir: defaultDir } = getDefaultSort(context);
+        setSortField(defaultField);
+        setSortDir(defaultDir);
+        sortFieldRef.current = defaultField;
+        sortDirRef.current = defaultDir;
         fetchFromApi(1, resultsPerPage);
     // Only re-fetch when the context or search params change, not on every page/pageSize change
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -243,11 +267,12 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
 
     const handleClearFilters = () => {
         setFilterValues({});
-        setSortField('created_at');
-        setSortDir('desc');
+        const { field: defaultField, dir: defaultDir } = getDefaultSort(context);
+        setSortField(defaultField);
+        setSortDir(defaultDir);
         filtersRef.current = {};
-        sortFieldRef.current = 'created_at';
-        sortDirRef.current = 'desc';
+        sortFieldRef.current = defaultField;
+        sortDirRef.current = defaultDir;
         setSelectedPage(1);
         setTimeout(() => fetchFromApi(1, resultsPerPage), 0);
     };
@@ -314,6 +339,7 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                             onSortChange={handleSortChange}
                             totalCount={shouldShowPagination ? totalCount : (data?.length ?? 0)}
                             onClear={handleClearFilters}
+                            defaultSortField={getDefaultSort(context).field}
                         />
                     ) : <span />}
                     <RefreshButton
@@ -326,7 +352,7 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
             ) : (
                 <>
                     {context === "players" ? (
-                        <SearchPlayers tableData={data ?? []} refreshData={() => fetchFromApi()} />
+                        <div className={d.tableCard}><SearchPlayers tableData={data ?? []} refreshData={() => fetchFromApi()} filterValues={filterValues} sortField={sortField} sortDir={sortDir} /></div>
                     ) : context === "games" ? (
                         <div className={d.tableCard}><SearchGames tableData={displayedData ?? []} refreshData={() => fetchFromApi(selectedPage, resultsPerPage)} /></div>
                     ) : context === "matches" ? (

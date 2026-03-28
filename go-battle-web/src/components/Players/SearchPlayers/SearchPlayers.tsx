@@ -1,10 +1,10 @@
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { PlayersResult } from '../../../models/PlayersResult';
-import { useMemo, useState } from 'react';
-import { Button, Badge, Card, Form, InputGroup, Row, Col, Dropdown, DropdownButton, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { calculateGameResult, calculateStreak, pluck } from '../../../utils/utils';
+import { useMemo } from 'react';
+import { Badge, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { calculateStreak, pluck } from '../../../utils/utils';
 import { Sparklines, SparklinesLine, SparklinesSpots } from 'react-sparklines';
-import { FaMagnifyingGlass, FaSort, FaSortDown, FaSortUp, FaMedal, FaTrophy, FaFire } from 'react-icons/fa6';
+import { FaMedal, FaTrophy, FaFire } from 'react-icons/fa6';
 import EloBadge from '../../Common/ELO/ELOBadge';
 import { Link, useNavigate } from 'react-router-dom';
 import './SearchPlayers.css';
@@ -12,6 +12,9 @@ import './SearchPlayers.css';
 interface SearchPlayersProps {
     tableData: any[],
     refreshData: Function,
+    filterValues?: Record<string, string>,
+    sortField?: string,
+    sortDir?: 'asc' | 'desc',
 }
 
 // Pure function hoisted outside component — no re-creation each render
@@ -42,12 +45,7 @@ const countGameResults = (games: any[], playerID: number) => {
     return { wins, losses, draws, total };
 };
 
-export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): JSX.Element {
-    const [sortType, setSortType] = useState("elo-desc");
-    const [searchTerm, setSearchTerm] = useState("");
-    const [eloMinFilter, setEloMinFilter] = useState("");
-    const [eloMaxFilter, setEloMaxFilter] = useState("");
-
+export function SearchPlayers({ tableData, refreshData, filterValues = {}, sortField = 'elo', sortDir = 'desc' }: SearchPlayersProps): JSX.Element {
     const navigate = useNavigate();
 
     // Derive sorted + filtered data during render via useMemo instead of useEffect chains
@@ -55,46 +53,33 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
         let result = [...tableData] as PlayersResult[];
 
         // Sort
-        if (sortType === "created") {
-            result.sort((a, b) => a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0);
-        } else if (sortType === "created-desc") {
-            result.sort((a, b) => a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0);
-        } else if (sortType === "elo-desc") {
-            result.sort((a, b) => b.elo - a.elo);
-        } else if (sortType === "elo-asc") {
-            result.sort((a, b) => a.elo - b.elo);
-        } else if (sortType === "name-asc") {
-            result.sort((a, b) => a.name.localeCompare(b.name));
-        } else if (sortType === "name-desc") {
-            result.sort((a, b) => b.name.localeCompare(a.name));
-        } else if (sortType === "win-percent-desc") {
-            result.sort((a, b) => calculateWinPercentage(b) - calculateWinPercentage(a));
-        } else if (sortType === "activity-desc") {
-            result.sort((a, b) => (b.games || []).length - (a.games || []).length);
+        if (sortField === 'elo') {
+            result.sort((a, b) => sortDir === 'desc' ? b.elo - a.elo : a.elo - b.elo);
+        } else if (sortField === 'win_percent') {
+            result.sort((a, b) => sortDir === 'desc'
+                ? calculateWinPercentage(b) - calculateWinPercentage(a)
+                : calculateWinPercentage(a) - calculateWinPercentage(b));
+        } else if (sortField === 'name') {
+            result.sort((a, b) => sortDir === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+        } else if (sortField === 'activity') {
+            result.sort((a, b) => sortDir === 'desc'
+                ? (b.games || []).length - (a.games || []).length
+                : (a.games || []).length - (b.games || []).length);
+        } else {
+            // created_at
+            result.sort((a, b) => sortDir === 'desc'
+                ? (a.CreatedAt > b.CreatedAt ? -1 : a.CreatedAt < b.CreatedAt ? 1 : 0)
+                : (a.CreatedAt < b.CreatedAt ? -1 : a.CreatedAt > b.CreatedAt ? 1 : 0));
         }
 
-        // Filter by search term
-        if (searchTerm) {
-            const lower = searchTerm.toLowerCase();
-            result = result.filter(player => player.name.toLowerCase().includes(lower));
-        }
-
-        // Filter by ELO range
-        if (eloMinFilter) {
-            const minElo = parseInt(eloMinFilter);
-            if (!isNaN(minElo)) {
-                result = result.filter(player => player.elo >= minElo);
-            }
-        }
-        if (eloMaxFilter) {
-            const maxElo = parseInt(eloMaxFilter);
-            if (!isNaN(maxElo)) {
-                result = result.filter(player => player.elo <= maxElo);
-            }
+        // Filter by name (client-side text search from filterValues)
+        const nameFilter = filterValues['name']?.toLowerCase();
+        if (nameFilter) {
+            result = result.filter(player => player.name.toLowerCase().includes(nameFilter));
         }
 
         return result;
-    }, [tableData, sortType, searchTerm, eloMinFilter, eloMaxFilter]);
+    }, [tableData, sortField, sortDir, filterValues]);
 
     const renderRankBadge = (index: number) => {
         if (index === 0) return <FaTrophy className="text-warning" title="Top Ranked Player" />;
@@ -289,81 +274,24 @@ export function SearchPlayers({ tableData, refreshData }: SearchPlayersProps): J
             width: 100,
             render: (column: IColumnType<PlayersResult>, item: PlayersResult) => {
                 const { client } = item;
-                if (!client) return <span>—</span>;
+                if (!client) return <span className="streak-none">—</span>;
                 return (
-                    <Button 
-                        variant="outline-info" 
-                        size="sm" 
-                        key={`client-${client.ID}`}
-                        onClick={() => navigate(`/clients/search?ids=${client.ID}`)}>
-                            {client.ID}
-                    </Button>
+                    <Link
+                        to={`/clients/search?ids=${client.ID}`}
+                        className="player-link"
+                    >
+                        {client.ID}
+                    </Link>
                 );
             }
         }
     ];
 
     return (
-        <>
-        <Card className="player-table-card">
-            <Card.Body>
-                <Row className="filters-container mb-3">
-                    <Col md={6} className="search-container">
-                        <InputGroup>
-                            <InputGroup.Text><FaMagnifyingGlass /></InputGroup.Text>
-                            <Form.Control 
-                                className="search-input"
-                                placeholder="Search by name" 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </InputGroup>
-                    </Col>
-                    <Col md={4} className="elo-filter-container">
-                        <InputGroup>
-                            <InputGroup.Text>ELO Range</InputGroup.Text>
-                            <Form.Control 
-                                className="elo-range-input"
-                                placeholder="Min" 
-                                value={eloMinFilter}
-                                type="number"
-                                onChange={(e) => setEloMinFilter(e.target.value)}
-                            />
-                            <Form.Control 
-                                className="elo-range-input"
-                                placeholder="Max" 
-                                value={eloMaxFilter}
-                                type="number"
-                                onChange={(e) => setEloMaxFilter(e.target.value)}
-                            />
-                        </InputGroup>
-                    </Col>
-                    <Col md={2} className="sort-container">
-                        <DropdownButton 
-                            id="dropdown-sort" 
-                            title={<><FaSort /> Sort</>}
-                            variant="outline-secondary"
-                            className="sort-dropdown"
-                        >
-                            <Dropdown.Item onClick={() => setSortType("elo-desc")}><FaSortDown /> ELO (High to Low)</Dropdown.Item>
-                            <Dropdown.Item onClick={() => setSortType("elo-asc")}><FaSortUp /> ELO (Low to High)</Dropdown.Item>
-                            <Dropdown.Item onClick={() => setSortType("win-percent-desc")}><FaSortDown /> Win % (High to Low)</Dropdown.Item>
-                            <Dropdown.Item onClick={() => setSortType("name-asc")}><FaSortUp /> Name (A-Z)</Dropdown.Item>
-                            <Dropdown.Item onClick={() => setSortType("name-desc")}><FaSortDown /> Name (Z-A)</Dropdown.Item>
-                            <Dropdown.Item onClick={() => setSortType("activity-desc")}><FaSortDown /> Most Active</Dropdown.Item>
-                        </DropdownButton>
-                    </Col>
-                </Row>
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                    <span className="text-muted">{filteredData.length} players</span>
-                </div>
-                <DynamicTable
-                    data={filteredData}
-                    columns={columns}
-                    onRowClick={(player: PlayersResult) => navigate(`/players/${player.ID}`)}
-                />
-            </Card.Body>
-        </Card>
-        </>
+        <DynamicTable
+            data={filteredData}
+            columns={columns}
+            onRowClick={(player: PlayersResult) => navigate(`/players/${player.ID}`)}
+        />
     );
 }

@@ -60,6 +60,37 @@
     color: var(--text-primary);
 }
 
+.filterInput {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding: 5px 10px;
+    min-width: 160px;
+    transition: border-color 150ms ease, color 150ms ease;
+}
+
+.filterInput::placeholder {
+    color: var(--text-muted);
+}
+
+.filterInput:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+}
+
+.filterInput:focus {
+    outline: none;
+    border-color: var(--primary);
+    color: var(--text-primary);
+}
+
+.filterInputActive {
+    border-color: var(--primary);
+    color: var(--text-primary);
+}
+
 .sortBtn {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -147,6 +178,10 @@
     }
 
     .filterSelect {
+        width: 100%;
+    }
+
+    .filterInput {
         width: 100%;
     }
 

@@ -29,7 +29,6 @@ const TableWrapper = styled("table", {
     border: "none",
     width: "100%",
     minWidth: "600px",
-    marginBottom: "1em",
     borderRadius: "6px",
     overflow: "hidden"
 });
