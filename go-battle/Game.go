@@ -28,6 +28,7 @@ type Game struct {
 	MatchID      int      `json:"match_id"`
 	Match        Match    `json:"match" gorm:"foreignKey:MatchID"`
 	SessionID    int      `json:"session_id"`
+	GameType     string   `json:"game_type"`
 	GamelogUrl   string   `json:"gamelog_url"`
 	Draw         bool     `json:"draw"`
 	Status       string   `json:"status"`
@@ -254,6 +255,12 @@ func (g Game) PlayGame(ctx context.Context, gameSession int) bool {
 
 	updateGameStatus(db, g, "In Progress")
 	g.Status = "In Progress"
+
+	// Persist the game type from the first player's client so the API can expose it
+	if len(g.Players) > 0 && g.Players[0].Client.Game != "" {
+		gameType := g.Players[0].Client.Game
+		updateEntityField[Game](db, gameLock, g.ID, func(game *Game) { game.GameType = gameType })
+	}
 
 	var matchID = strconv.Itoa(int(g.Match.ID))
 	pwd, _ := os.Getwd()

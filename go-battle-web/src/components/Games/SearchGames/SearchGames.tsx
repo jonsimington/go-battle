@@ -3,7 +3,7 @@ import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
 import { delay, elapsedTime, getApiUrl, getVisUrl, pluck, prettyTimeAgo } from '../../../utils/utils';
 import { apiFetch } from '../../../utils/apiFetch';
-import { FaTv, FaTrash, FaCircleStop, FaArrowRotateRight, FaSpinner } from 'react-icons/fa6';
+import { FaTv, FaTrash, FaCircleStop, FaArrowRotateRight, FaSpinner, FaEye } from 'react-icons/fa6';
 import TimeAgo from 'timeago-react';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../../Common/Modal';
@@ -133,9 +133,14 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             key: "actions",
             title: "",
             width: 120,
-            render: (_, { gamelog_url, ID, status }) => {
+            render: (_, { gamelog_url, ID, status, session_id, game_type }) => {
                 const isStopping = gamesStopping.includes(ID);
                 const isRestarting = gamesRestarting.includes(ID);
+
+                // Viseur expects a capitalized game name (e.g. "Chess", not "chess")
+                const visGameName = game_type
+                    ? game_type.charAt(0).toUpperCase() + game_type.slice(1)
+                    : '';
 
                 return (
                     <div className={s.actions}>
@@ -153,6 +158,16 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                                 <FaTv />
                             </span>
                         )}
+                        {status === "In Progress" && visGameName && session_id ? (
+                            <a
+                                className={s.actionBtn}
+                                href={`${visUrl}/?spectate=${encodeURIComponent(visGameName)}&session=${session_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Watch live">
+                                <FaEye />
+                            </a>
+                        ) : null}
                         {status === "In Progress" && !isStopping && (
                             <button
                                 className={`${s.actionBtn} ${s.actionStop}`}
