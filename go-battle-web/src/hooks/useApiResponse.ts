@@ -1,29 +1,35 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+
+export interface AppNotification {
+    id: number;
+    variant: string;
+    text: string;
+}
+
+let nextId = 0;
 
 export function useApiResponse() {
-    const [hasError, setHasError] = useState(false);
-    const [hasWarning, setHasWarning] = useState(false);
-    const [showResponse, setShowResponse] = useState(false);
-    const [alertText, setAlertText] = useState('');
+    const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+    const dismiss = useCallback((id: number) => {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+    }, []);
 
     const handleResponse = async (response: Response) => {
-        setShowResponse(true);
         const responseText = await response.text();
-        setAlertText(`HTTP ${response.status}: ${responseText}`);
+        const text = `HTTP ${response.status}: ${responseText}`;
+        let variant = 'success';
+        if (response.status === 400) variant = 'warning';
+        else if (!response.ok) variant = 'danger';
 
-        if (response.ok) {
-            setHasWarning(false);
-            setHasError(false);
-        } else if (response.status === 400) {
-            setHasWarning(true);
-        } else if (response.status === 500) {
+        const id = nextId++;
+        setNotifications(prev => [...prev, { id, variant, text }]);
+
+        if (!response.ok && response.status !== 400) {
             console.error(responseText);
-            setHasError(true);
             return Promise.reject();
         }
     };
 
-    const alertVariant = hasError ? 'danger' : hasWarning ? 'warning' : 'success';
-
-    return { hasError, hasWarning, showResponse, setShowResponse, alertText, setAlertText, handleResponse, alertVariant };
+    return { notifications, dismiss, handleResponse };
 }

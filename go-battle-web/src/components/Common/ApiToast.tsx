@@ -1,30 +1,42 @@
-import { Toast } from 'react-bootstrap';
+import { createPortal } from 'react-dom';
+import { useEffect } from 'react';
+import { AppNotification } from '../../hooks/useApiResponse';
+import s from './ApiToast.module.css';
 
-interface ApiToastProps {
-    show: boolean;
-    onClose: () => void;
-    variant: string;
-    text: string;
+const AUTO_DISMISS_MS = 15000;
+
+interface NotificationItemProps {
+    notification: AppNotification;
+    onDismiss: (id: number) => void;
 }
 
-const toastStyles = {
-    maxWidth: "95%",
-    minWidth: "75%",
-};
+function NotificationItem({ notification, onDismiss }: NotificationItemProps): JSX.Element {
+    useEffect(() => {
+        const timer = setTimeout(() => onDismiss(notification.id), AUTO_DISMISS_MS);
+        return () => clearTimeout(timer);
+    }, [notification.id, onDismiss]);
 
-export function ApiToast({ show, onClose, variant, text }: ApiToastProps): JSX.Element {
     return (
-        <Toast
-            className="my-3"
-            bg={variant}
-            onClose={onClose}
-            show={show}
-            delay={5000}
-            animation={true}
-            style={toastStyles}
-            autohide
-        >
-            <Toast.Body>{text}</Toast.Body>
-        </Toast>
+        <div className={`${s.notification} ${s[notification.variant] ?? ''}`}>
+            <span className={s.text}>{notification.text}</span>
+            <button className={s.close} onClick={() => onDismiss(notification.id)} aria-label="Dismiss">✕</button>
+        </div>
+    );
+}
+
+interface NotificationStackProps {
+    notifications: AppNotification[];
+    onDismiss: (id: number) => void;
+}
+
+export function ApiToast({ notifications, onDismiss }: NotificationStackProps): JSX.Element {
+    if (notifications.length === 0) return <></>;
+    return createPortal(
+        <div className={s.stack}>
+            {notifications.map(n => (
+                <NotificationItem key={n.id} notification={n} onDismiss={onDismiss} />
+            ))}
+        </div>,
+        document.body
     );
 }

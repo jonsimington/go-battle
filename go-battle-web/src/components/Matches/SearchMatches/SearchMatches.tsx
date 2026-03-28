@@ -1,7 +1,7 @@
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { MatchesResult } from '../../../models/MatchesResult';
 import { FaCirclePlay, FaCircleStop, FaArrowRotateRight, FaSpinner, FaTrash } from 'react-icons/fa6';
-import { allPlayersHaveSameScore, calculatePlayerScores, delay, elapsedTime, getApiUrl, pluck, prettyTimeAgo } from '../../../utils/utils';
+import { allPlayersHaveSameScore, calculatePlayerScores, elapsedTime, getApiUrl, pluck, prettyTimeAgo } from '../../../utils/utils';
 import { apiFetch } from '../../../utils/apiFetch';
 import { useState } from 'react';
 import TimeAgo from 'timeago-react';
@@ -191,8 +191,7 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
         apiFetch(`${apiUrl}/matches/start?match_id=${matchID}`, { method: 'POST' })
             .then(response => api.handleResponse(response))
-            .then(() => delay(1000))
-            .then(() => { refreshData(); setMatchesPlaying(prev => prev.filter(id => id !== matchID)); });
+            .then(() => { setMatchesPlaying(prev => prev.filter(id => id !== matchID)); refreshData(); });
     }
 
     const stopMatch = (matchID: number) => {
@@ -201,11 +200,10 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
         apiFetch(`${apiUrl}/matches/stop?match_id=${matchID}`, { method: 'POST' })
             .then(response => api.handleResponse(response))
-            .then(() => delay(1000))
             .then(() => {
-                refreshData();
                 setMatchesStopping(prev => prev.filter(id => id !== matchID));
                 setMatchesPlaying(prev => prev.filter(id => id !== matchID));
+                refreshData();
             })
             .catch(() => { setMatchesStopping(prev => prev.filter(id => id !== matchID)); });
     }
@@ -216,9 +214,8 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
         apiFetch(`${apiUrl}/matches/restart?match_id=${matchID}`, { method: 'POST' })
             .then(response => api.handleResponse(response))
-            .then(() => delay(1000))
-            .then(() => { refreshData(); setMatchesRestarting(prev => prev.filter(id => id !== matchID)); })
-            .catch(() => { setMatchesRestarting(prev => prev.filter(id => id !== matchID)); });
+            .then(() => { setMatchesRestarting(prev => prev.filter(id => id !== matchID)); refreshData(); })
+            .catch(() => setMatchesRestarting(prev => prev.filter(id => id !== matchID)));
     }
 
     const deleteMatch = () => {
@@ -227,19 +224,13 @@ export function SearchMatches({ tableData, refreshData }: SearchMatchesProps): J
 
         apiFetch(`${apiUrl}/matches?match_id=${del.itemToDelete}`, { method: 'DELETE' })
             .then(response => api.handleResponse(response))
-            .then(() => delay(1000))
             .then(() => { del.resetDelete(); refreshData(); })
-            .catch(() => { del.resetDelete(); });
+            .catch(() => del.resetDelete());
     }
 
     return (
         <>
-            <ApiToast
-                show={api.showResponse}
-                onClose={() => api.setShowResponse(false)}
-                variant={api.alertVariant}
-                text={api.alertText}
-            />
+            <ApiToast notifications={api.notifications} onDismiss={api.dismiss} />
 
             <DynamicTable data={tableData} columns={columns} />
 

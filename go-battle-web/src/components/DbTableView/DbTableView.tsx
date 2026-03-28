@@ -347,9 +347,8 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                     />
                 </div>
             )}
-            {loading ? (
-                <h3><FaSpinner className="icon-spin"></FaSpinner></h3>
-            ) : (
+            {loading && <h3><FaSpinner className="icon-spin"></FaSpinner></h3>}
+            <div style={{ display: loading ? 'none' : undefined }}>
                 <>
                     {context === "players" ? (
                         <div className={d.tableCard}><SearchPlayers tableData={data ?? []} refreshData={() => fetchFromApi()} filterValues={filterValues} sortField={sortField} sortDir={sortDir} /></div>
@@ -435,7 +434,7 @@ export function DbTableView({ context }: DbTableViewProps): JSX.Element {
                         </div>
                     ) : null}
                 </>
-            )}
+            </div>
         </div>
     );
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
-import { delay, elapsedTime, getApiUrl, getVisUrl, pluck, prettyTimeAgo } from '../../../utils/utils';
+import { elapsedTime, getApiUrl, getVisUrl, pluck, prettyTimeAgo } from '../../../utils/utils';
 import { apiFetch } from '../../../utils/apiFetch';
 import { FaTv, FaTrash, FaCircleStop, FaArrowRotateRight, FaSpinner, FaEye } from 'react-icons/fa6';
 import TimeAgo from 'timeago-react';
@@ -212,9 +212,8 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
 
         apiFetch(`${apiUrl}/games/stop?game_id=${gameID}`, { method: 'POST' })
             .then(response => api.handleResponse(response))
-            .then(() => delay(1000))
-            .then(() => { refreshData(); setGamesStopping(prev => prev.filter(id => id !== gameID)); })
-            .catch(() => { setGamesStopping(prev => prev.filter(id => id !== gameID)); });
+            .then(() => { setGamesStopping(prev => prev.filter(id => id !== gameID)); refreshData(); })
+            .catch(() => setGamesStopping(prev => prev.filter(id => id !== gameID)));
     }
 
     const restartGame = (gameID: number) => {
@@ -223,9 +222,8 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
 
         apiFetch(`${apiUrl}/games/restart?game_id=${gameID}`, { method: 'POST' })
             .then(response => api.handleResponse(response))
-            .then(() => delay(1000))
-            .then(() => { refreshData(); setGamesRestarting(prev => prev.filter(id => id !== gameID)); })
-            .catch(() => { setGamesRestarting(prev => prev.filter(id => id !== gameID)); });
+            .then(() => { setGamesRestarting(prev => prev.filter(id => id !== gameID)); refreshData(); })
+            .catch(() => setGamesRestarting(prev => prev.filter(id => id !== gameID)));
     }
 
     const deleteGame = () => {
@@ -234,19 +232,13 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
 
         apiFetch(`${apiUrl}/games?game_id=${del.itemToDelete}`, { method: 'DELETE' })
             .then(response => api.handleResponse(response))
-            .then(() => delay(1000))
             .then(() => { del.resetDelete(); refreshData(); })
-            .catch(() => { del.resetDelete(); });
+            .catch(() => del.resetDelete());
     }
 
     return (
         <>
-            <ApiToast
-                show={api.showResponse}
-                onClose={() => api.setShowResponse(false)}
-                variant={api.alertVariant}
-                text={api.alertText}
-            />
+            <ApiToast notifications={api.notifications} onDismiss={api.dismiss} />
 
             <DynamicTable data={tableData} columns={columns} />
 
