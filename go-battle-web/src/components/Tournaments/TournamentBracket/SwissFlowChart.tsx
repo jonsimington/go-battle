@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 
 export interface TickResult {
     result: 'win' | 'loss' | 'draw' | 'pending';
@@ -59,6 +59,21 @@ interface HoveredDot {
 export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlowChartProps): JSX.Element | null {
     const [hoveredId, setHoveredId] = useState<number | null>(null);
     const [hoveredDot, setHoveredDot] = useState<HoveredDot | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [containerWidth, setContainerWidth] = useState<number>(900);
+
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const ro = new ResizeObserver(entries => {
+            const w = Math.floor(entries[0]?.contentRect.width ?? 0);
+            if (w > 0) setContainerWidth(w);
+        });
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+
+    const isMobile = containerWidth < 600;
 
     // When hovering a game dot, highlight both the player and their opponent
     const hoveredMatchPlayerIds = useMemo(() => {
@@ -71,11 +86,15 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
 
     const totalTicks = 1 + gamesPerRound * roundCount;
 
-    const margin = { top: 20, right: 150, bottom: 48, left: 44 };
-    const width = 900;
-    const innerW = width - margin.left - margin.right;
+    const marginTop = 20;
+    const marginRight = isMobile ? 8 : 150;
+    const marginBottom = isMobile ? 36 : 48;
+    const marginLeft = isMobile ? 32 : 44;
+
+    const width = isMobile ? Math.max(containerWidth, 280) : 900;
+    const innerW = width - marginLeft - marginRight;
     const innerH = Math.max(220, Math.min(400, players.length * 18));
-    const height = innerH + margin.top + margin.bottom;
+    const height = innerH + marginTop + marginBottom;
 
     const maxScore = useMemo(() => {
         let m = 0;
@@ -94,12 +113,12 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
         ), [players]);
 
     const x = useCallback((tick: number) =>
-        margin.left + (tick / Math.max(totalTicks - 1, 1)) * innerW,
-        [margin.left, innerW, totalTicks]);
+        marginLeft + (tick / Math.max(totalTicks - 1, 1)) * innerW,
+        [marginLeft, innerW, totalTicks]);
 
     const y = useCallback((score: number) =>
-        margin.top + innerH - (score / maxScore) * innerH,
-        [margin.top, innerH, maxScore]);
+        marginTop + innerH - (score / maxScore) * innerH,
+        [marginTop, innerH, maxScore]);
 
     const roundEndTicks = useMemo(() =>
         Array.from({ length: roundCount }, (_, r) => (r + 1) * gamesPerRound),
@@ -157,6 +176,7 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
     const gridCount = Math.ceil(maxScore);
 
     return (
+        <div ref={containerRef} style={{ width: '100%' }}>
         <svg
             viewBox={`0 0 ${width} ${height}`}
             role="img"
@@ -167,12 +187,12 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
             {Array.from({ length: gridCount + 1 }, (_, i) => (
                 <g key={`g${i}`}>
                     <line
-                        x1={margin.left} y1={y(i)}
-                        x2={margin.left + innerW} y2={y(i)}
+                        x1={marginLeft} y1={y(i)}
+                        x2={marginLeft + innerW} y2={y(i)}
                         style={{ stroke: 'var(--border-muted, #21262d)', strokeWidth: 0.5 }}
                     />
                     <text
-                        x={margin.left - 8} y={y(i) + 3.5}
+                        x={marginLeft - 8} y={y(i) + 3.5}
                         textAnchor="end"
                         style={{ fontSize: 10, fill: 'var(--text-muted, #484f58)' }}
                     >{i}</text>
@@ -185,8 +205,8 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
                 return (
                     <line
                         key={`sep${r}`}
-                        x1={sepX} y1={margin.top}
-                        x2={sepX} y2={margin.top + innerH}
+                        x1={sepX} y1={marginTop}
+                        x2={sepX} y2={marginTop + innerH}
                         style={{ stroke: 'var(--border-default, #30363d)', strokeWidth: 0.75 }}
                     />
                 );
@@ -196,8 +216,8 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
             {roundEndTicks.map((tick, r) => (
                 <line
                     key={`re${r}`}
-                    x1={x(tick)} y1={margin.top}
-                    x2={x(tick)} y2={margin.top + innerH}
+                    x1={x(tick)} y1={marginTop}
+                    x2={x(tick)} y2={marginTop + innerH}
                     style={{ stroke: 'var(--border-muted, #21262d)', strokeWidth: 0.5, strokeDasharray: '3,3' }}
                 />
             ))}
@@ -208,8 +228,8 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
                 return (
                     <line
                         key={`gt${i}`}
-                        x1={x(i)} y1={margin.top}
-                        x2={x(i)} y2={margin.top + innerH}
+                        x1={x(i)} y1={marginTop}
+                        x2={x(i)} y2={marginTop + innerH}
                         style={{ stroke: 'var(--border-muted, #21262d)', strokeWidth: 0.3, strokeDasharray: '2,4' }}
                     />
                 );
@@ -225,10 +245,10 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
                             x={(x(roundStartTick) + x(tick)) / 2}
                             y={height - 10}
                             textAnchor="middle"
-                            style={{ fontSize: 11, fill: 'var(--text-secondary, #8b949e)' }}
+                            style={{ fontSize: isMobile ? 13 : 11, fill: 'var(--text-secondary, #8b949e)' }}
                         >R{r + 1}</text>
-                        {/* Game number labels */}
-                        {Array.from({ length: gamesPerRound }, (_, g) => (
+                        {/* Game number labels — hidden on mobile to avoid overlap */}
+                        {!isMobile && Array.from({ length: gamesPerRound }, (_, g) => (
                             <text
                                 key={g}
                                 x={x(roundStartTick + g)}
@@ -294,7 +314,7 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
                             const dotCx = x(t);
                             const dotCy = y(s);
 
-                            const onDotEnter = () => {
+                        const onDotEnter = () => {
                                 setHoveredId(player.playerId);
                                 if (tickResult) {
                                     setHoveredDot({
@@ -313,6 +333,27 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
                                     prev?.playerId === player.playerId && prev?.tick === t ? null : prev
                                 );
                             };
+                            const onDotTouch = (e: React.TouchEvent) => {
+                                e.preventDefault();
+                                setHoveredId(player.playerId);
+                                if (tickResult) {
+                                    setHoveredDot({
+                                        playerId: player.playerId,
+                                        playerName: player.playerName,
+                                        tick: t,
+                                        cx: dotCx,
+                                        cy: dotCy,
+                                        color,
+                                        tickResult,
+                                    });
+                                }
+                            };
+                            const onDotTouchEnd = () => {
+                                setTimeout(() => {
+                                    setHoveredDot(null);
+                                    setHoveredId(null);
+                                }, 1400);
+                            };
 
                             if (isPending) {
                                 return (
@@ -324,6 +365,8 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
                                             style={{ cursor: 'pointer' }}
                                             onMouseEnter={onDotEnter}
                                             onMouseLeave={onDotLeave}
+                                            onTouchStart={onDotTouch}
+                                            onTouchEnd={onDotTouchEnd}
                                         />
                                         <circle
                                             cx={dotCx} cy={dotCy}
@@ -347,6 +390,8 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
                                         style={{ cursor: 'pointer' }}
                                         onMouseEnter={onDotEnter}
                                         onMouseLeave={onDotLeave}
+                                        onTouchStart={onDotTouch}
+                                        onTouchEnd={onDotTouchEnd}
                                     />
                                     <circle
                                         cx={dotCx} cy={dotCy}
@@ -358,8 +403,8 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
                                 </g>
                             );
                         })}
-                        {/* Leader line from last data point to label */}
-                        {label && (
+                        {/* Leader line from last data point to label — desktop only */}
+                        {!isMobile && label && (
                             <>
                                 <line
                                     x1={lastX + 4} y1={lastDataY}
@@ -405,7 +450,7 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
 
                 // Horizontally center on dot, but clamp to chart bounds
                 let tipX = dotX - tipW / 2;
-                tipX = Math.max(margin.left, Math.min(tipX, margin.left + innerW - tipW));
+                tipX = Math.max(marginLeft, Math.min(tipX, marginLeft + innerW - tipW));
 
                 return (
                     <g style={{ pointerEvents: 'none' }}>
@@ -434,5 +479,27 @@ export function SwissFlowChart({ players, roundCount, gamesPerRound }: SwissFlow
                 );
             })()}
         </svg>
+        {isMobile && (
+            <div className="sf-legend">
+                {sorted.map((player, idx) => {
+                    const color = COLORS[idx % COLORS.length];
+                    const lastScore = player.cumulativeScores[player.cumulativeScores.length - 1] || 0;
+                    const isActive = hoveredId === player.playerId;
+                    return (
+                        <div
+                            key={player.playerId}
+                            className={`sf-legend-item${isActive ? ' sf-legend-item-active' : ''}`}
+                            onTouchStart={() => setHoveredId(player.playerId)}
+                            onTouchEnd={() => setTimeout(() => setHoveredId(null), 1400)}
+                        >
+                            <span className="sf-legend-color" style={{ background: color }} />
+                            <span className="sf-legend-name">{player.playerName}</span>
+                            <span className="sf-legend-score">{lastScore}</span>
+                        </div>
+                    );
+                })}
+            </div>
+        )}
+        </div>
     );
 }

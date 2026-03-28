@@ -452,6 +452,59 @@
     padding: 16px;
 }
 
+/* ─── Score flow mobile legend ─── */
+
+.sf-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 12px;
+    border-top: 1px solid var(--border-muted);
+}
+
+.sf-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-muted);
+    cursor: default;
+    transition: background-color 120ms ease;
+}
+
+.sf-legend-item:last-child {
+    border-bottom: none;
+}
+
+.sf-legend-item-active {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.sf-legend-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.sf-legend-name {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-primary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sf-legend-score {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
 /* ─── Scroll wrapper for standings table ─── */
 
 .tb-table-scroll {
@@ -471,26 +524,66 @@
         align-items: flex-start;
     }
 
+    /* Rounds: narrower cards, tighter text */
     .tb-round-col {
-        flex: 0 0 260px;
-        min-width: 240px;
+        flex: 0 0 220px;
+        min-width: 200px;
     }
 
+    .tb-round-header {
+        font-size: 11px;
+        padding: 8px 10px;
+    }
+
+    /* Hide ELO badges inside match card rows — shown in standings instead */
+    .tb-match-row .elo-badge {
+        display: none;
+    }
+
+    .tb-match-record {
+        font-size: 10px;
+    }
+
+    .tb-match-footer {
+        font-size: 10px;
+        padding: 4px 8px;
+        gap: 6px;
+    }
+
+    /* Standings: remove forced width, hide low-value secondary columns */
     .tb-standings {
-        min-width: 480px;
+        min-width: unset;
+        width: 100%;
+    }
+
+    /* Hide: Score (game-level), W, L, D — keep #, Player, Swiss, [Bye,] ELO */
+    .tb-standings thead th:nth-child(4),
+    .tb-standings thead th:nth-child(5),
+    .tb-standings thead th:nth-child(6),
+    .tb-standings thead th:nth-child(7),
+    .tb-standings-row td:nth-child(4),
+    .tb-standings-row td:nth-child(5),
+    .tb-standings-row td:nth-child(6),
+    .tb-standings-row td:nth-child(7) {
+        display: none;
     }
 
     .tb-standings thead th,
     .tb-standings-row td {
-        padding: 8px 8px;
+        padding: 9px 8px;
     }
 
     .tb-tab {
-        padding: 10px 14px;
+        padding: 10px 12px;
+        font-size: 12px;
     }
 
     .tb-tabs {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+    }
+
+    .tb-flow-wrap {
+        padding: 10px 8px;
     }
 }
