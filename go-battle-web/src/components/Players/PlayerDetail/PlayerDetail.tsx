@@ -63,6 +63,22 @@ const PlayerDetail: FC = () => {
         );
     }, [player]);
 
+    // Map each completed game ID → ELO delta by aligning ascending-sorted games
+    // with ascending-sorted ELO history (1 entry created per completed game).
+    const eloDeltas = useMemo(() => {
+        const map = new Map<number, number>();
+        if (!eloHistory.length || !completedGames.length) return map;
+        // completedGames is descending; reverse to get oldest-first order
+        const ascGames = [...completedGames].reverse();
+        ascGames.forEach((game, i) => {
+            const after = eloHistory[i]?.elo;
+            if (after === undefined) return;
+            const before = i === 0 ? 1500 : eloHistory[i - 1].elo;
+            map.set(game.ID, after - before);
+        });
+        return map;
+    }, [completedGames, eloHistory]);
+
     if (loading) {
         return <div className={s.container}><div className={s.loading}>Loading…</div></div>;
     }
@@ -189,7 +205,7 @@ const PlayerDetail: FC = () => {
                                 </thead>
                                 <tbody>
                                     {completedGames.slice(0, gamesShown).map((game) => (
-                                        <GameHistoryRow key={game.ID} game={game} playerId={player.ID} />
+                                        <GameHistoryRow key={game.ID} game={game} playerId={player.ID} eloDelta={eloDeltas.get(game.ID)} />
                                     ))}
                                 </tbody>
                             </table>
@@ -449,9 +465,10 @@ const WinLossDonut: FC<WinLossDonutProps> = ({ wins, losses, draws }) => {
 interface GameHistoryRowProps {
     game: GamesResult;
     playerId: number;
+    eloDelta?: number;
 }
 
-const GameHistoryRow: FC<GameHistoryRowProps> = ({ game, playerId }) => {
+const GameHistoryRow: FC<GameHistoryRowProps> = ({ game, playerId, eloDelta }) => {
     const result = calculateGameResult(game, playerId);
     const isWin = result === 'win';
     const isDraw = result === 'draw';
@@ -475,8 +492,13 @@ const GameHistoryRow: FC<GameHistoryRowProps> = ({ game, playerId }) => {
                 )}
             </td>
             <td>
-                {/* ELO delta is not available per-game from the API, show dash */}
-                <span className={s.eloFlat}>—</span>
+                {eloDelta !== undefined ? (
+                    <span className={`${s.eloDelta} ${eloDelta > 0 ? s.eloUp : eloDelta < 0 ? s.eloDown : s.eloFlat}`}>
+                        {eloDelta > 0 ? `+${eloDelta}` : `${eloDelta}`}
+                    </span>
+                ) : (
+                    <span className={s.eloFlat}>—</span>
+                )}
             </td>
             <td>
                 {game.match_id ? (
