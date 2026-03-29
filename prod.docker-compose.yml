@@ -36,9 +36,7 @@ services:
   viseur:
     build:
       context: ./viseur
-      dockerfile: Dockerfile
-    volumes:
-      - ./viseur:/viseur:delegated
+      dockerfile: prod.Dockerfile
     ports:
       - "8080:8080"
 
