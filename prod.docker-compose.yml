@@ -28,6 +28,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./cerveau:/cerveau:delegated
+      - /cerveau/node_modules
     ports:
       - "3002:3000"
       - "3080:3080"
@@ -37,6 +38,9 @@ services:
     build:
       context: ./viseur
       dockerfile: prod.Dockerfile
+    volumes:
+      - ./viseur:/vis:delegated
+      - /vis/node_modules
     ports:
       - "8080:8080"
 
@@ -53,7 +57,13 @@ services:
       - WATCHPACK_POLLING=true
     volumes:
       - ./go-battle-web:/usr/src/app/go-battle-web:delegated
+      - web-node-modules:/usr/src/app/go-battle-web/node_modules
 
 volumes:
   db:
     driver: local
+  web-node-modules:
+    driver: local
+
+networks:
+  localnet:

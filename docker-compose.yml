@@ -45,7 +45,6 @@ services:
     volumes:
       - ./cerveau:/cerveau:delegated
       - /cerveau/node_modules
-
     ports:
       - "3002:3000"
       - "3080:3080"
