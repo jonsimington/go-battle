@@ -43,6 +43,9 @@ services:
   web:
     build:
       dockerfile: ./go-battle-web/prod.Dockerfile
+      args:
+        - VITE_CERVEAU_WS_SERVER=ws.cerveau.simington.io
+        - VITE_CERVEAU_WS_PORT=443
     ports:
       - "3001:3001"
     environment:

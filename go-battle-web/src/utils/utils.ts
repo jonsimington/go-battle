@@ -15,6 +15,14 @@ export const getApiUrl = () => getServiceUrl(import.meta.env.VITE_API_URL, 3000)
 export const getCerveauUrl = () => getServiceUrl(import.meta.env.VITE_CERVEAU_URL, 3080);
 export const getVisUrl = () => getServiceUrl(import.meta.env.VITE_VIS_URL, 8080);
 
+/** Hostname for the Cerveau WebSocket game server (port 3088 in dev, proxied via Traefik in prod). */
+export const getCerveauWsServer = (): string =>
+    import.meta.env.VITE_CERVEAU_WS_SERVER || window.location.hostname;
+
+/** Port for the Cerveau WebSocket game server. */
+export const getCerveauWsPort = (): number =>
+    parseInt(import.meta.env.VITE_CERVEAU_WS_PORT) || 3088;
+
 export const translateClientLanguage = (languageCode: string) => {
     switch(languageCode) {
         case "py":

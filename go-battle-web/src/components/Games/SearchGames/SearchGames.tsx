@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DynamicTable, IColumnType } from '../../DynamicTable/DynamicTable';
 import { GamesResult } from '../../../models/GamesResult';
-import { elapsedTime, getApiUrl, getVisUrl, pluck, prettyTimeAgo } from '../../../utils/utils';
+import { elapsedTime, getApiUrl, getVisUrl, getCerveauWsServer, getCerveauWsPort, pluck, prettyTimeAgo } from '../../../utils/utils';
 import { apiFetch } from '../../../utils/apiFetch';
 import { FaTv, FaTrash, FaCircleStop, FaArrowRotateRight, FaSpinner, FaEye } from 'react-icons/fa6';
 import TimeAgo from 'timeago-react';
@@ -25,6 +25,8 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
     const del = useConfirmDelete<number>();
 
     const visUrl = getVisUrl();
+    const cerveauWsServer = getCerveauWsServer();
+    const cerveauWsPort = getCerveauWsPort();
     const navigate = useNavigate();
 
     const columns: IColumnType<GamesResult>[] = [
@@ -170,7 +172,7 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
                         {status === "In Progress" && visGameName && session_id ? (
                             <a
                                 className={s.actionBtn}
-                                href={`${visUrl}/?spectate=${encodeURIComponent(visGameName)}&session=${session_id}`}
+                                href={`${visUrl}/?spectate=${encodeURIComponent(visGameName)}&session=${session_id}&server=${cerveauWsServer}&port=${cerveauWsPort}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 title="Watch live">
