@@ -112,6 +112,15 @@ export function SearchGames({ tableData, refreshData }: SearchGamesProps): JSX.E
             }
         },
         {
+            key: "turns",
+            title: "Turns",
+            width: 70,
+            render: (_, { turns, status }) => {
+                if (status !== 'Complete' || !turns) return <span className={s.muted}>—</span>;
+                return <span>{turns}</span>;
+            }
+        },
+        {
             key: "elapsed",
             title: "Elapsed",
             width: 100,

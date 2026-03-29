@@ -17,4 +17,5 @@ export interface GamesResult extends ApiResult {
     result_reason: string;
     winner_id: number;
     loser_id: number;
+    turns: number;
 }

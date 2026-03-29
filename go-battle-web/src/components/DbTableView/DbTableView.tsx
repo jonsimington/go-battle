@@ -103,6 +103,7 @@ const sortConfigs: Record<string, SortOption[]> = {
         { field: 'created_at', label: 'Date' },
         { field: 'id', label: 'ID' },
         { field: 'status', label: 'Status' },
+        { field: 'turns', label: 'Turns' },
     ],
     matches: [
         { field: 'created_at', label: 'Date' },

@@ -32,6 +32,7 @@ type Game struct {
 	GamelogUrl   string   `json:"gamelog_url"`
 	Draw         bool     `json:"draw"`
 	Status       string   `json:"status"`
+	Turns        int      `json:"turns"`
 	ErrorMessage string   `json:"error_message"` // Store error messages for display in UI
 	ResultReason string   `json:"result_reason"` // Human-readable reason why the game ended (e.g. "Checkmate!", "Stalemate...")
 }
@@ -242,6 +243,10 @@ func updateGameErrorMessage(db *gorm.DB, game Game, errorMessage string) {
 
 func setGameResultReason(db *gorm.DB, game Game, reason string) {
 	updateEntityField[Game](db, gameLock, game.ID, func(g *Game) { g.ResultReason = reason })
+}
+
+func setGameTurns(db *gorm.DB, game Game, turns int) {
+	updateEntityField[Game](db, gameLock, game.ID, func(g *Game) { g.Turns = turns })
 }
 
 func (g Game) PlayGame(ctx context.Context, gameSession int) bool {
@@ -617,6 +622,7 @@ func (g Game) runGame(ctx context.Context, playerLanguage string, playerDir stri
 
 					// Process winners and losers from the gamelog
 					if glog != nil {
+						setGameTurns(db, g, len(glog.Deltas))
 						// First check for the draw case - two losers with reason starting with "Draw" or "Stalemate"
 						if len(glog.Losers) == 2 && (isDrawReason(glog.Losers[0].Reason) || isDrawReason(glog.Losers[1].Reason)) {
 							log.Infof("Game %d resulted in a draw (both players in losers with Draw/Stalemate reason)", gameSession)

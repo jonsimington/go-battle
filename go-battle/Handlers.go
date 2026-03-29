@@ -28,6 +28,7 @@ var allowedSortFields = map[string]bool{
 	"id":         true,
 	"status":     true,
 	"name":       true,
+	"turns":      true,
 }
 
 func parsePaginationParams(c *fiber.Ctx) (int, int) {
